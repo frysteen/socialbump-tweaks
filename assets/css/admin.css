@@ -1,0 +1,2337 @@
+.sbtweaks-wrap .sbtweaks-intro {
+	max-width: 60ch;
+	font-size: 14px;
+}
+
+.sbtweaks-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 16px;
+	margin: 20px 0;
+}
+
+.sbtweaks-card {
+	padding: 18px 20px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-left: 4px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.sbtweaks-card.is-on {
+	border-left-color: var(--sbtweaks-accent, #2271b1);
+}
+
+.sbtweaks-card__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.sbtweaks-card__head h2 {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.3;
+}
+
+.sbtweaks-card__desc {
+	margin: 10px 0 0;
+	color: #50575e;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.sbtweaks-card__meta {
+	margin: 12px 0 0;
+	color: #787c82;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+/* Hub only: publish release */
+.sbtweaks-release {
+	margin-top: 32px;
+	padding-top: 24px;
+	border-top: 1px solid #dcdcde;
+}
+
+.sbtweaks-release > h2 {
+	margin: 0 0 6px;
+	font-size: 18px;
+}
+
+.sbtweaks-release .notice.inline {
+	margin: 16px 0 0;
+}
+
+.sbtweaks-release__card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	border-left-color: var(--sbtweaks-accent, #2271b1);
+}
+
+.sbtweaks-release__card h3 {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.3;
+}
+
+.sbtweaks-release__card .sbtweaks-card__desc {
+	margin: 0;
+}
+
+.sbtweaks-release__card form {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: auto;
+}
+
+.sbtweaks-release__card label {
+	margin-top: 4px;
+	font-weight: 600;
+}
+
+.sbtweaks-release__card input[type="text"],
+.sbtweaks-release__card input[type="password"],
+.sbtweaks-release__card textarea {
+	width: 100%;
+	max-width: 100%;
+}
+
+.sbtweaks-release__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin-top: 6px;
+}
+/* Settings page boxes */
+.sbtweaks-section,
+.sbtweaks-release {
+	margin: 24px 0 0;
+	padding: 20px 24px 24px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+}
+
+.sbtweaks-section__head {
+	margin-bottom: 16px;
+	padding-bottom: 14px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sbtweaks-section__head h2 {
+	margin: 0 0 4px;
+	font-size: 16px;
+	line-height: 1.3;
+}
+
+.sbtweaks-section__head p {
+	max-width: 70ch;
+	margin: 0;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.sbtweaks-section .sbtweaks-grid {
+	margin: 0;
+}
+
+.sbtweaks-section .sbtweaks-card,
+.sbtweaks-release .sbtweaks-card {
+	background: #f6f7f7;
+}
+
+.sbtweaks-card__head h3 {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.3;
+}
+
+/* Toggle switches */
+.sbtweaks-switch {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	cursor: pointer;
+}
+
+.sbtweaks-switch input {
+	position: absolute;
+	z-index: 1;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.sbtweaks-switch__track {
+	position: relative;
+	display: block;
+	width: 40px;
+	height: 22px;
+	background: #c3c4c7;
+	border-radius: 999px;
+	transition: background-color 0.2s ease, box-shadow 0.25s ease;
+}
+
+.sbtweaks-switch__dot {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	display: block;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	background: #fff;
+	border-radius: 50%;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	transition: transform 0.2s ease;
+}
+
+.sbtweaks-switch:hover .sbtweaks-switch__track {
+	background: #a7aaad;
+}
+
+.sbtweaks-switch input:checked + .sbtweaks-switch__track {
+	background: #00a32a;
+	box-shadow: 0 0 0 1px rgba(0, 163, 42, 0.25), 0 0 10px rgba(0, 163, 42, 0.55);
+}
+
+.sbtweaks-switch:hover input:checked + .sbtweaks-switch__track {
+	background: #008a20;
+	box-shadow: 0 0 0 1px rgba(0, 163, 42, 0.3), 0 0 14px rgba(0, 163, 42, 0.7);
+}
+
+.sbtweaks-switch input:checked + .sbtweaks-switch__track .sbtweaks-switch__dot {
+	transform: translateX(18px);
+}
+
+.sbtweaks-switch input:focus-visible + .sbtweaks-switch__track {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+.sbtweaks-switch input:disabled {
+	cursor: not-allowed;
+}
+
+.sbtweaks-switch input:disabled + .sbtweaks-switch__track,
+.sbtweaks-switch:hover input:disabled + .sbtweaks-switch__track {
+	background: #dcdcde;
+}
+
+.sbtweaks-switch input:disabled + .sbtweaks-switch__track .sbtweaks-switch__dot {
+	box-shadow: none;
+}
+
+/* Modules that need a missing plugin */
+.sbtweaks-card.is-unavailable {
+	border-left-color: #dcdcde;
+}
+
+.sbtweaks-card.is-unavailable .sbtweaks-card__head h3,
+.sbtweaks-card.is-unavailable .sbtweaks-card__desc {
+	opacity: 0.55;
+}
+
+.sbtweaks-card__needs {
+	margin: 10px 0 0;
+	color: #8a6116;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+/* Settings link on a card */
+.sbtweaks-card__link {
+	margin: 10px 0 0;
+	font-size: 13px;
+}
+
+/* Card settings: only while the switch is on */
+.sbtweaks-card__settings {
+	display: none;
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid #dcdcde;
+}
+
+.sbtweaks-card.is-on .sbtweaks-card__settings {
+	display: block;
+}
+
+.sbtweaks-field + .sbtweaks-field {
+	margin-top: 12px;
+}
+
+.sbtweaks-field__label {
+	display: block;
+	margin-bottom: 6px;
+	font-weight: 600;
+}
+
+.sbtweaks-field__desc {
+	margin: 6px 0 0;
+	color: #646970;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.sbtweaks-field .wp-picker-container .wp-color-result.button {
+	margin: 0 6px 0 0;
+}
+
+/* SocialBUMP header banner */
+.sbtweaks-header {
+	margin: 20px 0 0;
+	padding: 22px 28px;
+	background: #16171c;
+	border-radius: 8px;
+	color: #fff;
+}
+
+.sbtweaks-header__brand {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+}
+
+.sbtweaks-header__logo {
+	display: block;
+	width: auto;
+	height: 28px;
+}
+
+.wrap .sbtweaks-header__title {
+	margin: 0;
+	padding: 0 0 0 16px;
+	border-left: 1px solid rgba(255, 255, 255, 0.2);
+	color: #fff;
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 28px;
+}
+
+.sbtweaks-header__intro {
+	max-width: none;
+	margin: 14px 0 0;
+	color: #a7aaad;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.sbtweaks-wrap .wp-header-end {
+	margin: 0;
+}
+
+/* Publish release intro: full width, balanced lines */
+.sbtweaks-release .sbtweaks-intro {
+	max-width: none;
+	text-wrap: balance;
+}
+
+/* Colour field: swatch + text box */
+.sbtweaks-colour {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sbtweaks-colour__swatch {
+	width: 32px;
+	height: 30px;
+	padding: 2px;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	background: #fff;
+	cursor: pointer;
+}
+
+.sbtweaks-colour__value {
+	width: 220px;
+}
+
+/* Header version */
+.sbtweaks-header__version {
+	padding: 3px 9px;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 999px;
+	color: #c3c4c7;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+}
+
+/* Updates panel */
+.sbtweaks-updates__status {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 14px;
+}
+
+.sbtweaks-updates__badge {
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.sbtweaks-updates__badge.is-current {
+	background: #edfaef;
+	border: 1px solid #00a32a;
+	color: #00681f;
+}
+
+.sbtweaks-updates__badge.is-available {
+	background: #fcf3e6;
+	border: 1px solid #dba617;
+	color: #8a6116;
+}
+
+.sbtweaks-updates__meta {
+	color: #646970;
+	font-size: 13px;
+}
+
+.sbtweaks-updates__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+}
+
+.sbtweaks-updates__actions form {
+	margin: 0;
+}
+
+.sbtweaks-updates__link {
+	font-size: 13px;
+}
+
+/* Header version link */
+a.sbtweaks-header__version {
+	text-decoration: none;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+a.sbtweaks-header__version:hover,
+a.sbtweaks-header__version:focus {
+	background: rgba(255, 255, 255, 0.2);
+	color: #fff;
+}
+
+a.sbtweaks-header__version.is-outdated {
+	background: #4a0d0d;
+	color: #ff6b6b;
+}
+
+a.sbtweaks-header__version.is-outdated:hover,
+a.sbtweaks-header__version.is-outdated:focus {
+	background: #6b1414;
+	color: #ff8f8f;
+}
+
+/* Checklist field */
+.sbtweaks-checklist {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+	gap: 6px 12px;
+}
+
+.sbtweaks-checklist label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+/* Card fields never outgrow the card */
+.sbtweaks-card .sbtweaks-field input[type="text"],
+.sbtweaks-card .sbtweaks-field input[type="url"],
+.sbtweaks-card .sbtweaks-field input[type="number"],
+.sbtweaks-card .sbtweaks-field select,
+.sbtweaks-card .sbtweaks-field textarea {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.sbtweaks-card .sbtweaks-colour {
+	display: flex;
+	max-width: 100%;
+}
+
+.sbtweaks-card .sbtweaks-colour__value {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+
+/* Images page */
+.sbtweaks-images {
+	display: grid;
+	grid-template-columns: minmax(320px, 1fr) minmax(320px, 1.2fr);
+	gap: 20px;
+	align-items: start;
+}
+
+@media (max-width: 1100px) {
+	.sbtweaks-images {
+		grid-template-columns: 1fr;
+	}
+}
+
+.sbtweaks-images .sbtweaks-section {
+	margin: 0;
+}
+
+.sbtweaks-widths {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 16px;
+	max-width: 320px;
+}
+
+.sbtweaks-width {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.sbtweaks-width input[type="number"] {\n\twidth: 90px;\n}
+
+.sbtweaks-width__name {
+	flex: 1 1 auto;
+	padding: 6px 10px;
+	background: #f0f0f1;
+	border-radius: 4px;
+	color: #50575e;
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+.sbtweaks-width__remove {
+	color: #b32d2e;
+	font-size: 15px;
+	line-height: 1;
+	text-decoration: none;
+	opacity: 0.6;
+}
+
+.sbtweaks-width__remove:hover,
+.sbtweaks-width__remove:focus {
+	opacity: 1;
+}
+
+.sbtweaks-images .sbtweaks-grid {
+	grid-template-columns: 1fr;
+}
+
+/* The banner needs breathing room before whatever follows it */
+.sbtweaks-wrap .wp-header-end + * {
+	margin-top: 20px;
+}
+
+.sbtweaks-wrap form > .sbtweaks-images:first-child,
+.sbtweaks-wrap > .sbtweaks-images:first-child {
+	margin-top: 20px;
+}
+
+.sbtweaks-images .sbtweaks-section {
+	margin-top: 0;
+}
+
+/* Wider width inputs */
+.sbtweaks-width input[type="number"] {
+	width: 120px;
+}
+
+.sbtweaks-widths {
+	max-width: 380px;
+}
+
+/* Rebuild panel */
+.sbtweaks-rebuild__counts {
+	margin: 0 0 12px;
+}
+
+.sbtweaks-rebuild__bar {
+	height: 8px;
+	margin-bottom: 10px;
+	background: #f0f0f1;
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.sbtweaks-rebuild__bar span {
+	display: block;
+	width: 0;
+	height: 100%;
+	background: #85df07;
+	transition: width 0.25s ease;
+}
+
+.sbtweaks-rebuild__status {
+	min-height: 20px;
+	margin: 0 0 12px;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.sbtweaks-rebuild__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 14px;
+}
+
+.sbtweaks-rebuild__force {
+	color: #50575e;
+	font-size: 13px;
+}
+
+/* Size list, on the page and in the media modal */
+.sbtweaks-sizes {
+	margin: 0 0 10px;
+	font-size: 12px;
+}
+
+.sbtweaks-sizes li {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 0;
+	padding: 3px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sbtweaks-sizes li.is-present span:last-child {
+	color: #00681f;
+}
+
+.sbtweaks-sizes li.is-missing span:last-child {
+	color: #d63638;
+	font-weight: 600;
+}
+
+.sbtweaks-sizes li.is-skipped span:last-child {
+	color: #8c8f94;
+}
+
+/**
+ * The real checkbox sits invisibly over the switch. WordPress styles a
+ * disabled checkbox with its own background and makes it partly visible,
+ * which showed as a grey box over the track, so the switch keeps its own
+ * appearance here whatever state it is in.
+ */
+.sbtweaks-switch input[type="checkbox"],
+.sbtweaks-switch input[type="checkbox"]:disabled,
+.sbtweaks-switch input[type="checkbox"]:checked,
+.sbtweaks-switch input[type="checkbox"]:focus {
+	-webkit-appearance: none;
+	appearance: none;
+	opacity: 0;
+	background: transparent;
+	border: 0;
+	border-radius: 999px;
+	box-shadow: none;
+	outline: 0;
+	min-width: 0;
+	min-height: 0;
+}
+
+.sbtweaks-switch input[type="checkbox"]:checked::before,
+.sbtweaks-switch input[type="checkbox"]::before {
+	content: none;
+}
+
+/* The logo takes you back to the main page */
+.sbtweaks-header__home {
+	display: inline-flex;
+	align-items: center;
+	line-height: 0;
+	border-radius: 4px;
+	transition: opacity 0.15s ease;
+}
+
+.sbtweaks-header__home:hover,
+.sbtweaks-header__home:focus {
+	opacity: 0.75;
+}
+
+.sbtweaks-header__home:focus-visible {
+	outline: 2px solid #85df07;
+	outline-offset: 3px;
+}
+
+/* Feature list on a module card */
+.sbtweaks-features {
+	margin: 0 0 4px;
+	font-size: 13px;
+}
+
+.sbtweaks-features li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 3px 0;
+	color: #50575e;
+}
+
+.sbtweaks-features li.is-off {
+	color: #8c8f94;
+}
+
+.sbtweaks-dot {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 8px;
+	background: #dcdcde;
+	border-radius: 50%;
+}
+
+.sbtweaks-features li.is-on .sbtweaks-dot {
+	background: #85df07;
+	box-shadow: 0 0 0 2px rgba(133, 223, 7, 0.25);
+}
+
+/* The settings link sits at the foot of every card */
+.sbtweaks-grid {
+	align-items: stretch;
+}
+
+.sbtweaks-card {
+	display: flex;
+	flex-direction: column;
+}
+
+.sbtweaks-card__link {
+	margin-top: auto;
+	padding-top: 12px;
+}
+
+/* Divider between the description and the feature list */
+.sbtweaks-features {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid #e6e7e8;
+}
+
+/* A section heading with its own switch */
+.sbtweaks-section__head--switch {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.sbtweaks-section__head--switch p {
+	margin-bottom: 0;
+}
+
+/* Add and reset, at either end of the row */
+.sbtweaks-width-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-top: 14px;
+}
+
+.wp-core-ui .sbtweaks-button--danger {
+	background: #fff;
+	border-color: #d63638;
+	color: #d63638;
+}
+
+.wp-core-ui .sbtweaks-button--danger:hover,
+.wp-core-ui .sbtweaks-button--danger:focus {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+}
+
+/* Image report */
+.sbtweaks-report__panel {
+	margin-top: 4px;
+}
+
+.sbtweaks-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 12px;
+}
+
+.sbtweaks-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+	border-left: 3px solid #c3c4c7;
+}
+
+.sbtweaks-stat.is-good {
+	border-left-color: #85df07;
+}
+
+.sbtweaks-stat.is-warn {
+	border-left-color: #dba617;
+	background: #fdf8e8;
+}
+
+.sbtweaks-stat__value {
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.1;
+	color: #1d2327;
+}
+
+.sbtweaks-stat__label {
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.sbtweaks-stat__note {
+	font-size: 12px;
+	color: #646970;
+}
+
+.sbtweaks-report__title {
+	margin: 20px 0 4px;
+	font-size: 14px;
+}
+
+.sbtweaks-report__note {
+	margin: 0 0 10px;
+	color: #646970;
+	font-size: 12px;
+}
+
+table.sbtweaks-report {
+	width: 100%;
+	max-width: 700px;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+table.sbtweaks-report td {
+	padding: 6px 10px 6px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+table.sbtweaks-report td:last-child {
+	width: 90px;
+	color: #646970;
+	text-align: right;
+}
+
+/**
+ * WordPress styles .button with a display of its own, which beats the browser
+ * rule for the hidden attribute, so hidden buttons kept showing.
+ */
+.sbtweaks-wrap [hidden] {
+	display: none !important;
+}
+
+/* Orphan list */
+table.sbtweaks-report td:last-child {
+	width: auto;
+}
+
+.sbtweaks-report__size {
+	color: #646970;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.wp-core-ui .sbtweaks-report__delete {
+	min-height: 0;
+	padding: 1px 9px;
+	height: auto;
+	line-height: 1.7;
+	font-size: 11px;
+	color: #d63638;
+	border-color: #d63638;
+}
+
+.wp-core-ui .sbtweaks-report__delete:hover,
+.wp-core-ui .sbtweaks-report__delete:focus,
+.wp-core-ui .sbtweaks-report__delete:active {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+	box-shadow: none;
+}
+
+.wp-core-ui .sbtweaks-report__delete:focus {
+	outline: 2px solid transparent;
+	box-shadow: 0 0 0 1px #fff, 0 0 0 3px #d63638;
+}
+
+
+
+/* Progress, shown only while something is running */
+.sbtweaks-progress {
+	position: relative;
+	margin: 18px 0;
+	padding: 14px 40px 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sbtweaks-progress .sbtweaks-rebuild__status {
+	margin: 8px 0 0;
+}
+
+.sbtweaks-progress__close {
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	padding: 0 6px;
+	background: none;
+	border: 0;
+	color: #646970;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sbtweaks-progress__close:hover {
+	color: #1d2327;
+}
+
+/* Orphan list in a box of its own */
+.sbtweaks-report__orphans {
+	margin-top: 20px;
+	padding: 16px 18px;
+	background: #fbfbfc;
+	border: 1px solid #e6e7e8;
+	border-radius: 6px;
+}
+
+.sbtweaks-report__orphans .sbtweaks-report__title {
+	margin-top: 0;
+}
+
+.sbtweaks-report__orphans table.sbtweaks-report tr:last-child td {
+	border-bottom: 0;
+}
+
+/* Room between the results, the progress panel and the buttons */
+.sbtweaks-report__orphans {
+	margin-bottom: 20px;
+}
+
+.sbtweaks-rebuild .sbtweaks-stats {
+	margin-bottom: 20px;
+}
+
+.sbtweaks-progress {
+	margin: 0 0 20px;
+}
+
+.sbtweaks-rebuild__actions {
+	margin-top: 0;
+}
+
+/* Notes on a width row */
+.sbtweaks-width__clash,
+.sbtweaks-width__dupe {
+	font-size: 11px;
+	color: #8a6116;
+	white-space: nowrap;
+}
+
+.sbtweaks-width__dupe {
+	color: #d63638;
+	font-weight: 600;
+}
+
+.sbtweaks-width.is-duplicate input[type="number"] {
+	border-color: #d63638;
+}
+
+/* The image being worked on */
+.sbtweaks-progress__line {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 14px;
+}
+
+.sbtweaks-progress__timer {
+	flex: none;
+	margin: 0 0 12px;
+	color: #787c82;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+/* Sits exactly where the close cross does, and they swap. */
+.sbtweaks-progress__cancel {
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	padding: 0 6px;
+	background: none;
+	border: 0;
+	color: #b32d2e;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.sbtweaks-progress__cancel:hover {
+	color: #8a2424;
+}
+
+.sbtweaks-progress__cancel:disabled {
+	color: #a7aaad;
+	cursor: default;
+}
+
+
+
+
+
+.sbtweaks-progress__thumb img {
+	width: 44px;
+	height: 44px;
+	object-fit: cover;
+	border-radius: 4px;
+	background: #fff;
+}
+
+/* Orphan rows: in use, or kept on purpose */
+.sbtweaks-report__used,
+.sbtweaks-report__keptflag {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+}
+
+.sbtweaks-report__used {
+	color: #8a6116;
+}
+
+.sbtweaks-report__keptflag {
+	color: #00681f;
+}
+
+.wp-core-ui .sbtweaks-report__keep {
+	min-height: 0;
+	margin-right: 6px;
+	padding: 1px 9px;
+	height: auto;
+	line-height: 1.7;
+	font-size: 11px;
+}
+
+
+
+/* A file being kept on purpose */
+
+
+
+
+/* Orphan table */
+table.sbtweaks-report {
+	width: 100%;
+	max-width: none;
+	border-collapse: separate;
+	border-spacing: 0;
+}
+
+table.sbtweaks-report td {
+	padding: 8px 10px;
+	vertical-align: middle;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+table.sbtweaks-report tr:last-child td {
+	border-bottom: 0;
+}
+
+table.sbtweaks-report td:first-child {
+	padding-left: 12px;
+	border-left: 3px solid transparent;
+}
+
+table.sbtweaks-report td.sbtweaks-report__size {
+	width: 90px;
+	color: #646970;
+	text-align: right;
+	white-space: nowrap;
+}
+
+table.sbtweaks-report td.sbtweaks-report__action {
+	width: 1%;
+	white-space: nowrap;
+	text-align: right;
+}
+
+/* Kept on purpose */
+table.sbtweaks-report tr.is-kept td {
+	background: #fdf8e8;
+}
+
+table.sbtweaks-report tr.is-kept td:first-child {
+	border-left-color: #dba617;
+}
+
+/* Row buttons, matched so the columns line up */
+.wp-core-ui .sbtweaks-report__keep,
+.wp-core-ui .sbtweaks-report__delete {
+	min-width: 96px;
+	min-height: 0;
+	padding: 2px 10px;
+	height: auto;
+	line-height: 1.8;
+	font-size: 12px;
+	text-align: center;
+}
+
+.wp-core-ui .sbtweaks-report__keep {
+	margin-right: 8px;
+}
+
+/* Files beyond the first 25, until they are asked for */
+table.sbtweaks-report tr.is-extra {
+	display: none;
+}
+
+table.sbtweaks-report tr.sbtweaks-report__morerow td {
+	padding-top: 10px;
+}
+
+/* Sizes made by WordPress and other plugins */
+.sbtweaks-othersizes {
+	margin-top: 18px;
+	padding-top: 16px;
+	border-top: 1px solid #e6e7e8;
+}
+
+.sbtweaks-othersizes h3 {
+	margin: 0 0 4px;
+	font-size: 13px;
+}
+
+.sbtweaks-othersizes__list {
+	margin: 10px 0 0;
+	max-width: 520px;
+	font-size: 12px;
+}
+
+.sbtweaks-othersizes__list li {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 0;
+	padding: 3px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sbtweaks-othersizes__list code {
+	background: none;
+	padding: 0;
+	font-size: 12px;
+}
+
+.sbtweaks-othersizes__list span {
+	color: #646970;
+	white-space: nowrap;
+}
+
+/* Choosing which sizes a forced rebuild remakes */
+.sbtweaks-sizepicker {
+	margin: 0 0 20px;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sbtweaks-sizepicker__head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 10px;
+	font-size: 13px;
+}
+
+.sbtweaks-sizepicker__head span {
+	display: flex;
+	gap: 12px;
+	font-size: 12px;
+}
+
+.sbtweaks-sizepicker__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+	gap: 4px 16px;
+}
+
+.sbtweaks-sizepicker__list label {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 12px;
+}
+
+/* Room above the size picker */
+.sbtweaks-sizepicker {
+	margin-top: 16px;
+}
+
+/* What each image gained, as it happens */
+.sbtweaks-progress__log {
+	margin: 10px 0 0;
+	max-height: 420px;
+	overflow-y: auto;
+	font-size: 12px;
+}
+
+.sbtweaks-log__dims {
+	display: block;
+	margin: 1px 0 4px;
+	color: #787c82;
+	font-size: 11px;
+}
+
+.sbtweaks-progress__log li.is-skipped {
+	color: #787c82;
+}
+
+
+
+.sbtweaks-progress__log li.is-skipped em {
+	font-style: normal;
+	font-size: 11px;
+}
+
+.sbtweaks-progress__log > li {
+	margin: 0 0 8px;
+}
+
+.sbtweaks-progress__log ul {
+	margin: 2px 0 0 4px;
+}
+
+.sbtweaks-progress__log ul li {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	color: #50575e;
+}
+
+.sbtweaks-tick {
+	color: #00681f;
+	font-weight: 600;
+}
+
+/* Editable and fixed sizes, one per line */
+.sbtweaks-othersizes__list li {
+	gap: 14px;
+	padding: 6px 0;
+}
+
+.sbtweaks-othersizes__list code {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.sbtweaks-othersizes__edit {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 0 0 auto;
+}
+
+.sbtweaks-othersizes__edit input[type="number"] {
+	width: 84px;
+}
+
+.sbtweaks-othersizes__edit span {
+	color: #646970;
+	white-space: nowrap;
+}
+
+.sbtweaks-othersizes__list em {
+	flex: 0 0 auto;
+	color: #8c8f94;
+	font-size: 11px;
+	font-style: normal;
+}
+
+.sbtweaks-othersizes__fixed {
+	flex: 0 0 auto;
+	color: #646970;
+	white-space: nowrap;
+}
+
+.sbtweaks-othersizes__save {
+	margin: 14px 0 0;
+}
+
+.sbtweaks-othersizes__save {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.sbtweaks-othersizes__save a {
+	font-size: 12px;
+}
+
+/* Unsaved changes: one look for the save button across the plugins.
+   The selectors carry .wp-core-ui and .button so they outrank WordPress's own
+   disabled and primary button rules, which are themselves marked important. */
+.wp-core-ui .button.sb-save--clean,
+.wp-core-ui .button.sb-save--clean:disabled,
+.wp-core-ui .button.sb-save--clean:hover,
+.wp-core-ui .button.sb-save--clean:focus,
+.wp-core-ui .button-primary.sb-save--clean,
+.wp-core-ui .button-primary.sb-save--clean:disabled,
+.wp-core-ui .button-primary.sb-save--clean:hover,
+.wp-core-ui .button-primary.sb-save--clean:focus {
+	background: transparent !important;
+	border: 1px solid #dcdcde !important;
+	color: #a7aaad !important;
+	box-shadow: none !important;
+	text-shadow: none !important;
+	opacity: 1 !important;
+	cursor: default;
+}
+
+.wp-core-ui .button.sb-save--dirty,
+.wp-core-ui .button.sb-save--dirty:hover,
+.wp-core-ui .button.sb-save--dirty:focus,
+.wp-core-ui .button-primary.sb-save--dirty,
+.wp-core-ui .button-primary.sb-save--dirty:hover,
+.wp-core-ui .button-primary.sb-save--dirty:focus {
+	background: var(--sbtweaks-accent, #2271b1) !important;
+	background: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 76%, #000) !important;
+	border: 1px solid var(--sbtweaks-accent, #2271b1) !important;
+	border-color: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 76%, #000) !important;
+	color: #fff !important;
+	font-weight: 600;
+	box-shadow: none !important;
+	text-shadow: none !important;
+}
+
+.wp-core-ui .button.sb-save--dirty:hover,
+.wp-core-ui .button-primary.sb-save--dirty:hover {
+	filter: brightness(0.92);
+}
+
+/* The reminder that follows you down the page. */
+.sb-unsaved {
+	position: fixed;
+	top: 52px;
+	right: 24px;
+	z-index: 9999;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	background: #fdf8e8;
+	border: 1px solid #dba617;
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	color: #7a5a00;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.sb-unsaved:hover {
+	background: #fcf0d4;
+}
+
+.sb-unsaved[hidden] {
+	display: none;
+}
+
+.sb-unsaved__dot {
+	display: inline-block;
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: #dba617;
+}
+
+/* The page name after the plugin name in the banner. */
+.wrap .sbtweaks-header__title .sbtweaks-header__page {
+	margin-left: 8px;
+	color: var(--sbtweaks-accent, #72aee6);
+	font-weight: 600;
+}
+
+/* The notes panel on the Publishing page. */
+.sbtweaks-docs {
+	min-height: 420px;
+	font-family: Menlo, Consolas, monospace;
+	font-size: 12px;
+	line-height: 1.6;
+	white-space: pre;
+	overflow-wrap: normal;
+	overflow-x: auto;
+}
+
+.sbtweaks-docs__heading {
+	margin: 18px 0 4px;
+	font-size: 13px;
+}
+
+.sbtweaks-docs__prompt {
+	font-family: Menlo, Consolas, monospace;
+	font-size: 12px;
+	line-height: 1.6;
+	background: #f6f7f7;
+}
+
+/* Publishing: the token and the zip stack in one column, publishing beside them.
+   Placed rather than reordered, so the markup and the reading order stay as they are. */
+.sbtweaks-release .sbtweaks-grid {
+	display: grid;
+	grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.1fr);
+	align-items: start;
+	gap: 16px;
+}
+
+.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(1) {
+	grid-column: 1;
+	grid-row: 1;
+}
+
+.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(2) {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+}
+
+.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(3) {
+	grid-column: 1;
+	grid-row: 2;
+}
+
+@media (max-width: 960px) {
+	.sbtweaks-release .sbtweaks-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(1),
+	.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(2),
+	.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(3) {
+		grid-column: 1;
+		grid-row: auto;
+	}
+}
+
+/* The release notes box, tall enough to match the two cards beside it. */
+.sbtweaks-release textarea {
+	min-height: 160px;
+}
+
+/* The plugin pages, along the bottom of the banner. */
+.sbtweaks-header__nav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	margin-top: 16px;
+	padding-top: 14px;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sbtweaks-header__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 12px;
+	border-radius: 999px;
+	color: #c3c4c7;
+	font-size: 13px;
+	text-decoration: none;
+}
+
+.sbtweaks-header__link:hover,
+.sbtweaks-header__link:focus {
+	background: rgba(255, 255, 255, 0.08);
+	color: #fff;
+	box-shadow: none;
+}
+
+.sbtweaks-header__link.is-current {
+	background: rgba(255, 255, 255, 0.14);
+	color: #fff;
+	font-weight: 600;
+}
+
+.sbtweaks-header__badge {
+	display: inline-block;
+	padding: 1px 7px;
+	border-radius: 999px;
+	background: #f0b849;
+	color: #1d2327;
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 16px;
+}
+
+/* The orphan list: a thumbnail, the name, and the attachment it came from. */
+.sbtweaks-report__file {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sbtweaks-report__thumb {
+	flex: 0 0 auto;
+	display: block;
+	width: 40px;
+	height: 40px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+	overflow: hidden;
+}
+
+.sbtweaks-report__thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.sbtweaks-report__name {
+	min-width: 0;
+}
+
+.sbtweaks-report__id {
+	display: inline-block;
+	margin-left: 6px;
+	padding: 1px 7px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	color: #50575e;
+	font-size: 11px;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.sbtweaks-report__id:hover {
+	background: #e0e0e1;
+	color: #1d2327;
+}
+
+/* The rebuild log: one image to a row, with its own thumbnail. */
+.sbtweaks-log__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 8px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sbtweaks-log__thumb {
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+	object-fit: cover;
+}
+
+.sbtweaks-log__detail {
+	min-width: 0;
+}
+
+.sbtweaks-log__detail ul {
+	margin: 2px 0 0;
+}
+
+/* The sizes panel on an attachment.
+   WordPress puts an extra field in a table row: a label column, and a field
+   cell floated right at 65% to sit beside it. The label is empty here, because
+   the panel carries its own title, so the column is taken down to nothing and
+   the field is given the full width. The float goes with it: it only existed to
+   sit the field beside a label that is no longer there, and its 1px margin is
+   what makes a full width float overflow. */
+.compat-item .compat-field-sbsk_sizes th.label {
+	display: none;
+	min-width: 0%;
+	width: 0%;
+}
+
+.compat-item .compat-field-sbsk_sizes .field {
+	float: none;
+	width: auto;
+	margin: 0;
+	padding: 0;
+}
+
+.sbtweaks-attachment-box {
+	margin: 12px 0 0;
+}
+
+.sbtweaks-attachment-box .hndle {
+	padding: 0 12px;
+	font-size: 13px;
+}
+
+.sbtweaks-attachment-box .inside {
+	margin: 0;
+	padding: 8px 12px 12px;
+}
+
+.sbtweaks-width__name {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 40px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 2px;
+	line-height: 1.2em;
+	white-space: normal;
+}
+
+.sbtweaks-width__name > .sbtweaks-width__value {
+	display: contents;
+}
+
+.sbtweaks-width__clash {
+	display: block;
+	margin: 0;
+	padding: 0;
+	color: #b32d2e;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	font-size: 11px;
+}
+
+.sbtweaks-width {
+	padding: 10px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sbtweaks-width:last-child {
+	border-bottom: 0;
+}
+
+.sbtweaks-othersizes__list {
+	max-width: none;
+}
+
+.sbtweaks-widths {
+	max-width: none;
+	gap: 0;
+}
+
+.wp-core-ui .button-link.sbtweaks-width__remove {
+	flex: none;
+	color: #d63638;
+	font-weight: 700;
+	font-size: 15px;
+	text-decoration: none;
+	opacity: 1;
+}
+
+.wp-core-ui .button-link.sbtweaks-width__remove:hover {
+	color: #a00;
+}
+
+.sbtweaks-cleaner {
+	display: grid;
+	grid-template-columns: minmax(260px, 400px) minmax(0, 1fr);
+	gap: 20px;
+	align-items: start;
+}
+
+.sbtweaks-sizegroup {
+	margin: 0 0 14px;
+}
+
+.sbtweaks-sizegroup__head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin: 0 0 4px;
+	padding: 0 0 4px;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 12px;
+}
+
+.sbtweaks-sizegroup__head .button-link {
+	font-size: 11px;
+}
+
+.sbtweaks-sizegroup__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px 8px;
+	padding: 5px 6px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+.sbtweaks-sizegroup__item:nth-child(odd) {
+	background: #f6f7f7;
+}
+
+.sbtweaks-sizegroup__item input {
+	margin: 0;
+}
+
+.sbtweaks-sizegroup__item code {
+	flex: 1 1 auto;
+	min-width: 0;
+	background: none;
+	padding: 0;
+	overflow-wrap: anywhere;
+}
+
+/* The pixels drop to their own line, right aligned, when the name is long. */
+.sbtweaks-sizegroup__item span {
+	margin-left: auto;
+	color: #787c82;
+	white-space: nowrap;
+}
+
+.sbtweaks-cleaner__sizes-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+	font-size: 12px;
+}
+
+.sbtweaks-section__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.sbtweaks-section__edit {
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+/* Shared: cards that collapse to their title, and the Reorder dialogue (module-cards.js) */
+[data-sb-cards] {
+	align-items: start;
+}
+
+.sb-cards__tools {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	margin: 0 0 10px;
+	font-size: 12px;
+	color: #a7aaad;
+}
+
+.sb-cards__tools .button-link {
+	font-size: 12px;
+}
+
+.sb-cards__tools--reorder {
+	margin: 14px 0 0;
+	justify-content: flex-start;
+}
+
+.sb-cards__links {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sb-card__title {
+	cursor: pointer;
+}
+
+[data-sb-card] > :first-child > h3 {
+	flex: 1;
+}
+
+.sb-card__toggle {
+	flex: none;
+	width: 24px;
+	height: 24px;
+	margin: 0 4px 0 -6px;
+	background: none;
+	border: 0;
+	padding: 0;
+	color: #787c82;
+	font-size: 20px;
+	line-height: 24px;
+	cursor: pointer;
+}
+
+.sb-card__toggle::before {
+	content: "\25BE";
+}
+
+[data-sb-card].is-collapsed .sb-card__toggle::before {
+	content: "\25B8";
+}
+
+[data-sb-card].is-collapsed > :not(:first-child) {
+	display: none;
+}
+
+.sb-reorder {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.45);
+}
+
+.sb-reorder__box {
+	width: min(420px, calc(100vw - 48px));
+	padding: 20px 24px;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.sb-reorder__title {
+	margin: 0 0 4px;
+	font-size: 18px;
+}
+
+.sb-reorder__note {
+	margin: 0 0 14px;
+	color: #50575e;
+}
+
+.sb-reorder__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	user-select: none;
+}
+
+.sb-reorder__item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 6px;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	font-size: 14px;
+	cursor: grab;
+	touch-action: none;
+}
+
+.sb-reorder__item.is-moving {
+	opacity: 0.35;
+	border-style: dashed;
+}
+
+.sb-reorder__ghost {
+	position: fixed;
+	z-index: 1;
+	margin: 0;
+	background: #fff;
+	border-color: #2271b1;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+	cursor: grabbing;
+	pointer-events: none;
+}
+
+.sb-reorder__grip {
+	color: #a7aaad;
+	letter-spacing: -4px;
+}
+
+.sb-reorder__foot {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+/* Amber, not red: a skipped size is a decision, not a failure. Last in the
+   file so it beats the green .sbtweaks-tick above it. */
+.sbtweaks-progress__log li.is-skipped .sbtweaks-tick--skip {
+	color: #b26200;
+}
+
+.sbtweaks-sizes li.is-skipped span:last-child em {
+	font-style: normal;
+	font-size: 11px;
+}
+
+/* A button, but it has to look exactly like the plain stat beside it: the
+   default button chrome is what gave it a dark border. */
+.wp-core-ui .sbtweaks-stat.is-openable {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border: 0;
+	border-left: 3px solid #c3c4c7;
+	border-radius: 6px;
+	box-shadow: none;
+	text-align: left;
+	cursor: pointer;
+	font: inherit;
+	line-height: inherit;
+	height: auto;
+}
+
+.wp-core-ui .sbtweaks-stat.is-openable:hover,
+.wp-core-ui .sbtweaks-stat.is-openable:focus {
+	background: #f0f0f1;
+	box-shadow: none;
+}
+
+.sbtweaks-stat__more {
+	margin-top: 6px;
+	color: #2271b1;
+	font-size: 11px;
+	text-decoration: underline;
+}
+
+/* The same grey panel the progress log sits in, so the two read as one thing. */
+.sbtweaks-missing {
+	margin: 18px 0 0;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sbtweaks-missing .sbtweaks-progress__log {
+	margin: 0;
+}
+
+.sbtweaks-missing__log {
+	max-height: 460px;
+}
+
+.sbtweaks-missing__row .button-link {
+	font-size: 11px;
+}
+
+.sbtweaks-missing__note {
+	margin: 8px 0 0;
+	color: #787c82;
+	font-size: 12px;
+}
+
+.sbtweaks-deep {
+	position: relative;
+	margin: 18px 0 0;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sbtweaks-deep__head p {
+	margin: 0 0 6px;
+}
+
+.sbtweaks-deep__warn {
+	color: #8a6400;
+	font-size: 12px;
+}
+
+.sbtweaks-deep__working,
+.sbtweaks-deep__none {
+	margin: 0;
+}
+
+.sbtweaks-deep__list {
+	margin: 10px 0;
+	max-height: 320px;
+	overflow-y: auto;
+	font-size: 12px;
+}
+
+.sbtweaks-deep__list li {
+	margin: 0;
+	padding: 4px 6px;
+	border-radius: 3px;
+}
+
+.sbtweaks-deep__list li:nth-child(odd) {
+	background: #fff;
+}
+
+.sbtweaks-deep__list code {
+	background: none;
+	padding: 0;
+}
+
+.sbtweaks-deep__list span {
+	color: #787c82;
+}
+
+.sbtweaks-deep__foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+	font-size: 12px;
+}
+
+.sbtweaks-deep__foot .button {
+	margin-left: auto;
+}
+
+.sbtweaks-deep__row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sbtweaks-deep__row label {
+	flex: 1 1 auto;
+}
+
+.sbtweaks-deep__files {
+	margin: 4px 0 8px 26px;
+}
+
+.sbtweaks-deep__files li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 6px;
+	background: none;
+}
+
+.sbtweaks-deep__files img {
+	flex: none;
+	width: 32px;
+	height: 32px;
+	object-fit: cover;
+	border-radius: 3px;
+	background: #fff;
+}
+
+.sbtweaks-deep__files a {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.sbtweaks-deep__more {
+	color: #787c82;
+	font-style: italic;
+}
+
+/* A quieter outline than the green actions: it starts a look, not a change. */
+.wp-core-ui .sbtweaks-button--deep {
+	background: #fff;
+	border-color: #8c8f94;
+	color: #3c434a;
+}
+
+.wp-core-ui .sbtweaks-button--deep:hover {
+	border-color: #50575e;
+	color: #1d2327;
+}
+
+.sbtweaks-rebuild__help {
+	margin: 10px 0 0;
+	color: #787c82;
+	font-size: 12px;
+}
+
+.sbtweaks-deep__head h3 {
+	margin: 0 0 6px;
+	color: #b32d2e;
+	font-size: 14px;
+}
+
+.sbtweaks-deep__close {
+	position: absolute;
+	top: 8px;
+	right: 10px;
+	padding: 0 4px;
+	background: none;
+	border: 0;
+	color: #787c82;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sbtweaks-deep__close:hover {
+	color: #1d2327;
+}
+
+.sbtweaks-deep__skipped {
+	margin: 0 0 12px;
+	padding: 10px 12px;
+	background: #fcf9e8;
+	border-left: 3px solid #dba617;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+.sbtweaks-deep__skipped p {
+	margin: 0 0 4px;
+}
+
+.sbtweaks-deep__skipped ul {
+	margin: 0;
+}
+
+.sbtweaks-deep__skipped li {
+	margin: 2px 0;
+}
+
+.sbtweaks-deep__skipped code {
+	background: none;
+	padding: 0;
+}
+
+.sbtweaks-deep__skipped span {
+	color: #787c82;
+}
+
+.sbtweaks-deep__bar {
+	margin: 0 0 10px;
+}
+
+.sbtweaks-deep__skipped a,
+.sbtweaks-report__used a {
+	text-decoration: underline;
+}
+
+.sbtweaks-faq-source {
+	margin: 12px 0;
+	padding: 12px 14px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sbtweaks-faq-source__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 8px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.sbtweaks-faq-remove {
+	color: #b32d2e;
+	font-size: 12px;
+}
+
+.sbtweaks-faq-source .sbtweaks-field {
+	margin-bottom: 10px;
+}
+
+.sbtweaks-grid--stack {
+	grid-template-columns: 1fr;
+}
+
+.sbtweaks-faq-source__cols {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 12px;
+	align-items: end;
+}
+
+.sbtweaks-faq-source__cols .sbtweaks-field {
+	margin-bottom: 0;
+}
+
+.sbtweaks-faq-source__cols select {
+	width: 100%;
+}
+
+.sbtweaks-faq-clean {
+	margin-top: 16px;
+	padding-top: 14px;
+	border-top: 1px solid #dcdcde;
+}
+
+.sbtweaks-faq-clean h4 {
+	margin: 0 0 4px;
+	font-size: 13px;
+}
+
+.sbtweaks-faq-clean__note {
+	color: #787c82;
+	font-size: 12px;
+	max-width: 80ch;
+}
+
+.sbtweaks-faq-clean__list {
+	margin: 10px 0;
+	max-height: 320px;
+	overflow-y: auto;
+	font-size: 12px;
+}
+
+.sbtweaks-faq-clean__list li {
+	margin: 0;
+	padding: 4px 6px;
+}
+
+.sbtweaks-faq-clean__list li:nth-child(odd) {
+	background: #f6f7f7;
+}
+
+.sbtweaks-faq-clean__list span {
+	color: #787c82;
+}
+
+.sbtweaks-faq-clean__list code {
+	background: none;
+	padding: 0;
+}
+
+.sbtweaks-faq-clean__foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+	font-size: 12px;
+}
+
+.sbtweaks-faq-clean__foot .button {
+	margin-left: auto;
+}
+
+.sbtweaks-faq-clean__row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 4px 0;
+}
+
+.sbtweaks-faq-clean__row label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.sbtweaks-faq-clean__posts {
+	margin: 2px 0 6px 26px;
+}
+
+.sbtweaks-faq-clean__posts label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.sbtweaks-faq-clean__group + .sbtweaks-faq-clean__group {
+	border-top: 1px solid #f0f0f1;
+}
+
+/* A card that takes the whole grid: a long checklist needs the width */
+.sbtweaks-card--wide {
+	grid-column: 1 / -1;
+	scroll-margin-top: 64px;
+}
+
+.sbtweaks-card--wide .sbtweaks-checklist {
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+/* Select all and none above a checklist */
+.sbtweaks-checklist__tools {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 8px;
+	font-size: 12px;
+}
+
+.sbtweaks-checklist__tools span {
+	color: #c3c4c7;
+}
+
+
+/* A note under a checklist needs air, or it reads as another row */
+.sbtweaks-checklist + .sbtweaks-field__desc {
+	margin-top: 12px;
+}
+
+/* The heading row carries Reorder Cards on its right */
+.sbtweaks-section__head--tools {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.sbtweaks-section__head--tools .sb-cards__tools--reorder {
+	flex: none;
+	margin: 0;
+}
+
+/* Text toggle links: Select all, Select none, Collapse all, the all | none
+   pairs on the Image Cleaner. One look for the lot, so a new one never has to
+   be styled again. Marked sb-toggle on the link itself. */
+.wp-core-ui .button-link.sb-toggle,
+a.sb-toggle {
+	color: var(--sbtweaks-accent, #2271b1);
+	color: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 72%, #000);
+	font-size: 12px;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.wp-core-ui .button-link.sb-toggle:hover,
+.wp-core-ui .button-link.sb-toggle:focus,
+a.sb-toggle:hover,
+a.sb-toggle:focus {
+	color: var(--sbtweaks-accent, #2271b1);
+	color: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 42%, #000);
+	text-decoration: underline;
+}
+
+/* A pair sits at the right of whatever it belongs to */
+.sb-toggles {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	margin: 0 0 10px;
+	font-size: 12px;
+	color: #c3c4c7;
+}
