@@ -41,7 +41,10 @@ class SB_Tweaks_Settings {
 
 	/** The pages this plugin owns, in menu order. */
 	public function pages() {
-		$items = [ self::PAGE_SLUG => __( 'Modules', 'sb-tweaks' ) ];
+		$items = [
+			self::PAGE_SLUG              => __( 'Modules', 'sb-tweaks' ),
+			self::PAGE_SLUG . '-updates' => __( 'Updates', 'sb-tweaks' ),
+		];
 
 		if ( function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub() ) {
 			$items[ self::PAGE_SLUG . '-installs' ]   = __( 'Installs', 'sb-tweaks' );
@@ -70,6 +73,16 @@ class SB_Tweaks_Settings {
 			'manage_options',
 			self::PAGE_SLUG,
 			[ $this, 'render_modules' ]
+		);
+
+		// Every site: the version, updates, and moving settings between sites.
+		add_submenu_page(
+			self::PAGE_SLUG,
+			esc_html__( 'Updates', 'sb-tweaks' ),
+			esc_html__( 'Updates', 'sb-tweaks' ),
+			'manage_options',
+			self::PAGE_SLUG . '-updates',
+			[ $this, 'render_updates_page' ]
 		);
 
 		if ( function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub() ) {
@@ -303,6 +316,18 @@ class SB_Tweaks_Settings {
 		);
 	}
 
+	/** Updates sub page: every site. */
+	public function render_updates_page() {
+		echo '<div class="wrap sb-tweaks-wrap">';
+		$this->render_header( __( 'Updates', 'sb-tweaks' ), __( 'The version running here, updates, and moving this site\'s settings to another site.', 'sb-tweaks' ) );
+
+		if ( class_exists( 'SB_Tweaks_Updates' ) ) {
+			SB_Tweaks_Updates::render();
+		}
+
+		echo '</div>';
+	}
+
 	/** Installs sub page: which SocialBUMP plugins are on which sites. Hub only. */
 	public function render_installs_page() {
 		echo '<div class="wrap sb-tweaks-wrap">';
@@ -358,9 +383,8 @@ class SB_Tweaks_Settings {
 	/**
 	 * The dark banner every page opens with.
 	 *
-	 * The version badge is plain text rather than a link while there is no
-	 * Updates page. That page arrives with the first module, because the export
-	 * and import live on it.
+	 * The version badge links to the Updates page, where the version check and
+	 * the settings export and import live.
 	 */
 	private function render_header( $title, $intro = '' ) {
 		$q    = chr( 34 );
@@ -378,7 +402,7 @@ class SB_Tweaks_Settings {
 		}
 
 		echo '</h1>';
-		echo '<span class=' . $q . 'sb-tweaks-header__version' . $q . '>v' . esc_html( SB_TWEAKS_VERSION ) . '</span>';
+		echo '<a class=' . $q . 'sb-tweaks-header__version' . $q . ' href=' . $q . esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG . '-updates' ) ) . $q . '>v' . esc_html( SB_TWEAKS_VERSION ) . '</a>';
 		echo '</div>';
 
 		if ( $intro !== '' ) {

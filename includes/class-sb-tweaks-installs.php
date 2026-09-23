@@ -134,6 +134,7 @@ class SB_Tweaks_Installs {
 			'wp'      => self::version( $payload['wp'] ?? '' ),
 			'php'     => self::version( $payload['php'] ?? '' ),
 			'plugins' => $plugins,
+			'reporter' => self::version( $payload['reporter'] ?? '' ),
 			'seen'    => time(),
 		];
 
@@ -201,7 +202,7 @@ class SB_Tweaks_Installs {
 			return;
 		}
 
-		echo '<div class="sb-installs__scroll"><table class="widefat striped sb-installs"><thead><tr>';
+		echo '<div class="sb-installs__scroll"><table class="widefat striped sb-installs" data-nonce="' . esc_attr( wp_create_nonce( 'sb_tweaks_push' ) ) . '" data-ajax="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '"><thead><tr>';
 		echo '<th>' . esc_html__( 'Site', 'sb-tweaks' ) . '</th>';
 
 		foreach ( self::LABELS as $slug => $label ) {
@@ -212,12 +213,26 @@ class SB_Tweaks_Installs {
 
 		foreach ( $sites as $host => $site ) {
 			$stale = time() - (int) $site['seen'] > self::STALE;
+			$push  = class_exists( 'SB_Tweaks_Push' ) && SB_Tweaks_Push::can_push( $site );
+			$due   = 0;
+
+			foreach ( (array) $site['plugins'] as $s => $i ) {
+				if ( isset( $latest[ $s ] ) && version_compare( $i['version'], $latest[ $s ], '<' ) ) {
+					$due++;
+				}
+			}
 
 			echo '<tr' . ( $stale ? ' class="is-stale"' : '' ) . '>';
 			echo '<td><strong>' . esc_html( $site['name'] ?: $host ) . '</strong><br>';
 			echo '<a href="' . esc_url( $site['url'] ) . '" target="_blank" rel="noopener">' . esc_html( $host ) . '</a> &middot; ';
 			echo '<a href="' . esc_url( trailingslashit( $site['url'] ) . 'wp-admin/plugins.php' ) . '" target="_blank" rel="noopener">' . esc_html__( 'Plugins', 'sb-tweaks' ) . '</a> &middot; ';
-			echo '<a href="' . esc_url( trailingslashit( $site['url'] ) . 'wp-admin/update-core.php' ) . '" target="_blank" rel="noopener">' . esc_html__( 'Updates', 'sb-tweaks' ) . '</a></td>';
+			echo '<a href="' . esc_url( trailingslashit( $site['url'] ) . 'wp-admin/update-core.php' ) . '" target="_blank" rel="noopener">' . esc_html__( 'Updates', 'sb-tweaks' ) . '</a>';
+
+			if ( $push && $due > 1 ) {
+				echo '<br><button type="button" class="button button-small sb-installs__push-all">' . esc_html__( 'Update all', 'sb-tweaks' ) . '</button>';
+			}
+
+			echo '</td>';
 
 			foreach ( array_keys( self::LABELS ) as $slug ) {
 				$info = $site['plugins'][ $slug ] ?? null;
@@ -231,6 +246,11 @@ class SB_Tweaks_Installs {
 				$class  = 'sb-installs__version' . ( $behind ? ' is-behind' : '' ) . ( $info['active'] ? '' : ' is-off' );
 
 				echo '<td><span class="' . esc_attr( $class ) . '">' . esc_html( $info['version'] ) . '</span>';
+
+				if ( $behind && $push ) {
+					echo '<br><button type="button" class="button button-small sb-installs__push" data-host="' . esc_attr( $host ) . '" data-plugin="' . esc_attr( $slug ) . '">' . esc_html__( 'Update', 'sb-tweaks' ) . '</button>';
+				}
+
 				// Active links to the plugin's own page on that site; a deactivated one has no page to go to.
 				if ( $info['active'] && isset( self::PAGES[ $slug ] ) ) {
 					$link = trailingslashit( $site['url'] ) . 'wp-admin/admin.php?page=' . self::PAGES[ $slug ];
@@ -257,6 +277,72 @@ class SB_Tweaks_Installs {
 		}
 
 		echo '</tbody></table></div></div></section>';
+
+		self::script();
+	}
+
+	/** The Update buttons: one request per plugin, so each cell shows its own result. */
+	private static function script() {
+		?>
+		<script>
+		( function () {
+			var table = document.querySelector( '.sb-installs' );
+
+			if ( ! table ) {
+				return;
+			}
+
+			function push( button ) {
+				var cell = button.closest( 'td' );
+				var pill = cell.querySelector( '.sb-installs__version' );
+				var body = new URLSearchParams( { action: 'sb_tweaks_push', _ajax_nonce: table.dataset.nonce, host: button.dataset.host, plugin: button.dataset.plugin } );
+
+				button.disabled = true;
+				button.textContent = <?php echo wp_json_encode( __( 'Updating...', 'sb-tweaks' ) ); ?>;
+
+				return fetch( table.dataset.ajax, { method: 'POST', credentials: 'same-origin', body: body } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( res ) {
+						if ( res && res.ok ) {
+							pill.textContent = res.version || pill.textContent;
+							pill.classList.remove( 'is-behind' );
+							button.replaceWith( Object.assign( document.createElement( 'small' ), { className: 'sb-installs__pushed', textContent: <?php echo wp_json_encode( __( 'Updated', 'sb-tweaks' ) ); ?> } ) );
+						} else {
+							button.disabled = false;
+							button.textContent = <?php echo wp_json_encode( __( 'Try again', 'sb-tweaks' ) ); ?>;
+							button.title = ( res && res.message ) || '';
+							var note = cell.querySelector( '.sb-installs__push-error' ) || cell.appendChild( Object.assign( document.createElement( 'small' ), { className: 'sb-installs__push-error' } ) );
+							note.textContent = ( res && res.message ) || <?php echo wp_json_encode( __( 'The update did not complete.', 'sb-tweaks' ) ); ?>;
+						}
+					} )
+					.catch( function () {
+						button.disabled = false;
+						button.textContent = <?php echo wp_json_encode( __( 'Try again', 'sb-tweaks' ) ); ?>;
+					} );
+			}
+
+			table.addEventListener( 'click', function ( event ) {
+				var one = event.target.closest( '.sb-installs__push' );
+				var all = event.target.closest( '.sb-installs__push-all' );
+
+				if ( one ) {
+					push( one );
+				}
+
+				if ( all ) {
+					all.disabled = true;
+
+					// One after another, so the site is never updating two plugins at once.
+					var queue = Array.prototype.slice.call( all.closest( 'tr' ).querySelectorAll( '.sb-installs__push' ) );
+
+					queue.reduce( function ( chain, button ) {
+						return chain.then( function () { return push( button ); } );
+					}, Promise.resolve() ).then( function () { all.remove(); } );
+				}
+			} );
+		}() );
+		</script>
+		<?php
 	}
 }
 

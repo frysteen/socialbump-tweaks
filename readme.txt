@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,11 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.1.4 =
+* Can now be updated straight from the SocialBUMP hub's Installs page. The hub signs each update instruction and the site checks it before doing anything: it only ever updates SocialBUMP plugins, only to a newer version, and only from that plugin's own GitHub release.
+* Installs: an Update button under any out of date plugin, and Update all per site, pushes the latest release to that site in seconds, without waiting for the site to find the update itself. Sites show the buttons once they run a version that can receive pushed updates.
+* New Updates page on every site: the version running, a Check for updates button that asks GitHub straight away, Update now when one is waiting, and export and import of the Modules switches and every module's settings, to set up another site the same way. The version badge in the header now links to it.
 
 = 0.1.3 =
 * Installs: a site updating several plugins back to back now has every report recorded. The check-in limit is 20 reports per site in ten minutes, where one every thirty seconds used to turn away the later reports without the site knowing.
