@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.9
+Stable tag: 0.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.1.10 =
+* Reports to the hub are more reliable: a check-in now waits for the hub to confirm it (a lost one is tried again later, rather than a day later), and after an update pushed from the hub the site sends its new state back in its answer, so the Installs page is right straight away. The hub records that answer, and keeps recording a check-in even if the site stops waiting.
 
 = 0.1.9 =
 * Module pages no longer show a version badge: a module has no version of its own, it ships inside SocialBUMP Tweaks, whose pages keep showing the plugin's version.

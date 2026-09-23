@@ -128,6 +128,12 @@ class SB_Tweaks_Push {
 				}
 			}
 			update_option( SB_Tweaks_Installs::OPTION, $sites, false );
+
+			// Reporter 1.2.1 and later send their full report back with the
+			// answer, the reliable way to learn the new state after a push.
+			if ( ! empty( $body['report'] ) && is_array( $body['report'] ) && strtolower( (string) wp_parse_url( (string) ( $body['report']['url'] ?? '' ), PHP_URL_HOST ) ) === $host ) {
+				SB_Tweaks_Installs::record( $body['report'] );
+			}
 		}
 
 		return [

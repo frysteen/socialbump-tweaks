@@ -60,6 +60,9 @@ class SB_Tweaks_Installs {
 	}
 
 	public static function checkin( WP_REST_Request $request ) {
+		// Record it even if the site stops waiting (older reporters did not wait).
+		ignore_user_abort( true );
+
 		$payload = json_decode( (string) $request->get_body(), true );
 
 		if ( ! is_array( $payload ) ) {

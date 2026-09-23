@@ -462,3 +462,23 @@ Markup and styles: .sb-hub__modal and .sb-hub__dialog in the Installs page.
 Module banners carry no version badge (SB_Tweaks_Screen::render_header): a
 module has no version of its own. The badge, linked to the Updates page, is
 only on SocialBUMP Tweaks' own pages (Modules, Updates, Installs, Publishing).
+
+Reporter 1.2.1 (September 2026): reports sent without waiting (blocking false)
+were being lost, most visibly straight after a push, when the hub is busy
+waiting on that same site, so the Install button never appeared for sites the
+hub still thought were on reporter 1.1.0. Now:
+- send() waits up to 8 seconds for the hub's answer and only records
+  socialbump_reporter_last once the hub confirms ok. A failure sets the
+  socialbump_reporter_retry transient (15 minutes) so maybe_send() retries on
+  a later admin page load without hammering an unreachable hub.
+- receive() no longer sends a report during a push. The answer carries the
+  site's report instead (with_report() / report()), and SB_Tweaks_Push::push()
+  records it with SB_Tweaks_Installs::record() when its url matches the host.
+- payload()'s reporter is running_version(): the VERSION of the copy that will
+  load first next request (first active tracked plugin with the file), read
+  from disk, because straight after an update the copy in memory is older.
+- The hub's check-in handler calls ignore_user_abort( true ).
+The Install button is generic: any site with a plugin that some module's
+replaces names, and no SocialBUMP Tweaks, gets it once its reporter is 1.2.0
+or later. When the Site Kit module lands with replaces set, Site Kit only sites
+get it with no further change.
