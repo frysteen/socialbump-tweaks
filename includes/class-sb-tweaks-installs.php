@@ -364,7 +364,8 @@ class SB_Tweaks_Installs {
 	 * minutes. Empty when there is no token or GitHub cannot be reached.
 	 */
 	private static function live_version( $release, $slug ) {
-		$cache  = 'sb_installs_live_' . md5( $slug );
+		// Keyed to the hub's own version too, so publishing a new one shows at once.
+		$cache  = 'sb_installs_live_' . md5( $slug . '|' . ( self::latest()[ $slug ] ?? '' ) );
 		$cached = get_transient( $cache );
 
 		if ( $cached !== false ) {
@@ -414,7 +415,8 @@ class SB_Tweaks_Installs {
 		?>
 		<script>
 		( function () {
-			var table = document.querySelector( '.sb-installs' );
+			// The sites table, the one carrying the nonce; the hub table sits above it.
+			var table = document.querySelector( '.sb-installs[data-nonce]' );
 
 			if ( ! table ) {
 				return;
