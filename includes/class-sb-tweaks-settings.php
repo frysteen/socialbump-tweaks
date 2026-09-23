@@ -319,7 +319,7 @@ class SB_Tweaks_Settings {
 	/** Updates sub page: every site. */
 	public function render_updates_page() {
 		echo '<div class="wrap sb-tweaks-wrap">';
-		$this->render_header( __( 'Updates', 'sb-tweaks' ), __( 'The version running here, updates, and moving this site\'s settings to another site.', 'sb-tweaks' ) );
+		$this->render_header( __( 'Updates', 'sb-tweaks' ), __( 'Where this plugin gets its updates, and the settings you can carry across to another site.', 'sb-tweaks' ) );
 
 		if ( class_exists( 'SB_Tweaks_Updates' ) ) {
 			SB_Tweaks_Updates::render();

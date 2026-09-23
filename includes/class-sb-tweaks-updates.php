@@ -172,86 +172,73 @@ class SB_Tweaks_Updates {
 		$pending = ( $state && ! empty( $state->response[ $file ]->new_version ) ) ? $state->response[ $file ]->new_version : '';
 		$checked = ( $state && ! empty( $state->last_checked ) ) ? (int) $state->last_checked : 0;
 		$notice  = get_transient( self::NOTICE . get_current_user_id() );
-		$count   = count( self::options() );
+		$post    = esc_url( admin_url( 'admin-post.php' ) );
 
 		if ( $notice ) {
 			delete_transient( self::NOTICE . get_current_user_id() );
 		}
 
+		// Laid out exactly like Site Kit's and Bricks Tweaks' Updates pages.
+		echo '<section class="sb-tweaks-section" id="sb-tweaks-section-updates">';
+		echo '<div class="sb-tweaks-section__head"><h2>' . esc_html__( 'Updates', 'sb-tweaks' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Delivered from the hub site through GitHub releases. WordPress checks twice a day on its own.', 'sb-tweaks' ) . '</p></div>';
+
 		if ( is_array( $notice ) ) {
-			printf( '<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>', $notice['type'] === 'success' ? 'success' : 'error', esc_html( $notice['message'] ) );
+			echo '<div class="notice notice-' . ( $notice['type'] === 'success' ? 'success' : 'error' ) . ' inline"><p>' . esc_html( $notice['message'] ) . '</p></div>';
 		}
-		?>
-		<div class="sb-tweaks-updates">
-			<section class="sb-tweaks-section">
-				<div class="sb-tweaks-section__head">
-					<h2><?php esc_html_e( 'Updates', 'sb-tweaks' ); ?></h2>
-					<p><?php esc_html_e( 'New versions come from the SocialBUMP hub through GitHub releases. WordPress checks twice a day on its own, or check now.', 'sb-tweaks' ); ?></p>
-				</div>
 
-				<p class="sb-tweaks-updates__status">
-					<?php if ( $pending ) : ?>
-						<span class="sb-tweaks-updates__badge is-available"><?php echo esc_html( 'v' . $pending . ' ' . __( 'available', 'sb-tweaks' ) ); ?></span>
-					<?php else : ?>
-						<span class="sb-tweaks-updates__badge is-current"><?php esc_html_e( 'Up to date', 'sb-tweaks' ); ?></span>
-					<?php endif; ?>
-					<span class="sb-tweaks-updates__meta">
-						<?php
-						/* translators: %s: version number */
-						printf( esc_html__( 'Running v%s.', 'sb-tweaks' ), esc_html( SB_TWEAKS_VERSION ) );
+		echo '<div class="sb-tweaks-updates">';
+		echo '<p class="sb-tweaks-updates__status">';
 
-						if ( $checked ) {
-							echo ' ';
-							/* translators: %s: time since the last check, e.g. 3 hours */
-							printf( esc_html__( 'Checked %s ago.', 'sb-tweaks' ), esc_html( human_time_diff( $checked ) ) );
-						}
-						?>
-					</span>
-				</p>
+		if ( $pending ) {
+			echo '<span class="sb-tweaks-updates__badge is-available">' . esc_html( 'v' . $pending . ' ' . __( 'available', 'sb-tweaks' ) ) . '</span>';
+		} else {
+			echo '<span class="sb-tweaks-updates__badge is-current">' . esc_html__( 'Up to date', 'sb-tweaks' ) . '</span>';
+		}
 
-				<div class="sb-tweaks-updates__actions">
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="sb_tweaks_check_updates">
-						<?php wp_nonce_field( 'sb_tweaks_check_updates' ); ?>
-						<button type="submit" class="button"><?php esc_html_e( 'Check for updates', 'sb-tweaks' ); ?></button>
-					</form>
+		echo '<span class="sb-tweaks-updates__meta">';
+		/* translators: %s: version number */
+		printf( esc_html__( 'Running v%s.', 'sb-tweaks' ), esc_html( SB_TWEAKS_VERSION ) );
 
-					<?php if ( $pending && current_user_can( 'update_plugins' ) ) : ?>
-						<a class="button button-primary" href="<?php echo esc_url( wp_nonce_url( self_admin_url( 'update-core.php?action=do-plugin-upgrade&plugins=' . rawurlencode( $file ) ), 'upgrade-core' ) ); ?>"><?php esc_html_e( 'Update now', 'sb-tweaks' ); ?></a>
-					<?php endif; ?>
+		if ( $checked ) {
+			echo ' ';
+			/* translators: %s: time since the last check, e.g. 3 hours */
+			printf( esc_html__( 'Checked %s ago.', 'sb-tweaks' ), esc_html( human_time_diff( $checked ) ) );
+		}
 
-					<a class="sb-tweaks-updates__link" href="<?php echo esc_url( 'https://github.com/' . SB_TWEAKS_GITHUB_REPO . '/releases' ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'All releases', 'sb-tweaks' ); ?></a>
-				</div>
-			</section>
+		echo '</span></p>';
 
-			<section class="sb-tweaks-section">
-				<div class="sb-tweaks-section__head">
-					<h2><?php esc_html_e( 'Move settings to another site', 'sb-tweaks' ); ?></h2>
-					<p><?php esc_html_e( 'Export saves the Modules switches and every module\'s settings to a file; import on another site sets it up the same way. Nothing else on either site is touched.', 'sb-tweaks' ); ?></p>
-				</div>
+		echo '<div class="sb-tweaks-updates__actions">';
+		echo '<form method="post" action="' . $post . '"><input type="hidden" name="action" value="sb_tweaks_check_updates">';
+		wp_nonce_field( 'sb_tweaks_check_updates' );
+		echo '<button type="submit" class="button">' . esc_html__( 'Check for updates', 'sb-tweaks' ) . '</button></form>';
 
-				<div class="sb-tweaks-updates__actions">
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="sb_tweaks_export_settings">
-						<?php wp_nonce_field( 'sb_tweaks_export_settings' ); ?>
-						<button type="submit" class="button" data-sb-always-on><?php esc_html_e( 'Export settings', 'sb-tweaks' ); ?></button>
-					</form>
-					<span class="sb-tweaks-updates__meta">
-						<?php
-						/* translators: %d: number of saved settings */
-						printf( esc_html( _n( '%d saved setting on this site.', '%d saved settings on this site.', $count, 'sb-tweaks' ) ), (int) $count );
-						?>
-					</span>
-				</div>
+		if ( $pending && current_user_can( 'update_plugins' ) ) {
+			echo '<a class="button button-primary" href="' . esc_url( wp_nonce_url( self_admin_url( 'update-core.php?action=do-plugin-upgrade&plugins=' . rawurlencode( $file ) ), 'upgrade-core' ) ) . '">' . esc_html__( 'Update now', 'sb-tweaks' ) . '</a>';
+		}
 
-				<form class="sb-tweaks-updates__import" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm(<?php echo esc_attr( wp_json_encode( __( 'Import these settings? They replace the matching settings on this site.', 'sb-tweaks' ) ) ); ?>);">
-					<input type="hidden" name="action" value="sb_tweaks_import_settings">
-					<?php wp_nonce_field( 'sb_tweaks_import_settings' ); ?>
-					<input type="file" name="sb_tweaks_settings_file" accept=".json,application/json" required>
-					<button type="submit" class="button" data-sb-always-on><?php esc_html_e( 'Import settings', 'sb-tweaks' ); ?></button>
-				</form>
-			</section>
-		</div>
-		<?php
+		echo '<a class="sb-tweaks-updates__link" href="' . esc_url( 'https://github.com/' . SB_TWEAKS_GITHUB_REPO . '/releases' ) . '" target="_blank" rel="noopener">' . esc_html__( 'All releases', 'sb-tweaks' ) . '</a>';
+		echo '</div></div></section>';
+
+		echo '<section class="sb-tweaks-section">';
+		echo '<div class="sb-tweaks-section__head"><h2>' . esc_html__( 'Settings', 'sb-tweaks' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Take this site setup to another site. Only SocialBUMP Tweaks settings are included.', 'sb-tweaks' ) . '</p></div>';
+
+		echo '<div class="sb-tweaks-grid">';
+
+		echo '<div class="sb-tweaks-card"><div class="sb-tweaks-card__head"><h3>' . esc_html__( 'Export', 'sb-tweaks' ) . '</h3></div>';
+		echo '<p class="sb-tweaks-card__desc">' . esc_html__( 'Download the Modules switches and every module setting as a JSON file.', 'sb-tweaks' ) . '</p>';
+		echo '<form method="post" action="' . $post . '"><input type="hidden" name="action" value="sb_tweaks_export_settings">';
+		wp_nonce_field( 'sb_tweaks_export_settings' );
+		echo '<p><button type="submit" class="button" data-sb-always-on>' . esc_html__( 'Download settings', 'sb-tweaks' ) . '</button></p></form></div>';
+
+		echo '<div class="sb-tweaks-card"><div class="sb-tweaks-card__head"><h3>' . esc_html__( 'Import', 'sb-tweaks' ) . '</h3></div>';
+		echo '<p class="sb-tweaks-card__desc">' . esc_html__( 'Replaces the settings on this site with the ones in the file. There is no undo.', 'sb-tweaks' ) . '</p>';
+		echo '<form method="post" enctype="multipart/form-data" action="' . $post . '"><input type="hidden" name="action" value="sb_tweaks_import_settings">';
+		wp_nonce_field( 'sb_tweaks_import_settings' );
+		echo '<p><input type="file" name="sb_tweaks_settings_file" accept="application/json,.json" required></p>';
+		echo '<p><button type="submit" class="button" data-sb-always-on onclick="return confirm(' . esc_attr( wp_json_encode( __( 'Replace the SocialBUMP Tweaks settings on this site?', 'sb-tweaks' ) ) ) . ');">' . esc_html__( 'Import settings', 'sb-tweaks' ) . '</button></p></form></div>';
+
+		echo '</div></section>';
 	}
 }

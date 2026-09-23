@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.1.5 =
+* Updates page: laid out the same as the Site Kit and Bricks Tweaks Updates pages, with Updates and Settings as full-width sections and Export and Import in side-by-side cards.
 
 = 0.1.4 =
 * Can now be updated straight from the SocialBUMP hub's Installs page. The hub signs each update instruction and the site checks it before doing anything: it only ever updates SocialBUMP plugins, only to a newer version, and only from that plugin's own GitHub release.

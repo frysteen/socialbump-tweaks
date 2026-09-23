@@ -2441,66 +2441,52 @@ a.sb-toggle:focus {
 	color: var(--sb-tweaks-danger);
 }
 
-/* Updates page. */
-.sb-tweaks-updates {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-	gap: 20px;
-	align-items: start;
-}
-
-.sb-tweaks-updates .sb-tweaks-section {
-	margin: 0;
-}
-
+/* Updates page, the same as Site Kit's Updates panel. */
 .sb-tweaks-updates__status {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 10px;
-	margin: 0 0 16px;
+	margin: 0 0 14px;
 }
 
 .sb-tweaks-updates__badge {
-	display: inline-block;
 	padding: 3px 10px;
-	border-radius: 12px;
+	border-radius: 999px;
+	font-size: 12px;
 	font-weight: 600;
 }
 
 .sb-tweaks-updates__badge.is-current {
 	background: #edfaef;
-	color: #00450c;
+	border: 1px solid #00a32a;
+	color: #00681f;
 }
 
 .sb-tweaks-updates__badge.is-available {
-	background: #fcf9e8;
-	color: #614200;
+	background: #fcf3e6;
+	border: 1px solid #dba617;
+	color: #8a6116;
 }
 
 .sb-tweaks-updates__meta {
 	color: #646970;
+	font-size: 13px;
 }
 
 .sb-tweaks-updates__actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
 }
 
 .sb-tweaks-updates__actions form {
 	margin: 0;
 }
 
-.sb-tweaks-updates__import {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 10px;
-	margin-top: 16px;
-	padding-top: 16px;
-	border-top: 1px solid #f0f0f1;
+.sb-tweaks-updates__link {
+	font-size: 13px;
 }
 
 a.sb-tweaks-header__version {
@@ -2510,10 +2496,4 @@ a.sb-tweaks-header__version {
 a.sb-tweaks-header__version:hover,
 a.sb-tweaks-header__version:focus {
 	filter: brightness(1.25);
-}
-
-@media (max-width: 1100px) {
-	.sb-tweaks-updates {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
