@@ -245,6 +245,7 @@ class SB_Tweaks_Screen {
 		SB_Tweaks_Bar::register(
 			[
 				'id'      => $this->def['bar']['id'],
+				'module'  => $this->def['id'],
 				'label'   => $this->def['bar']['label'],
 				'href'    => admin_url( 'admin.php?page=' . $this->slug() ),
 				'items'   => $pages,
@@ -604,7 +605,18 @@ class SB_Tweaks_Screen {
 		wp_nonce_field( 'sb_tweaks_save_module_docs' );
 		echo '<textarea class="large-text code" rows="24" name="sb_tweaks_docs">' . esc_textarea( $docs ) . '</textarea>';
 		submit_button( esc_html__( 'Save changes', 'sb-tweaks' ), 'primary sb-save--clean' );
-		echo '</form></div></section></div>';
+		echo '</form></div></section>';
+
+		// What the module's standalone plugin shipped, release by release, before
+		// it moved in. Kept as it was, and never edited from here.
+		$archive = $this->def['path'] . 'docs/changes.md';
+
+		if ( file_exists( $archive ) ) {
+			echo '<section class="sb-tweaks-section"><div class="sb-tweaks-section__head"><h2>' . esc_html__( 'Changes before the merge', 'sb-tweaks' ) . '</h2><p>' . esc_html__( 'The release notes of the standalone plugin this module replaced, kept as they were.', 'sb-tweaks' ) . '</p></div>';
+			echo '<div class="sb-tweaks-section__body"><textarea class="large-text code" rows="16" readonly>' . esc_textarea( (string) file_get_contents( $archive ) ) . '</textarea></div></section>';
+		}
+
+		echo '</div>';
 	}
 
 	/** Write a module's docs/context.md back to its folder, hub only. */
@@ -683,6 +695,11 @@ class SB_Tweaks_Screen {
 
 		if ( file_exists( $js ) ) {
 			wp_enqueue_script( 'sb-tweaks-framework', SB_TWEAKS_URL . 'assets/js/framework.js', [ 'jquery' ], SB_TWEAKS_VERSION . '.' . filemtime( $js ), true );
+
+			// The progress popup, for anything that takes more than a moment.
+			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/progress.js' ) ) {
+				wp_enqueue_script( 'sb-tweaks-progress', SB_TWEAKS_URL . 'assets/js/progress.js', [], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/progress.js' ), true );
+			}
 		}
 
 		// Shared cards that drag and collapse.

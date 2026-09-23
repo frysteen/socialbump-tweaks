@@ -264,19 +264,8 @@ class SB_Tweaks_Settings {
 			return;
 		}
 
-		$enabled = 0;
-
-		if ( class_exists( 'SB_Tweaks_Modules' ) ) {
-			foreach ( SB_Tweaks_Modules::instance()->all() as $id => $def ) {
-				if ( SB_Tweaks_Modules::instance()->is_enabled( $id ) ) {
-					$enabled++;
-				}
-			}
-		}
-
-		if ( $enabled === 1 ) {
-			return;
-		}
+		// Always registered: alone on the bar with no module on, otherwise the
+		// last row of the SocialBUMP item. SB_Tweaks_Bar decides which.
 
 		$items   = $this->pages();
 		$page    = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
@@ -306,7 +295,7 @@ class SB_Tweaks_Settings {
 		SB_Tweaks_Bar::register(
 			[
 				'id'              => 'tweaks',
-				'label'           => __( 'Tweaks', 'sb-tweaks' ),
+				'label'           => __( 'SB Tweaks', 'sb-tweaks' ),
 				'href'            => admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
 				'items'           => $pages,
 				'attention'       => $pending,
@@ -438,6 +427,11 @@ class SB_Tweaks_Settings {
 
 		if ( file_exists( $js ) ) {
 			wp_enqueue_script( 'sb-tweaks-framework', SB_TWEAKS_URL . 'assets/js/framework.js', [ 'jquery' ], SB_TWEAKS_VERSION . '.' . filemtime( $js ), true );
+
+			// The progress popup, for anything that takes more than a moment.
+			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/progress.js' ) ) {
+				wp_enqueue_script( 'sb-tweaks-progress', SB_TWEAKS_URL . 'assets/js/progress.js', [], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/progress.js' ), true );
+			}
 		}
 
 		// The cards that drag to reorder and collapse.

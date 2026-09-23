@@ -14,12 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The plugin and each enabled module register what they want shown and this
  * draws the result once, at admin_bar_menu priority 200:
  *
- * - One thing registered: it sits on the bar on its own, by name. The plugin
- *   only registers itself when no module is on, or when two or more are, so
- *   a single enabled module gets the bar to itself, which is today's
- *   behaviour preserved.
- * - Two or more: a single SocialBUMP item, each registration a row inside it,
- *   its pages on a flyout from that row.
+ * - No module on: SB Tweaks sits on the bar by itself.
+ * - Any module on: a single SocialBUMP item, a row for each module with its
+ *   pages on a flyout, and SB Tweaks as the last row.
+ * Both top items open the Modules page. The item id is sb-tweaks-group, not
+ * the socialbump the standalone plugins' shared bar used, so the two can never
+ * merge on a site running both.
  *
  * The dot carries the status: green when there is nothing to do, amber when
  * something wants attention. A row that is amber makes the SocialBUMP item
@@ -27,7 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SB_Tweaks_Bar {
 
-	const PARENT = 'socialbump';
+	// Its own id, so it never merges with a standalone plugin's older bar item.
+	const PARENT = 'sb-tweaks-group';
 
 	/** Everything registered this request, in registration order. */
 	private static $plugins = [];
@@ -38,8 +39,9 @@ class SB_Tweaks_Bar {
 	 * Add a row to the menu.
 	 *
 	 * Expects: id, label, href, items. Optionally attention (bool),
-	 * attention_title, current (bool) and actions, which are drawn above the
-	 * pages for things like a rebuild button.
+	 * attention_title, current (bool), actions, which are drawn above the
+	 * pages for things like a rebuild button, and module (the module id), which
+	 * puts the row in the Modules page card order.
 	 */
 	public static function register( array $plugin ) {
 		if ( empty( $plugin['id'] ) || empty( $plugin['label'] ) ) {
@@ -69,7 +71,9 @@ class SB_Tweaks_Bar {
 
 		self::$booted = true;
 
-		add_action( 'admin_bar_menu', [ __CLASS__, 'render' ], 200 );
+		// After the standalone plugins' shared bar (200), which hands over, through
+		// socialbump/admin_bar/claim, any plugin a module here replaces.
+		add_action( 'admin_bar_menu', [ __CLASS__, 'render' ], 210 );
 		/**
 		 * Printed in the footer as well as the head.
 		 *
@@ -104,6 +108,39 @@ class SB_Tweaks_Bar {
 
 		$plugins = self::$plugins;
 
+		// Module rows in the order this user has dragged the cards into on the
+		// Modules page (anything never moved falls in by name, as it does there),
+		// then anything else, then SB Tweaks' own row, always last.
+		$modules = [];
+
+		foreach ( $plugins as $key => $plugin ) {
+			if ( ! empty( $plugin['module'] ) ) {
+				$modules[ $plugin['module'] ] = [ 'key' => $key, 'label' => $plugin['label'] ];
+			}
+		}
+
+		$ordered = [];
+
+		if ( $modules && class_exists( 'SB_Tweaks_Cards' ) && defined( 'SB_TWEAKS_OPTION' ) ) {
+			foreach ( SB_Tweaks_Cards::sort( wp_list_pluck( $modules, 'label' ), SB_TWEAKS_OPTION ) as $module ) {
+				$key             = $modules[ $module ]['key'];
+				$ordered[ $key ] = $plugins[ $key ];
+			}
+		}
+
+		foreach ( $plugins as $key => $plugin ) {
+			if ( $key !== 'tweaks' && ! isset( $ordered[ $key ] ) ) {
+				$ordered[ $key ] = $plugin;
+			}
+		}
+
+		if ( isset( $plugins['tweaks'] ) ) {
+			$ordered['tweaks'] = $plugins['tweaks'];
+		}
+
+		$plugins = $ordered;
+
+		// No module on: SB Tweaks on the bar by itself.
 		if ( count( $plugins ) === 1 ) {
 			$only = reset( $plugins );
 

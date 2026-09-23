@@ -1,0 +1,317 @@
+/* SocialBUMP Image Carousel for Bricks */
+.sb-carousel {
+	--sb-fit: cover;
+	--sb-pos: center center;
+	--sb-radius: 0;
+	--sb-arrow-size: 44px;
+	--sb-arrow-icon: 18px;
+	--sb-arrow-offset: 12px;
+	--sb-arrow-color: #ffffff;
+	--sb-arrow-bg: rgba(0, 0, 0, 0.55);
+	--sb-arrow-radius: 50%;
+	--sb-dot-size: 10px;
+	--sb-dot-gap: 8px;
+	--sb-dot-color: rgba(0, 0, 0, 0.25);
+	--sb-dot-active: currentColor;
+	--sb-dots-offset: 16px;
+	--sb-dots-align: center;
+	--sb-progress: currentColor;
+	--sb-fade: 80px;
+	position: relative;
+}
+
+.sb-carousel .splide__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sb-carousel__slide {
+	margin: 0;
+	list-style: none;
+}
+
+.sb-carousel__figure {
+	position: relative;
+	margin: 0;
+	height: 100%;
+}
+
+.sb-carousel__link {
+	display: block;
+	height: 100%;
+}
+
+.sb-carousel__img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: var(--sb-radius);
+}
+
+.sb-carousel[style*="--sb-ar"] .sb-carousel__img {
+	aspect-ratio: var(--sb-ar);
+	height: 100%;
+	object-fit: var(--sb-fit);
+	object-position: var(--sb-pos);
+}
+
+/* Captions */
+.sb-carousel__caption {
+	margin-top: 0.5em;
+	font-size: 0.85em;
+	line-height: 1.4;
+}
+
+.sb-carousel--caption-overlay .sb-carousel__caption {
+	position: absolute;
+	inset: auto 0 0 0;
+	margin: 0;
+	padding: 1em;
+	color: #ffffff;
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+	border-bottom-left-radius: var(--sb-radius);
+	border-bottom-right-radius: var(--sb-radius);
+}
+
+/* Arrows */
+.sb-carousel .splide__arrows {
+	display: flex;
+	gap: 8px;
+}
+
+.sb-carousel .splide__arrow {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--sb-arrow-size);
+	height: var(--sb-arrow-size);
+	padding: 0;
+	color: var(--sb-arrow-color);
+	background: var(--sb-arrow-bg);
+	border: 0;
+	border-radius: var(--sb-arrow-radius);
+	cursor: pointer;
+	transition: opacity 0.2s ease;
+}
+
+.sb-carousel .splide__arrow svg {
+	width: var(--sb-arrow-icon);
+	height: var(--sb-arrow-icon);
+	fill: none;
+}
+
+.sb-carousel .splide__arrow i {
+	font-size: var(--sb-arrow-icon);
+	line-height: 1;
+}
+
+.sb-carousel .splide__arrow:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+/* Arrows: inside and outside the track */
+.sb-carousel--arrows-inside .splide__arrows,
+.sb-carousel--arrows-outside .splide__arrows {
+	display: contents;
+}
+
+.sb-carousel--arrows-inside .splide__arrow,
+.sb-carousel--arrows-outside .splide__arrow {
+	position: absolute;
+	top: 50%;
+	z-index: 2;
+	transform: translateY(-50%);
+}
+
+.sb-carousel--arrows-inside .splide__arrow--prev {
+	left: var(--sb-arrow-offset);
+}
+
+.sb-carousel--arrows-inside .splide__arrow--next {
+	right: var(--sb-arrow-offset);
+}
+
+.sb-carousel--arrows-outside {
+	padding-left: calc(var(--sb-arrow-size) + var(--sb-arrow-offset));
+	padding-right: calc(var(--sb-arrow-size) + var(--sb-arrow-offset));
+}
+
+.sb-carousel--arrows-outside .splide__arrow--prev {
+	left: 0;
+}
+
+.sb-carousel--arrows-outside .splide__arrow--next {
+	right: 0;
+}
+
+/* Arrows: above and below */
+.sb-carousel--arrows-above-left .splide__arrows,
+.sb-carousel--arrows-above-right .splide__arrows,
+.sb-carousel--arrows-below-left .splide__arrows,
+.sb-carousel--arrows-below-center .splide__arrows,
+.sb-carousel--arrows-below-right .splide__arrows {
+	position: static;
+	margin-top: var(--sb-arrow-offset);
+}
+
+.sb-carousel--arrows-above-left,
+.sb-carousel--arrows-above-right {
+	display: flex;
+	flex-direction: column;
+}
+
+.sb-carousel--arrows-above-left .splide__arrows,
+.sb-carousel--arrows-above-right .splide__arrows {
+	order: -1;
+	margin-top: 0;
+	margin-bottom: var(--sb-arrow-offset);
+}
+
+.sb-carousel--arrows-above-left .splide__arrows,
+.sb-carousel--arrows-below-left .splide__arrows {
+	justify-content: flex-start;
+}
+
+.sb-carousel--arrows-above-right .splide__arrows,
+.sb-carousel--arrows-below-right .splide__arrows {
+	justify-content: flex-end;
+}
+
+.sb-carousel--arrows-below-center .splide__arrows {
+	justify-content: center;
+}
+
+/* Pagination */
+.sb-carousel .splide__pagination {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sb-dot-gap);
+	justify-content: var(--sb-dots-align);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sb-carousel .splide__pagination li {
+	margin: 0;
+	list-style: none;
+	line-height: 0;
+}
+
+.sb-carousel .splide__pagination__page {
+	width: var(--sb-dot-size);
+	height: var(--sb-dot-size);
+	padding: 0;
+	background: var(--sb-dot-color);
+	border: 0;
+	border-radius: 50%;
+	opacity: 1;
+	cursor: pointer;
+	transition: background 0.2s ease, width 0.2s ease;
+}
+
+.sb-carousel .splide__pagination__page.is-active {
+	background: var(--sb-dot-active);
+	transform: none;
+}
+
+.sb-carousel--dots-bar .splide__pagination__page {
+	width: calc(var(--sb-dot-size) * 3);
+	border-radius: calc(var(--sb-dot-size) / 2);
+}
+
+.sb-carousel--dots-below .splide__pagination {
+	position: static;
+	margin-top: var(--sb-dots-offset);
+}
+
+.sb-carousel--dots-overlay .splide__pagination {
+	position: absolute;
+	inset: auto 0 var(--sb-dots-offset) 0;
+	z-index: 2;
+}
+
+/* Autoplay progress bar */
+.sb-carousel__progress {
+	width: 100%;
+	height: 3px;
+	margin-top: 12px;
+	background: var(--sb-dot-color);
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.sb-carousel__progress-bar {
+	width: 0;
+	height: 100%;
+	background: var(--sb-progress);
+	transition: width 0.1s linear;
+}
+
+/* Stop the flash of unstyled slides before Splide mounts */
+.sb-carousel:not(.is-initialized):not(.sb-carousel--ready) .splide__list {
+	display: flex;
+	overflow: hidden;
+}
+
+.sb-carousel:not(.is-initialized):not(.sb-carousel--ready) .splide__slide {
+	flex: 0 0 auto;
+	width: 33%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sb-carousel .splide__arrow,
+	.sb-carousel .splide__pagination__page,
+	.sb-carousel__progress-bar {
+		transition: none;
+	}
+}
+/* Fade edges: a mask on the track, so it works over any background */
+.sb-carousel--fade .splide__track {
+	-webkit-mask-image: linear-gradient(
+		to right,
+		transparent 0,
+		#000 var(--sb-fade),
+		#000 calc(100% - var(--sb-fade)),
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		to right,
+		transparent 0,
+		#000 var(--sb-fade),
+		#000 calc(100% - var(--sb-fade)),
+		transparent 100%
+	);
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+}
+
+.sb-carousel--fade-left .splide__track {
+	-webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--sb-fade), #000 100%);
+	mask-image: linear-gradient(to right, transparent 0, #000 var(--sb-fade), #000 100%);
+}
+
+.sb-carousel--fade-right .splide__track {
+	-webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - var(--sb-fade)), transparent 100%);
+	mask-image: linear-gradient(to right, #000 0, #000 calc(100% - var(--sb-fade)), transparent 100%);
+}
+
+/* Vertical carousels fade top and bottom instead */
+.sb-carousel--fade.splide--ttb .splide__track {
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		transparent 0,
+		#000 var(--sb-fade),
+		#000 calc(100% - var(--sb-fade)),
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		transparent 0,
+		#000 var(--sb-fade),
+		#000 calc(100% - var(--sb-fade)),
+		transparent 100%
+	);
+}

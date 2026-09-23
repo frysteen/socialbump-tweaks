@@ -64,6 +64,9 @@ class SB_Tweaks_Modules {
 	/** The old plugins deactivated this load, for the notice. */
 	private $retired = [];
 
+	/** Plugins that were active when this request started. */
+	private $running = [];
+
 	/** Cached result of each dependency check. */
 	private static $dependency_state = [];
 
@@ -78,12 +81,24 @@ class SB_Tweaks_Modules {
 	public function boot() {
 		$this->discover();
 
-		// The old standalone plugins must stop running once their module is here.
-		add_action( 'admin_init', [ $this, 'retire_old_plugins' ] );
+		// What was running when this request started. The old standalone plugins
+		// are switched off below, but one that was already loaded has run its
+		// code for this request, so its module sits this one out.
+		$this->running = (array) get_option( 'active_plugins', [] );
+
+		// The old standalone plugins must stop running once their module is here:
+		// switched off straight away, front end included, and kept off.
+		$this->retire_old_plugins();
+		add_filter( 'pre_update_option_active_plugins', [ $this, 'keep_retired_off' ] );
+		add_filter( 'plugin_action_links', [ $this, 'retired_action_links' ], 20, 2 );
 		add_action( 'admin_notices', [ $this, 'retire_notice' ] );
 
+		// A standalone plugin a module replaces sits in the SocialBUMP admin bar
+		// item like its module would (the hub runs them, to publish them).
+		add_filter( 'socialbump/admin_bar/claim', [ $this, 'claim_bar_item' ], 10, 2 );
+
 		foreach ( $this->modules as $id => $def ) {
-			if ( ! $this->is_enabled( $id ) ) {
+			if ( ! $this->is_enabled( $id ) || $this->replaced_running( $id ) ) {
 				continue;
 			}
 
@@ -95,11 +110,13 @@ class SB_Tweaks_Modules {
 				$features = new SB_Tweaks_Features( $def );
 				$screen   = new SB_Tweaks_Screen( $def, $features );
 
-				$features->boot();
-				$screen->boot();
-
+				// Registered before booting, so a feature can read its module's
+				// settings through sb_tweaks_module() while it starts up.
 				$this->features[ $id ] = $features;
 				$this->screens[ $id ]  = $screen;
+
+				$features->boot();
+				$screen->boot();
 
 				if ( is_callable( $def['boot'] ) ) {
 					call_user_func(
@@ -272,8 +289,11 @@ class SB_Tweaks_Modules {
 				],
 				'bricks'      => [
 					'label'  => 'Bricks',
+					// Bricks is a theme, and themes load after plugins, so while the
+					// modules boot BRICKS_VERSION is not defined yet. The active theme
+					// (a Bricks child theme included) is known already.
 					'active' => function () {
-						return defined( 'BRICKS_VERSION' );
+						return defined( 'BRICKS_VERSION' ) || get_template() === 'bricks';
 					},
 				],
 				'woocommerce' => [
@@ -312,43 +332,129 @@ class SB_Tweaks_Modules {
 	}
 
 	/**
-	 * Deactivate the standalone plugin a module replaces, on every admin load.
+	 * The old standalone plugin a module replaces must never run beside it.
 	 *
-	 * The danger is not clashing class names, which cannot collide across
-	 * prefixes. Both would read and write the same sb_tweaks_<module>_
-	 * options, register the same Bricks element and condition names, and
-	 * register menus with the same slugs.
+	 * Both would read and write the same sb_tweaks_<module>_ options, register
+	 * the same Bricks element and condition names, and register menus with the
+	 * same slugs. So, whenever SocialBUMP Tweaks loads, front end included, the
+	 * old plugin is switched off; WordPress's list of active plugins refuses to
+	 * take it back (which covers the Activate link, bulk actions, and anything
+	 * else that tries); its Activate link is replaced by a note; and the module
+	 * itself waits out any request in which the old plugin had already loaded.
+	 *
+	 * The hub is the exception: it publishes the standalone plugins, and needs
+	 * each one running until its last release has gone out. There the old
+	 * plugin stays on and its module waits instead.
+	 * This applies whenever a module for the plugin is on disk, whether or not
+	 * the module is switched on: a module existing is what retires the plugin.
 	 */
 	public function retire_old_plugins() {
-		if ( ! function_exists( 'is_plugin_active' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		if ( function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub() ) {
+			return;
 		}
 
 		foreach ( $this->modules as $def ) {
-			if ( $def['replaces'] === '' || ! is_plugin_active( $def['replaces'] ) ) {
+			if ( $def['replaces'] === '' || ! in_array( $def['replaces'], (array) get_option( 'active_plugins', [] ), true ) ) {
 				continue;
+			}
+
+			if ( ! function_exists( 'deactivate_plugins' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
 
 			deactivate_plugins( $def['replaces'] );
 
 			$this->retired[] = $def['title'];
 		}
+
+		// Switched off on a front end request: say so on the next admin page.
+		if ( $this->retired && ! is_admin() ) {
+			set_transient( 'sb_tweaks_retired', $this->retired, DAY_IN_SECONDS );
+		}
 	}
 
-	/** Say what happened, once, so a deactivated plugin is not a mystery. */
-	public function retire_notice() {
-		if ( ! $this->retired ) {
-			return;
+	/**
+	 * Take a standalone plugin's admin bar entry into the SocialBUMP item.
+	 *
+	 * The standalone plugins register with their shared bar under their folder
+	 * name without the socialbump- prefix (bricks-tweaks, site-kit). Any that a
+	 * module here replaces is taken off the bar by itself: while its module is
+	 * switched on it is registered with SB_Tweaks_Bar, drawn as a row of the
+	 * SocialBUMP item with its pages on a flyout; while the module is off it is
+	 * not shown at all.
+	 */
+	public function claim_bar_item( $claimed, $plugin ) {
+		if ( $claimed || ! is_array( $plugin ) || empty( $plugin['id'] ) || ! class_exists( 'SB_Tweaks_Bar' ) ) {
+			return $claimed;
 		}
 
-		$q = chr( 34 );
+		foreach ( $this->modules as $id => $def ) {
+			if ( $def['replaces'] !== '' && preg_replace( '/^socialbump-/', '', dirname( $def['replaces'] ) ) === $plugin['id'] ) {
+				// It follows its module's switch on the Modules page: in the
+				// SocialBUMP item while that is on, and nowhere on the bar while it
+				// is off, whatever the standalone plugin is doing on the hub.
+				if ( $this->is_enabled( $id ) ) {
+					SB_Tweaks_Bar::register( array_merge( $plugin, [ 'module' => $id ] ) );
+				}
 
-		echo '<div class=' . $q . 'notice notice-warning' . $q . '><p>';
-		printf(
-			/* translators: %s: module name(s) */
-			esc_html__( 'SocialBUMP Tweaks switched off the old standalone plugin for %s: the module here replaces it, and the two must not run together.', 'sb-tweaks' ),
-			esc_html( implode( ', ', $this->retired ) )
-		);
-		echo '</p></div>';
+				return true;
+			}
+		}
+
+		return $claimed;
+	}
+
+	/** True when the plugin this module replaces had loaded for this request. */
+	public function replaced_running( $id ) {
+		$replaces = $this->modules[ $id ]['replaces'] ?? '';
+
+		return $replaces !== '' && in_array( $replaces, $this->running, true );
+	}
+
+	/** The basenames every module on disk replaces. */
+	private function replaced() {
+		return array_values( array_filter( wp_list_pluck( $this->modules, 'replaces' ) ) );
+	}
+
+	/** Nothing may add a replaced plugin back to the active list. Not on the hub. */
+	public function keep_retired_off( $value ) {
+		if ( ! is_array( $value ) || ( function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub() ) ) {
+			return $value;
+		}
+
+		return array_values( array_diff( $value, $this->replaced() ) );
+	}
+
+	/** On the Plugins screen, a replaced plugin shows a note instead of Activate. */
+	public function retired_action_links( $links, $file ) {
+		if ( ! in_array( $file, $this->replaced(), true ) || ( function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub() ) ) {
+			return $links;
+		}
+
+		unset( $links['activate'] );
+		$links['sb_tweaks_replaced'] = '<span class="description">' . esc_html__( 'Replaced by SocialBUMP Tweaks', 'sb-tweaks' ) . '</span>';
+
+		return $links;
+	}
+
+	/** Say what happened, once, so a switched off plugin is not a mystery. */
+	public function retire_notice() {
+		$retired = $this->retired;
+		$earlier = get_transient( 'sb_tweaks_retired' );
+
+		if ( is_array( $earlier ) ) {
+			delete_transient( 'sb_tweaks_retired' );
+			$retired = array_unique( array_merge( $retired, $earlier ) );
+		}
+
+		if ( $retired ) {
+			echo '<div class="notice notice-warning"><p>';
+			printf(
+				/* translators: %s: module name(s) */
+				esc_html__( 'SocialBUMP Tweaks switched off the old standalone plugin for %s: the module here replaces it, and the two must not run together.', 'sb-tweaks' ),
+				esc_html( implode( ', ', $retired ) )
+			);
+			echo '</p></div>';
+		}
 	}
 }

@@ -22,6 +22,9 @@ class SB_Tweaks_Push {
 	/** Reporter version that first understood pushed updates. */
 	const NEEDS = '1.1.0';
 
+	/** Reporter version that first understood being told to install SocialBUMP Tweaks. */
+	const NEEDS_INSTALL = '1.2.0';
+
 	public static function boot() {
 		add_action( 'wp_ajax_sb_tweaks_push', [ __CLASS__, 'ajax' ] );
 	}
@@ -45,8 +48,19 @@ class SB_Tweaks_Push {
 		return ! empty( $site['reporter'] ) && version_compare( $site['reporter'], self::NEEDS, '>=' );
 	}
 
-	/** Push one plugin to one site. Returns [ ok, message, version ]. */
-	public static function push( $host, $slug ) {
+	/** Whether a site's reporter can be told to install SocialBUMP Tweaks. */
+	public static function can_install( array $site ) {
+		return ! empty( $site['reporter'] ) && version_compare( $site['reporter'], self::NEEDS_INSTALL, '>=' );
+	}
+
+	/**
+	 * Push one plugin to one site. Returns [ ok, message, version ].
+	 *
+	 * $action is update (a plugin the site has) or install (SocialBUMP Tweaks,
+	 * on a site that does not have it yet, which then takes over from the
+	 * standalone plugins it has modules for).
+	 */
+	public static function push( $host, $slug, $action = 'update' ) {
 		$sites  = (array) get_option( SB_Tweaks_Installs::OPTION, [] );
 		$latest = SB_Tweaks_Installs::latest();
 
@@ -62,6 +76,7 @@ class SB_Tweaks_Push {
 
 		$version = $latest[ $slug ];
 		$job     = [
+			'action'  => $action === 'install' ? 'install' : 'update',
 			'host'    => $host,
 			'plugin'  => $slug,
 			'version' => $version,
@@ -102,6 +117,16 @@ class SB_Tweaks_Push {
 		if ( ! empty( $body['ok'] ) && ! empty( $body['version'] ) ) {
 			// Show it straight away; the site's own report follows.
 			$sites[ $host ]['plugins'][ $slug ]['version'] = sanitize_text_field( $body['version'] );
+
+			if ( $action === 'install' ) {
+				$sites[ $host ]['plugins'][ $slug ]['active'] = true;
+
+				foreach ( array_map( 'sanitize_key', (array) ( $body['retired'] ?? [] ) ) as $gone ) {
+					if ( isset( $sites[ $host ]['plugins'][ $gone ] ) ) {
+						$sites[ $host ]['plugins'][ $gone ]['active'] = false;
+					}
+				}
+			}
 			update_option( SB_Tweaks_Installs::OPTION, $sites, false );
 		}
 
@@ -124,6 +149,8 @@ class SB_Tweaks_Push {
 		$host = isset( $_POST['host'] ) ? sanitize_text_field( wp_unslash( $_POST['host'] ) ) : '';
 		$slug = isset( $_POST['plugin'] ) ? sanitize_key( wp_unslash( $_POST['plugin'] ) ) : '';
 
-		wp_send_json( self::push( $host, $slug ) );
+		$job  = isset( $_POST['job'] ) && $_POST['job'] === 'install' ? 'install' : 'update';
+
+		wp_send_json( self::push( $host, $slug, $job ) );
 	}
 }

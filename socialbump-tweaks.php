@@ -3,7 +3,7 @@
  * Plugin Name: SocialBUMP Tweaks
  * Plugin URI:  https://socialbump.com.au
  * Description: SocialBUMP site tweaks in switchable modules. Turn on only the parts a site needs.
- * Version:     0.1.7
+ * Version:     0.1.8
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author:      SocialBUMP
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Tells the SocialBUMP hub this site has the plugin, its version and whether it is active.
 require_once __DIR__ . '/includes/class-socialbump-reporter.php';
 
-define( 'SB_TWEAKS_VERSION', '0.1.7' );
+define( 'SB_TWEAKS_VERSION', '0.1.8' );
 define( 'SB_TWEAKS_FILE', __FILE__ );
 define( 'SB_TWEAKS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SB_TWEAKS_URL', plugin_dir_url( __FILE__ ) );
@@ -179,6 +179,10 @@ function sb_tweaks_boot() {
 		// Updates pushed to sites from the Installs page.
 		require_once SB_TWEAKS_PATH . 'includes/class-sb-tweaks-push.php';
 		SB_Tweaks_Push::boot();
+
+		// Publishing from the Installs page, through each plugin's own publish handler.
+		require_once SB_TWEAKS_PATH . 'includes/class-sb-tweaks-hub-publish.php';
+		SB_Tweaks_Hub_Publish::boot();
 	}
 }
 add_action( 'plugins_loaded', 'sb_tweaks_boot' );

@@ -45,9 +45,23 @@ Built so far:
   sb_tweaks_modules. A module with a missing dependency keeps its saved state
   rather than having it written off behind someone's back, and with nothing
   saved the default keeps deciding.
-- The admin bar counting rule: with no modules on, Tweaks stands alone; with
-  exactly one on, that module's menu stands alone and Tweaks stays out of the
-  way; with two or more, everything shares the combined SocialBUMP menu.
+- The admin bar rule: with no module on, SB Tweaks stands alone; with any
+  module on, one SocialBUMP item (id sb-tweaks-group) holds a row per module
+  and SB Tweaks as the last row, and both top items open the Modules page. The
+  id differs from the standalone plugins' old socialbump item so the two never
+  merge. The standalone plugins' shared bar offers each entry to the
+  socialbump/admin_bar/claim filter first; SB_Tweaks_Modules::claim_bar_item()
+  takes any whose id (the folder minus socialbump-) a module replaces and
+  registers it with SB_Tweaks_Bar, which renders at 210, after the shared bar
+  at 200. So on the hub, where standalone Bricks Tweaks runs for publishing, it
+  sits in the SocialBUMP item like the module. Unclaimed standalone plugins
+  (Site Kit until its module exists) and SEO for AI sit on the bar alone. A
+  claimed standalone plugin follows its module's switch: in the item while
+  the module is on, not on the bar at all while it is off. Rows registered
+  with a module id (Screen passes it, the claim adds it) are ordered by
+  SB_Tweaks_Cards::sort() against the Modules page card order
+  (SB_TWEAKS_OPTION), so the bar matches that user's drag order; SB Tweaks'
+  own row is always last.
 
 ## The framework
 
@@ -80,9 +94,17 @@ configuration and bookmarks hold them.
   Settings class now delegates to.
 - Dependencies: acf (satisfied by Bricks Advanced Themer's bundle), bricks
   (BRICKS_VERSION) and woocommerce, filterable through sb_tweaks/dependencies.
-- Lockout: a module's replaces basename is deactivated on every admin_init
-  while the module is on, with an admin notice saying so, so the old plugin
-  cannot run beside it.
+- Lockout: see Turning the old plugins off below; the rules were tightened
+  when the Bricks module arrived.
+- Dependencies are decided while plugins load, before the theme: bricks counts
+  as present when BRICKS_VERSION is defined or get_template() is bricks, since
+  BRICKS_VERSION does not exist yet at that point (a module requiring bricks
+  never booted until this was fixed, September 2026).
+- A module's Features loader and Screen are registered with SB_Tweaks_Modules
+  before they boot, so a feature can read its module's settings through
+  sb_tweaks_module( <id> ) while starting up.
+- A module may ship docs/changes.md, its standalone plugin's release notes;
+  the Documentation page shows it read only under Changes before the merge.
 - Bricks element registration belongs to the Bricks module, not the
   framework. The Bar port dropped Site Kit's unused accent helpers.
 - assets/js/framework.js holds the shared page behaviours: colour swatch
@@ -150,9 +172,25 @@ quieter than that:
   name.
 - Both would register menus with the same slugs.
 
-So this plugin deactivates the old one and stops it being switched on again.
-Run the check on every admin load, not only on activation: an activation hook
-does not fire when a plugin is updated.
+So, wherever a module for it is on disk (switched on or not), SB_Tweaks_Modules:
+
+- switches the old plugin off as soon as this plugin loads, front end
+  included, rather than waiting for an admin page (retire_old_plugins() runs in
+  boot(); a front end retirement leaves the sb_tweaks_retired transient so the
+  notice appears on the next admin page);
+- refuses to let it back into the active_plugins option
+  (pre_update_option_active_plugins), which covers the Activate link, bulk
+  activation, and a standalone update trying to reactivate itself;
+- swaps its Activate link for a Replaced by SocialBUMP Tweaks note;
+- does not boot the module in a request where the old plugin was already
+  active when the request began (the running list captured at boot), because
+  that plugin's code has run for this request. The module starts on the next.
+
+The hub is the exception. It publishes the standalone plugins and needs each
+running until its last release is out, so there none of the above happens:
+the old plugin stays on, its module waits, and an info notice on this plugin's
+pages says so. Test a module against a real site (bricks.socialbump.com.au)
+rather than on the hub.
 
 ### Names that cannot change
 
@@ -185,6 +223,7 @@ bookmark breaks.
 | includes/class-sb-tweaks-docs.php | these notes, and the panel on Publishing |
 | includes/framework/ | the seven classes the modules run on |
 | assets/js/framework.js | swatches, hide-when fields, switches, select all and none |
+| assets/js/progress.js | the progress popup, SBTweaksProgress (see Popups) |
 | assets/js/module-cards.js | the cards that drag to reorder and collapse |
 | modules/ | one folder per module, each with module.php and its own docs |
 | assets/css/admin.css | everything the admin pages look like |
@@ -326,3 +365,96 @@ whose plugin is socialbump-tweaks, under 2 MB, and only writes names that pass
 travels() and are plain lowercase, digits and underscores. The page renders and
 its handlers are registered whether or not any module is on, which is the rule
 for every framework page.
+
+Reporter 1.2.0: a signed instruction can also say action install, for
+SocialBUMP Tweaks only (INSTALLABLE), from its own GitHub release. install_new()
+installs it with Plugin_Upgrader::install() if it is missing, switches it on,
+then posts once to admin-ajax.php (never page cached) so SocialBUMP Tweaks runs
+and switches off the standalone plugins it has modules for, reports, and
+answers with the version and which tracked plugins are now off. Any other
+action is refused. The hub offers it (SB_Tweaks_Push::can_install, reporter
+1.2.0 or later) as an Install button in the Tweaks column, only on a site
+with a plugin some module's replaces names.
+
+## Publishing from the Installs page
+
+includes/class-sb-tweaks-hub-publish.php, hub only. The hub table has a tick box
+per plugin with changes waiting (and select all), the waiting count opens a popup
+listing the changes with Cancel and Publish, Review links to the plugin's
+Publishing page, and each row has Publish <next version>. Publish selected runs
+them one at a time, then the page reloads so the sites table measures against
+the new versions.
+
+SB_Tweaks_Hub_Publish::publish() does not reimplement publishing. It fills in
+exactly what the plugin's own Publishing form would send (<prefix>_version as
+the next patch number, <prefix>_notes from changes_text(), and a fresh
+<prefix>_publish nonce), calls that plugin's release class publish(), and
+catches its closing redirect with a wp_redirect filter that throws
+SB_Tweaks_Hub_Publish_Done. The outcome is the plugin's own notice transient
+(NOTICE_PREFIX + user id), read and cleared. Prefixes: sbsk, sbbt, sbaike,
+sb_tweaks. Tested by asking Site Kit's handler for its current version, which it
+refused before touching GitHub, with the redirect caught and the message read
+back.
+
+Sites table: a tick box (and select all) on each site with updates waiting,
+an Update all button in a narrow column before the remove column, and a
+tfoot row with Update all (everything on the ticked sites) and an Update
+under each plugin column (that plugin only on the ticked sites, enabled only
+when a ticked site is behind on it). Both run the site's waiting updates one at a time in the
+framework's progress popup (SBTweaksProgress, see Popups). A single Update button, stacked under its version, stays inline.
+Keep explanatory copy on these pages to a minimum; Sam knows what the buttons do.
+
+## Popups
+
+Two kinds, both in the framework, both looking like SEO for AI's.
+
+### Progress popup (assets/js/progress.js, window.SBTweaksProgress)
+
+For anything that takes more than a moment: publishing, pushing updates to
+sites, rebuilds, bulk changes. Loaded on every SocialBUMP Tweaks and module page
+alongside framework.js, so a module never ships its own.
+
+    var job = SBTweaksProgress.open( 'Publishing' );
+    job.step( 0, 3, 'Bricks Tweaks: building and publishing 1.1.7' );
+    job.status( 'Publishing 1 of 3' );
+    job.log( 'Bricks Tweaks 1.1.7', 'published' );
+    job.log( 'SEO for AI 1.1.6', 'did not publish: reason', true );
+    job.step( 1, 3 );
+    job.finish( 'Publishing complete' );
+    job.fail( 'GitHub could not be reached' );
+
+How it looks and acts, and how every long action in these plugins should:
+
+- It opens the moment the button is pressed, over a dark overlay, as a
+  centred white box: the elapsed time small and grey in the top right corner,
+  a centred title saying what is happening (Publishing, Updating sites), a
+  rounded progress bar in the admin colour scheme's accent, a bold status line
+  ("Publishing 1 of 3"), and a grey line for the item being worked on now,
+  written "Label: detail" so the label shows in bold.
+- It cannot be closed while it runs: no X, no Close, Escape does nothing. The
+  work is usually partway through something that should not be abandoned.
+- step( done, total, current ) moves the bar and sets "done of total"; call
+  status() after it to reword that line. Work through items one at a time
+  when each one touches something external (GitHub, a client site).
+- log() records one line per item for the report: what, then what happened.
+  A failure passes true and carries the reason in the item's own words, never
+  a generic "something went wrong".
+- finish( summary ) ends on Finished: the bar full (red if anything failed), a
+  grey report card with the bold summary and "in 2.8 seconds" (or minutes and
+  seconds), one line per item with the item bold, failures in red, and a
+  centred primary Close button. Close reloads the page so everything on it
+  reflects the result; pass a function as the second argument to do something
+  else instead.
+- fail( message ) stops where it is, turns the bar red, shows the reason and
+  offers Close.
+- Summaries: "Publishing complete" or "Updates complete" when everything
+  worked, otherwise the counts, "2 published, 1 failed".
+- Keep the words short. No instructions, no explaining what the buttons do.
+
+### Confirm popup (the waiting changes on the Installs page)
+
+For looking at something before acting on it. The same overlay and box (10px
+radius, 24px padding), the title top left, an X to close in the top right,
+Cancel on the left and the action on the right along the bottom, Escape and a
+click outside close it. Its action hands straight over to a progress popup.
+Markup and styles: .sb-hub__modal and .sb-hub__dialog in the Installs page.

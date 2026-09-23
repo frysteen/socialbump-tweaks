@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,14 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.1.8 =
+* New Bricks Tweaks module: everything from the standalone SocialBUMP Bricks Tweaks plugin (the Image Carousel element, five conditions, ACF loop sorting, the ACF gallery loop, Default To WP Editor and Gutenberg Block Styles), with the same settings, menu and page names, so nothing on any site needs changing. Once it is here, standalone Bricks Tweaks is switched off and cannot be switched back on, and the two never run together.
+* Modules that need Bricks now start properly: Bricks is a theme and loads after plugins, so it was being reported as missing.
+* Installs: sites running a standalone plugin that a SocialBUMP Tweaks module now replaces get an Install button in the Tweaks column. One click installs SocialBUMP Tweaks on that site, which switches the old plugin off and carries on with its settings.
+* Admin bar: SB Tweaks sits on the bar by itself while nothing else is in it. Once a module is on, a SocialBUMP item holds each module (with its pages on a flyout) and SB Tweaks as the last row, and both top items open the Modules page. A standalone plugin that a module replaces, still running on the hub for publishing, sits in the same place its module would. Site Kit and SEO for AI stay on their own. The modules in the SocialBUMP item follow your card order on the Modules page.
+* Framework: a progress popup (SBTweaksProgress) for anything that takes more than a moment, in the same style as SEO for AI's: elapsed time, progress bar, what is being worked on, then a report with the time taken, failures in red, and Close. Publishing and site updates on the Installs page use it. The changes popup has Cancel on the left, Publish on the right and an X to close, and buttons there are compact.
+* Installs: sites with updates waiting get a tick box and an Update all button. Under the sites, Update all updates everything on the ticked sites and an Update under each plugin column updates just that plugin on them, all in the same progress popup as publishing. The Publish column in the hub table is only as wide as its button.
 
 = 0.1.7 =
 * Installs: the Update buttons work again with the hub table above them, and the hub table shows a newly published version straight away.
