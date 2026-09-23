@@ -6,18 +6,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Hub only tools: GitHub token, publish a release, download the plugin zip.
  *
- * Loaded by sbtweaks_boot() only when sbtweaks_is_hub() is true, so client sites
+ * Loaded by sb_tweaks_boot() only when sb_tweaks_is_hub() is true, so client sites
  * carry this file but never run it.
  */
-class SBTWEAKS_Release {
+class SB_Tweaks_Release {
 
 	private static $instance = null;
 
-	const TOKEN_OPTION  = 'sbtweaks_github_token';
-	const LATEST_CACHE  = 'sbtweaks_latest_release';
-	const NOTICE_PREFIX = 'sbtweaks_release_notice_';
+	const TOKEN_OPTION  = 'sb_tweaks_github_token';
+	const LATEST_CACHE  = 'sb_tweaks_latest_release';
+	const NOTICE_PREFIX = 'sb_tweaks_release_notice_';
 	const ASSET_NAME    = 'socialbump-tweaks.zip';
-	const CHANGES_OPTION = 'sbtweaks_pending_changes';
+	const CHANGES_OPTION = 'sb_tweaks_pending_changes';
 
 	public static function instance() {
 		if ( self::$instance === null ) {
@@ -28,16 +28,16 @@ class SBTWEAKS_Release {
 	}
 
 	public function boot() {
-		add_action( 'sbtweaks_settings_after', [ $this, 'render' ] );
-		add_action( 'admin_post_sbtweaks_save_token', [ $this, 'save_token' ] );
-		add_action( 'admin_post_sbtweaks_publish', [ $this, 'publish' ] );
-		add_action( 'admin_post_sbtweaks_download_zip', [ $this, 'download_zip' ] );
+		add_action( 'sb_tweaks_settings_after', [ $this, 'render' ] );
+		add_action( 'admin_post_sb_tweaks_save_token', [ $this, 'save_token' ] );
+		add_action( 'admin_post_sb_tweaks_publish', [ $this, 'publish' ] );
+		add_action( 'admin_post_sb_tweaks_download_zip', [ $this, 'download_zip' ] );
 	}
 
 	/* Token storage: encrypted with the site's auth salt so it never sits in the database as plain text. */
 
 	private function key() {
-		return hash( 'sha256', wp_salt( 'auth' ) . 'sbtweaks-github', true );
+		return hash( 'sha256', wp_salt( 'auth' ) . 'sb-tweaks-github', true );
 	}
 
 	private function encrypt( $plain ) {
@@ -97,7 +97,7 @@ class SBTWEAKS_Release {
 			5 * MINUTE_IN_SECONDS
 		);
 
-		wp_safe_redirect( admin_url( 'admin.php?page=' . SBTWEAKS_Settings::PAGE_SLUG . '-publishing' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=' . SB_Tweaks_Settings::PAGE_SLUG . '-publishing' ) );
 		exit;
 	}
 
@@ -155,7 +155,7 @@ class SBTWEAKS_Release {
 	}
 
 	private function file_version() {
-		$data = get_file_data( SBTWEAKS_FILE, [ 'Version' => 'Version' ] );
+		$data = get_file_data( SB_TWEAKS_FILE, [ 'Version' => 'Version' ] );
 
 		return $data['Version'];
 	}
@@ -165,16 +165,16 @@ class SBTWEAKS_Release {
 		$b = 0;
 
 		$src = preg_replace( '/^(\s*\*\s*Version:\s*)\S+/m', '${1}' . $version, $src, 1, $a );
-		$src = preg_replace( "/(define\(\s*'SBTWEAKS_VERSION',\s*')[^']*(')/", '${1}' . $version . '${2}', $src, 1, $b );
+		$src = preg_replace( "/(define\(\s*'SB_TWEAKS_VERSION',\s*')[^']*(')/", '${1}' . $version . '${2}', $src, 1, $b );
 
 		return ( $a === 1 && $b === 1 ) ? $src : null;
 	}
 
 	private function write_main_file( $contents ) {
-		file_put_contents( SBTWEAKS_FILE, $contents );
+		file_put_contents( SB_TWEAKS_FILE, $contents );
 
 		if ( function_exists( 'opcache_invalidate' ) ) {
-			opcache_invalidate( SBTWEAKS_FILE, true );
+			opcache_invalidate( SB_TWEAKS_FILE, true );
 		}
 	}
 
@@ -184,7 +184,7 @@ class SBTWEAKS_Release {
 	 * Returns the original contents so a failed publish can put it back.
 	 */
 	private function update_readme( $version, $notes ) {
-		$file = SBTWEAKS_PATH . 'readme.txt';
+		$file = SB_TWEAKS_PATH . 'readme.txt';
 
 		if ( ! is_readable( $file ) || ! is_writable( $file ) ) {
 			return null;
@@ -245,7 +245,7 @@ class SBTWEAKS_Release {
 	 * Every plugin file, keyed by its path inside the plugin folder.
 	 */
 	private function files() {
-		$dir   = untrailingslashit( SBTWEAKS_PATH );
+		$dir   = untrailingslashit( SB_TWEAKS_PATH );
 		$skip  = [ '.git', '.github', 'node_modules', '.DS_Store' ];
 		$list  = [];
 		$items = new RecursiveIteratorIterator(
@@ -269,18 +269,18 @@ class SBTWEAKS_Release {
 
 	private function build_zip() {
 		if ( ! class_exists( 'ZipArchive' ) ) {
-			return new WP_Error( 'sbtweaks_zip', __( 'This server has no ZipArchive support, so the zip could not be built.', 'sb-tweaks' ) );
+			return new WP_Error( 'sb_tweaks_zip', __( 'This server has no ZipArchive support, so the zip could not be built.', 'sb-tweaks' ) );
 		}
 
-		$path = trailingslashit( get_temp_dir() ) . 'sbtweaks-' . wp_generate_password( 12, false ) . '.zip';
+		$path = trailingslashit( get_temp_dir() ) . 'sb-tweaks-' . wp_generate_password( 12, false ) . '.zip';
 		$zip  = new ZipArchive();
 
 		if ( $zip->open( $path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
-			return new WP_Error( 'sbtweaks_zip', __( 'The zip file could not be created.', 'sb-tweaks' ) );
+			return new WP_Error( 'sb_tweaks_zip', __( 'The zip file could not be created.', 'sb-tweaks' ) );
 		}
 
 		foreach ( $this->files() as $rel => $abs ) {
-			$zip->addFile( $abs, SBTWEAKS_SLUG . '/' . $rel );
+			$zip->addFile( $abs, SB_TWEAKS_SLUG . '/' . $rel );
 		}
 
 		$zip->close();
@@ -296,10 +296,10 @@ class SBTWEAKS_Release {
 	 * @return string|WP_Error The commit SHA the release should point at.
 	 */
 	private function push_code( $token, $branch, $version ) {
-		$git  = '/repos/' . SBTWEAKS_GITHUB_REPO . '/git';
+		$git  = '/repos/' . SB_TWEAKS_GITHUB_REPO . '/git';
 		$fail = function ( $what, $res ) {
 			/* translators: 1: step that failed, 2: GitHub error message */
-			return new WP_Error( 'sbtweaks_git', sprintf( __( 'Copying the code to GitHub failed while %1$s (%2$s).', 'sb-tweaks' ), $what, $res['error'] ? $res['error'] : 'HTTP ' . $res['code'] ) );
+			return new WP_Error( 'sb_tweaks_git', sprintf( __( 'Copying the code to GitHub failed while %1$s (%2$s).', 'sb-tweaks' ), $what, $res['error'] ? $res['error'] : 'HTTP ' . $res['code'] ) );
 		};
 
 		$ref = $this->github( 'GET', $git . '/ref/heads/' . rawurlencode( $branch ), $token );
@@ -422,7 +422,7 @@ class SBTWEAKS_Release {
 
 		$tag = '';
 		$res = wp_remote_get(
-			'https://api.github.com/repos/' . SBTWEAKS_GITHUB_REPO . '/releases/latest',
+			'https://api.github.com/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/latest',
 			[
 				'timeout' => 10,
 				'headers' => [
@@ -468,14 +468,14 @@ class SBTWEAKS_Release {
 
 	/** Whether a release has come out of draft, asked of GitHub rather than assumed. */
 	private function is_published( $token, $release_id ) {
-		$res = $this->github( 'GET', '/repos/' . SBTWEAKS_GITHUB_REPO . '/releases/' . (int) $release_id, $token );
+		$res = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . (int) $release_id, $token );
 
 		return $res['code'] === 200 && isset( $res['body']['draft'] ) && ! $res['body']['draft'];
 	}
 
 	/** How many files are actually attached to a release. */
 	private function asset_count( $token, $release_id ) {
-		$res = $this->github( 'GET', '/repos/' . SBTWEAKS_GITHUB_REPO . '/releases/' . (int) $release_id, $token );
+		$res = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . (int) $release_id, $token );
 
 		return ( $res['code'] === 200 && ! empty( $res['body']['assets'] ) ) ? count( (array) $res['body']['assets'] ) : 0;
 	}
@@ -506,11 +506,11 @@ class SBTWEAKS_Release {
 	}
 	private function abort( $message, $original = null, $zip = '', $token = '', $release_id = 0, $readme_original = null ) {
 		if ( $readme_original !== null ) {
-			file_put_contents( SBTWEAKS_PATH . 'readme.txt', $readme_original );
+			file_put_contents( SB_TWEAKS_PATH . 'readme.txt', $readme_original );
 		}
 
 		if ( $release_id && $token ) {
-			$deleted = $this->github( 'DELETE', '/repos/' . SBTWEAKS_GITHUB_REPO . '/releases/' . (int) $release_id, $token );
+			$deleted = $this->github( 'DELETE', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . (int) $release_id, $token );
 
 			// Say so when the tidy up fails, rather than leaving a draft nobody knows about.
 			if ( (int) $deleted['code'] !== 204 ) {
@@ -532,20 +532,20 @@ class SBTWEAKS_Release {
 	/* Actions */
 
 	public function save_token() {
-		$this->guard( 'sbtweaks_save_token' );
+		$this->guard( 'sb_tweaks_save_token' );
 
-		if ( ! empty( $_POST['sbtweaks_remove_token'] ) ) {
+		if ( ! empty( $_POST['sb_tweaks_remove_token'] ) ) {
 			delete_option( self::TOKEN_OPTION );
 			$this->back( 'success', __( 'GitHub token removed.', 'sb-tweaks' ) );
 		}
 
-		$token = isset( $_POST['sbtweaks_token'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['sbtweaks_token'] ) ) ) : '';
+		$token = isset( $_POST['sb_tweaks_token'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['sb_tweaks_token'] ) ) ) : '';
 
 		if ( $token === '' ) {
 			$this->back( 'error', __( 'Paste a token into the box first. Your saved token has not changed.', 'sb-tweaks' ) );
 		}
 
-		$check = $this->github( 'GET', '/repos/' . SBTWEAKS_GITHUB_REPO, $token );
+		$check = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO, $token );
 
 		if ( $check['code'] !== 200 ) {
 			$this->back(
@@ -564,21 +564,21 @@ class SBTWEAKS_Release {
 	}
 
 	public function publish() {
-		$this->guard( 'sbtweaks_publish' );
+		$this->guard( 'sb_tweaks_publish' );
 
 		if ( function_exists( 'set_time_limit' ) ) {
 			@set_time_limit( 300 );
 		}
 
 		$token   = $this->get_token();
-		$version = isset( $_POST['sbtweaks_version'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['sbtweaks_version'] ) ) ) : '';
+		$version = isset( $_POST['sb_tweaks_version'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['sb_tweaks_version'] ) ) ) : '';
 
 		// 1.1 means 1.1.0. Padded here as well as in the browser, so the short
 		// form works however the form was submitted.
 		if ( preg_match( '/^[0-9]+(\.[0-9]+)?$/', $version ) ) {
 			$version = implode( '.', array_slice( array_pad( explode( '.', $version ), 3, '0' ), 0, 3 ) );
 		}
-		$notes   = isset( $_POST['sbtweaks_notes'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['sbtweaks_notes'] ) ) ) : '';
+		$notes   = isset( $_POST['sb_tweaks_notes'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['sb_tweaks_notes'] ) ) ) : '';
 		$current = $this->file_version();
 
 		if ( $token === '' ) {
@@ -595,14 +595,14 @@ class SBTWEAKS_Release {
 		}
 
 		$tag  = 'v' . $version;
-		$repo = $this->github( 'GET', '/repos/' . SBTWEAKS_GITHUB_REPO, $token );
+		$repo = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO, $token );
 
 		if ( $repo['code'] !== 200 ) {
 			/* translators: %s: GitHub error message */
 			$this->abort( sprintf( __( 'Could not reach the GitHub repo (%s).', 'sb-tweaks' ), $repo['error'] ) );
 		}
 
-		$existing = $this->github( 'GET', '/repos/' . SBTWEAKS_GITHUB_REPO . '/releases/tags/' . rawurlencode( $tag ), $token );
+		$existing = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/tags/' . rawurlencode( $tag ), $token );
 
 		if ( $existing['code'] === 200 ) {
 			/* translators: %s: release tag */
@@ -610,7 +610,7 @@ class SBTWEAKS_Release {
 		}
 
 		// 1. Bump the version in the main plugin file, and put it back if anything fails.
-		$original = file_get_contents( SBTWEAKS_FILE );
+		$original = file_get_contents( SB_TWEAKS_FILE );
 		$bumped   = $this->bump( $original, $version );
 
 		if ( $bumped === null ) {
@@ -621,7 +621,7 @@ class SBTWEAKS_Release {
 
 		$readme_original = $this->update_readme( $version, $notes );
 
-		if ( ! $this->lint_ok( SBTWEAKS_FILE ) ) {
+		if ( ! $this->lint_ok( SB_TWEAKS_FILE ) ) {
 			$this->abort( __( 'The main plugin file failed a PHP syntax check after the version change.', 'sb-tweaks' ), $original );
 		}
 
@@ -644,7 +644,7 @@ class SBTWEAKS_Release {
 		// Sites never see a release that is missing its zip.
 		$release = $this->github(
 			'POST',
-			'/repos/' . SBTWEAKS_GITHUB_REPO . '/releases',
+			'/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases',
 			$token,
 			[
 				'tag_name'         => $tag,
@@ -678,7 +678,7 @@ class SBTWEAKS_Release {
 		 * Publishing happens on its own. GitHub rejects make_latest while a release
 		 * is still a draft, and sending both at once is what it trips over.
 		 */
-		$live = $this->github_retry( 'PATCH', '/repos/' . SBTWEAKS_GITHUB_REPO . '/releases/' . $release_id, $token, [ 'draft' => false ] );
+		$live = $this->github_retry( 'PATCH', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . $release_id, $token, [ 'draft' => false ] );
 
 		/**
 		 * A 500 here does not mean nothing happened. GitHub has published a release
@@ -691,13 +691,13 @@ class SBTWEAKS_Release {
 		}
 
 		// Only once it is out of draft can it be marked as the latest release.
-		$this->github_retry( 'PATCH', '/repos/' . SBTWEAKS_GITHUB_REPO . '/releases/' . $release_id, $token, [ 'make_latest' => 'true' ] );
+		$this->github_retry( 'PATCH', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . $release_id, $token, [ 'make_latest' => 'true' ] );
 
 		wp_delete_file( $zip );
 		self::clear_changes();
 		set_transient( self::LATEST_CACHE, $version, 5 * MINUTE_IN_SECONDS );
 
-		$url = ! empty( $live['body']['html_url'] ) ? $live['body']['html_url'] : 'https://github.com/' . SBTWEAKS_GITHUB_REPO . '/releases';
+		$url = ! empty( $live['body']['html_url'] ) ? $live['body']['html_url'] : 'https://github.com/' . SB_TWEAKS_GITHUB_REPO . '/releases';
 
 		$this->back(
 			'success',
@@ -711,7 +711,7 @@ class SBTWEAKS_Release {
 	}
 
 	public function download_zip() {
-		$this->guard( 'sbtweaks_download_zip' );
+		$this->guard( 'sb_tweaks_download_zip' );
 
 		$zip = $this->build_zip();
 
@@ -725,7 +725,7 @@ class SBTWEAKS_Release {
 
 		nocache_headers();
 		header( 'Content-Type: application/zip' );
-		header( 'Content-Disposition: attachment; filename="' . SBTWEAKS_SLUG . '-' . $this->file_version() . '.zip"' );
+		header( 'Content-Disposition: attachment; filename="' . SB_TWEAKS_SLUG . '-' . $this->file_version() . '.zip"' );
 		header( 'Content-Length: ' . filesize( $zip ) );
 		readfile( $zip );
 		wp_delete_file( $zip );
@@ -741,14 +741,14 @@ class SBTWEAKS_Release {
 		$notice  = get_transient( self::NOTICE_PREFIX . get_current_user_id() );
 		$parts   = array_map( 'intval', explode( '.', $current . '.0.0' ) );
 		$suggest = $parts[0] . '.' . $parts[1] . '.' . ( $parts[2] + 1 );
-		$repo    = 'https://github.com/' . SBTWEAKS_GITHUB_REPO;
+		$repo    = 'https://github.com/' . SB_TWEAKS_GITHUB_REPO;
 		$changes = self::pending_changes();
 
 		if ( $notice ) {
 			delete_transient( self::NOTICE_PREFIX . get_current_user_id() );
 		}
 		?>
-		<div class="sbtweaks-release" id="sbtweaks-release">
+		<div class="sb-tweaks-release" id="sb-tweaks-release">
 			<h2 class="screen-reader-text"><?php esc_html_e( 'Publish release', 'sb-tweaks' ); ?></h2>
 
 			<?php if ( is_array( $notice ) ) : ?>
@@ -757,14 +757,14 @@ class SBTWEAKS_Release {
 				</div>
 			<?php endif; ?>
 
-			<div class="sbtweaks-grid">
-				<div class="sbtweaks-card sbtweaks-release__card">
+			<div class="sb-tweaks-grid">
+				<div class="sb-tweaks-card sb-tweaks-release__card">
 					<h3><?php esc_html_e( 'GitHub access token', 'sb-tweaks' ); ?></h3>
-					<p class="sbtweaks-card__desc">
+					<p class="sb-tweaks-card__desc">
 						<?php esc_html_e( 'Repository:', 'sb-tweaks' ); ?>
-						<a href="<?php echo esc_url( $repo ); ?>" target="_blank" rel="noopener"><?php echo esc_html( SBTWEAKS_GITHUB_REPO ); ?></a>
+						<a href="<?php echo esc_url( $repo ); ?>" target="_blank" rel="noopener"><?php echo esc_html( SB_TWEAKS_GITHUB_REPO ); ?></a>
 					</p>
-					<p class="sbtweaks-card__desc">
+					<p class="sb-tweaks-card__desc">
 						<?php
 						if ( $token !== '' ) {
 							/* translators: %s: last four characters of the token */
@@ -775,32 +775,32 @@ class SBTWEAKS_Release {
 						?>
 					</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="sbtweaks_save_token">
-						<?php wp_nonce_field( 'sbtweaks_save_token' ); ?>
-						<label for="sbtweaks_token"><?php echo $token !== '' ? esc_html__( 'Replace token', 'sb-tweaks' ) : esc_html__( 'Paste token', 'sb-tweaks' ); ?></label>
-						<input type="password" id="sbtweaks_token" name="sbtweaks_token" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
-						<div class="sbtweaks-release__actions">
+						<input type="hidden" name="action" value="sb_tweaks_save_token">
+						<?php wp_nonce_field( 'sb_tweaks_save_token' ); ?>
+						<label for="sb_tweaks_token"><?php echo $token !== '' ? esc_html__( 'Replace token', 'sb-tweaks' ) : esc_html__( 'Paste token', 'sb-tweaks' ); ?></label>
+						<input type="password" id="sb_tweaks_token" name="sb_tweaks_token" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
+						<div class="sb-tweaks-release__actions">
 							<button type="submit" class="button button-primary"><?php esc_html_e( 'Save token', 'sb-tweaks' ); ?></button>
 							<?php if ( $token !== '' ) : ?>
-								<button type="submit" name="sbtweaks_remove_token" value="1" class="button-link button-link-delete" onclick="return confirm('Remove the saved GitHub token?');"><?php esc_html_e( 'Remove token', 'sb-tweaks' ); ?></button>
+								<button type="submit" name="sb_tweaks_remove_token" value="1" class="button-link button-link-delete" onclick="return confirm('Remove the saved GitHub token?');"><?php esc_html_e( 'Remove token', 'sb-tweaks' ); ?></button>
 							<?php endif; ?>
 						</div>
 					</form>
 				</div>
 
-				<div class="sbtweaks-card sbtweaks-release__card">
+				<div class="sb-tweaks-card sb-tweaks-release__card">
 					<h3><?php esc_html_e( 'Publish a new version', 'sb-tweaks' ); ?></h3>
-					<p class="sbtweaks-card__desc">
+					<p class="sb-tweaks-card__desc">
 						<?php
 						/* translators: 1: version on this site, 2: latest version on GitHub */
 						printf( esc_html__( 'This site: %1$s. Latest on GitHub: %2$s.', 'sb-tweaks' ), '<strong>' . esc_html( $current ) . '</strong>', '<strong>' . ( $latest !== '' ? esc_html( $latest ) : esc_html__( 'none yet', 'sb-tweaks' ) ) . '</strong>' );
 						?>
 					</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="sbtweaks_publish">
-						<?php wp_nonce_field( 'sbtweaks_publish' ); ?>
-						<label for="sbtweaks_version"><?php esc_html_e( 'New version number', 'sb-tweaks' ); ?></label>
-						<input type="text" id="sbtweaks_version" name="sbtweaks_version" value="<?php echo esc_attr( $suggest ); ?>" pattern="\d+\.\d+\.\d+" required>
+						<input type="hidden" name="action" value="sb_tweaks_publish">
+						<?php wp_nonce_field( 'sb_tweaks_publish' ); ?>
+						<label for="sb_tweaks_version"><?php esc_html_e( 'New version number', 'sb-tweaks' ); ?></label>
+						<input type="text" id="sb_tweaks_version" name="sb_tweaks_version" value="<?php echo esc_attr( $suggest ); ?>" pattern="\d+\.\d+\.\d+" required>
 						<?php
 						/**
 						 * 1.1 and 1 are what you type; x.y.z is what a release needs. The
@@ -812,7 +812,7 @@ class SBTWEAKS_Release {
 						?>
 						<script>
 						( function () {
-							var box = document.getElementById( 'sbtweaks_version' );
+							var box = document.getElementById( 'sb_tweaks_version' );
 
 							if ( ! box ) {
 								return;
@@ -835,31 +835,31 @@ class SBTWEAKS_Release {
 							} );
 						} )();
 						</script>
-						<label for="sbtweaks_notes"><?php esc_html_e( 'What changed (optional)', 'sb-tweaks' ); ?></label>
-						<textarea id="sbtweaks_notes" name="sbtweaks_notes" rows="<?php echo esc_attr( max( 4, min( 12, count( $changes ) + 1 ) ) ); ?>"><?php echo esc_textarea( self::changes_text() ); ?></textarea>
+						<label for="sb_tweaks_notes"><?php esc_html_e( 'What changed (optional)', 'sb-tweaks' ); ?></label>
+						<textarea id="sb_tweaks_notes" name="sb_tweaks_notes" rows="<?php echo esc_attr( max( 4, min( 12, count( $changes ) + 1 ) ) ); ?>"><?php echo esc_textarea( self::changes_text() ); ?></textarea>
 						<?php if ( $changes ) : ?>
-							<p class="sbtweaks-card__desc">
+							<p class="sb-tweaks-card__desc">
 								<?php
 								/* translators: %s: number of changes */
 								printf( esc_html( _n( 'Filled in from %s change noted since the last release. Edit it before publishing if you like.', 'Filled in from %s changes noted since the last release. Edit it before publishing if you like.', count( $changes ), 'sb-tweaks' ) ), esc_html( number_format_i18n( count( $changes ) ) ) );
 								?>
 							</p>
 						<?php endif; ?>
-						<div class="sbtweaks-release__actions">
-							<button type="submit" class="button button-primary" <?php disabled( $token === '' ); ?> onclick="return confirm('Publish version ' + this.form.sbtweaks_version.value + ' to every site running this plugin?');"><?php esc_html_e( 'Publish release', 'sb-tweaks' ); ?></button>
+						<div class="sb-tweaks-release__actions">
+							<button type="submit" class="button button-primary" <?php disabled( $token === '' ); ?> onclick="return confirm('Publish version ' + this.form.sb_tweaks_version.value + ' to every site running this plugin?');"><?php esc_html_e( 'Publish release', 'sb-tweaks' ); ?></button>
 						</div>
 					</form>
 				</div>
 
-				<div class="sbtweaks-card sbtweaks-release__card">
+				<div class="sb-tweaks-card sb-tweaks-release__card">
 					<h3><?php esc_html_e( 'Download plugin zip', 'sb-tweaks' ); ?></h3>
-					<p class="sbtweaks-card__desc">
+					<p class="sb-tweaks-card__desc">
 						<?php esc_html_e( 'The plugin exactly as it is on this site right now. Upload it to any WordPress site under Plugins, Add New, Upload Plugin.', 'sb-tweaks' ); ?>
 					</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="sbtweaks_download_zip">
-						<?php wp_nonce_field( 'sbtweaks_download_zip' ); ?>
-						<div class="sbtweaks-release__actions">
+						<input type="hidden" name="action" value="sb_tweaks_download_zip">
+						<?php wp_nonce_field( 'sb_tweaks_download_zip' ); ?>
+						<div class="sb-tweaks-release__actions">
 							<button type="submit" class="button"><?php esc_html_e( 'Download zip', 'sb-tweaks' ); ?></button>
 						</div>
 					</form>

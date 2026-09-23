@@ -1,16 +1,16 @@
-.sbtweaks-wrap .sbtweaks-intro {
+.sb-tweaks-wrap .sb-tweaks-intro {
 	max-width: 60ch;
 	font-size: 14px;
 }
 
-.sbtweaks-grid {
+.sb-tweaks-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 	gap: 16px;
 	margin: 20px 0;
 }
 
-.sbtweaks-card {
+.sb-tweaks-card {
 	padding: 18px 20px;
 	background: #fff;
 	border: 1px solid #dcdcde;
@@ -18,31 +18,31 @@
 	border-radius: 6px;
 }
 
-.sbtweaks-card.is-on {
-	border-left-color: var(--sbtweaks-accent, #2271b1);
+.sb-tweaks-card.is-on {
+	border-left-color: var(--sb-tweaks-accent, #2271b1);
 }
 
-.sbtweaks-card__head {
+.sb-tweaks-card__head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 12px;
 }
 
-.sbtweaks-card__head h2 {
+.sb-tweaks-card__head h2 {
 	margin: 0;
 	font-size: 15px;
 	line-height: 1.3;
 }
 
-.sbtweaks-card__desc {
+.sb-tweaks-card__desc {
 	margin: 10px 0 0;
 	color: #50575e;
 	font-size: 13px;
 	line-height: 1.5;
 }
 
-.sbtweaks-card__meta {
+.sb-tweaks-card__meta {
 	margin: 12px 0 0;
 	color: #787c82;
 	font-size: 11px;
@@ -50,58 +50,58 @@
 	letter-spacing: 0.04em;
 }
 /* Hub only: publish release */
-.sbtweaks-release {
+.sb-tweaks-release {
 	margin-top: 32px;
 	padding-top: 24px;
 	border-top: 1px solid #dcdcde;
 }
 
-.sbtweaks-release > h2 {
+.sb-tweaks-release > h2 {
 	margin: 0 0 6px;
 	font-size: 18px;
 }
 
-.sbtweaks-release .notice.inline {
+.sb-tweaks-release .notice.inline {
 	margin: 16px 0 0;
 }
 
-.sbtweaks-release__card {
+.sb-tweaks-release__card {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	border-left-color: var(--sbtweaks-accent, #2271b1);
+	border-left-color: var(--sb-tweaks-accent, #2271b1);
 }
 
-.sbtweaks-release__card h3 {
+.sb-tweaks-release__card h3 {
 	margin: 0;
 	font-size: 15px;
 	line-height: 1.3;
 }
 
-.sbtweaks-release__card .sbtweaks-card__desc {
+.sb-tweaks-release__card .sb-tweaks-card__desc {
 	margin: 0;
 }
 
-.sbtweaks-release__card form {
+.sb-tweaks-release__card form {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
 	margin-top: auto;
 }
 
-.sbtweaks-release__card label {
+.sb-tweaks-release__card label {
 	margin-top: 4px;
 	font-weight: 600;
 }
 
-.sbtweaks-release__card input[type="text"],
-.sbtweaks-release__card input[type="password"],
-.sbtweaks-release__card textarea {
+.sb-tweaks-release__card input[type="text"],
+.sb-tweaks-release__card input[type="password"],
+.sb-tweaks-release__card textarea {
 	width: 100%;
 	max-width: 100%;
 }
 
-.sbtweaks-release__actions {
+.sb-tweaks-release__actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -109,8 +109,8 @@
 	margin-top: 6px;
 }
 /* Settings page boxes */
-.sbtweaks-section,
-.sbtweaks-release {
+.sb-tweaks-section,
+.sb-tweaks-release {
 	margin: 24px 0 0;
 	padding: 20px 24px 24px;
 	background: #fff;
@@ -118,49 +118,49 @@
 	border-radius: 8px;
 }
 
-.sbtweaks-section__head {
+.sb-tweaks-section__head {
 	margin-bottom: 16px;
 	padding-bottom: 14px;
 	border-bottom: 1px solid #f0f0f1;
 }
 
-.sbtweaks-section__head h2 {
+.sb-tweaks-section__head h2 {
 	margin: 0 0 4px;
 	font-size: 16px;
 	line-height: 1.3;
 }
 
-.sbtweaks-section__head p {
+.sb-tweaks-section__head p {
 	max-width: 70ch;
 	margin: 0;
 	color: #50575e;
 	font-size: 13px;
 }
 
-.sbtweaks-section .sbtweaks-grid {
+.sb-tweaks-section .sb-tweaks-grid {
 	margin: 0;
 }
 
-.sbtweaks-section .sbtweaks-card,
-.sbtweaks-release .sbtweaks-card {
+.sb-tweaks-section .sb-tweaks-card,
+.sb-tweaks-release .sb-tweaks-card {
 	background: #f6f7f7;
 }
 
-.sbtweaks-card__head h3 {
+.sb-tweaks-card__head h3 {
 	margin: 0;
 	font-size: 15px;
 	line-height: 1.3;
 }
 
 /* Toggle switches */
-.sbtweaks-switch {
+.sb-tweaks-switch {
 	position: relative;
 	display: inline-flex;
 	flex: 0 0 auto;
 	cursor: pointer;
 }
 
-.sbtweaks-switch input {
+.sb-tweaks-switch input {
 	position: absolute;
 	z-index: 1;
 	top: 0;
@@ -172,7 +172,7 @@
 	cursor: pointer;
 }
 
-.sbtweaks-switch__track {
+.sb-tweaks-switch__track {
 	position: relative;
 	display: block;
 	width: 40px;
@@ -182,7 +182,7 @@
 	transition: background-color 0.2s ease, box-shadow 0.25s ease;
 }
 
-.sbtweaks-switch__dot {
+.sb-tweaks-switch__dot {
 	position: absolute;
 	top: 3px;
 	left: 3px;
@@ -196,53 +196,53 @@
 	transition: transform 0.2s ease;
 }
 
-.sbtweaks-switch:hover .sbtweaks-switch__track {
+.sb-tweaks-switch:hover .sb-tweaks-switch__track {
 	background: #a7aaad;
 }
 
-.sbtweaks-switch input:checked + .sbtweaks-switch__track {
+.sb-tweaks-switch input:checked + .sb-tweaks-switch__track {
 	background: #00a32a;
 	box-shadow: 0 0 0 1px rgba(0, 163, 42, 0.25), 0 0 10px rgba(0, 163, 42, 0.55);
 }
 
-.sbtweaks-switch:hover input:checked + .sbtweaks-switch__track {
+.sb-tweaks-switch:hover input:checked + .sb-tweaks-switch__track {
 	background: #008a20;
 	box-shadow: 0 0 0 1px rgba(0, 163, 42, 0.3), 0 0 14px rgba(0, 163, 42, 0.7);
 }
 
-.sbtweaks-switch input:checked + .sbtweaks-switch__track .sbtweaks-switch__dot {
+.sb-tweaks-switch input:checked + .sb-tweaks-switch__track .sb-tweaks-switch__dot {
 	transform: translateX(18px);
 }
 
-.sbtweaks-switch input:focus-visible + .sbtweaks-switch__track {
+.sb-tweaks-switch input:focus-visible + .sb-tweaks-switch__track {
 	outline: 2px solid #2271b1;
 	outline-offset: 2px;
 }
 
-.sbtweaks-switch input:disabled {
+.sb-tweaks-switch input:disabled {
 	cursor: not-allowed;
 }
 
-.sbtweaks-switch input:disabled + .sbtweaks-switch__track,
-.sbtweaks-switch:hover input:disabled + .sbtweaks-switch__track {
+.sb-tweaks-switch input:disabled + .sb-tweaks-switch__track,
+.sb-tweaks-switch:hover input:disabled + .sb-tweaks-switch__track {
 	background: #dcdcde;
 }
 
-.sbtweaks-switch input:disabled + .sbtweaks-switch__track .sbtweaks-switch__dot {
+.sb-tweaks-switch input:disabled + .sb-tweaks-switch__track .sb-tweaks-switch__dot {
 	box-shadow: none;
 }
 
 /* Modules that need a missing plugin */
-.sbtweaks-card.is-unavailable {
+.sb-tweaks-card.is-unavailable {
 	border-left-color: #dcdcde;
 }
 
-.sbtweaks-card.is-unavailable .sbtweaks-card__head h3,
-.sbtweaks-card.is-unavailable .sbtweaks-card__desc {
+.sb-tweaks-card.is-unavailable .sb-tweaks-card__head h3,
+.sb-tweaks-card.is-unavailable .sb-tweaks-card__desc {
 	opacity: 0.55;
 }
 
-.sbtweaks-card__needs {
+.sb-tweaks-card__needs {
 	margin: 10px 0 0;
 	color: #8a6116;
 	font-size: 12px;
@@ -250,46 +250,46 @@
 }
 
 /* Settings link on a card */
-.sbtweaks-card__link {
+.sb-tweaks-card__link {
 	margin: 10px 0 0;
 	font-size: 13px;
 }
 
 /* Card settings: only while the switch is on */
-.sbtweaks-card__settings {
+.sb-tweaks-card__settings {
 	display: none;
 	margin-top: 14px;
 	padding-top: 14px;
 	border-top: 1px solid #dcdcde;
 }
 
-.sbtweaks-card.is-on .sbtweaks-card__settings {
+.sb-tweaks-card.is-on .sb-tweaks-card__settings {
 	display: block;
 }
 
-.sbtweaks-field + .sbtweaks-field {
+.sb-tweaks-field + .sb-tweaks-field {
 	margin-top: 12px;
 }
 
-.sbtweaks-field__label {
+.sb-tweaks-field__label {
 	display: block;
 	margin-bottom: 6px;
 	font-weight: 600;
 }
 
-.sbtweaks-field__desc {
+.sb-tweaks-field__desc {
 	margin: 6px 0 0;
 	color: #646970;
 	font-size: 12px;
 	line-height: 1.5;
 }
 
-.sbtweaks-field .wp-picker-container .wp-color-result.button {
+.sb-tweaks-field .wp-picker-container .wp-color-result.button {
 	margin: 0 6px 0 0;
 }
 
 /* SocialBUMP header banner */
-.sbtweaks-header {
+.sb-tweaks-header {
 	margin: 20px 0 0;
 	padding: 22px 28px;
 	background: #16171c;
@@ -297,20 +297,20 @@
 	color: #fff;
 }
 
-.sbtweaks-header__brand {
+.sb-tweaks-header__brand {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 16px;
 }
 
-.sbtweaks-header__logo {
+.sb-tweaks-header__logo {
 	display: block;
 	width: auto;
 	height: 28px;
 }
 
-.wrap .sbtweaks-header__title {
+.wrap .sb-tweaks-header__title {
 	margin: 0;
 	padding: 0 0 0 16px;
 	border-left: 1px solid rgba(255, 255, 255, 0.2);
@@ -320,7 +320,7 @@
 	line-height: 28px;
 }
 
-.sbtweaks-header__intro {
+.sb-tweaks-header__intro {
 	max-width: none;
 	margin: 14px 0 0;
 	color: #a7aaad;
@@ -328,24 +328,24 @@
 	line-height: 1.5;
 }
 
-.sbtweaks-wrap .wp-header-end {
+.sb-tweaks-wrap .wp-header-end {
 	margin: 0;
 }
 
 /* Publish release intro: full width, balanced lines */
-.sbtweaks-release .sbtweaks-intro {
+.sb-tweaks-release .sb-tweaks-intro {
 	max-width: none;
 	text-wrap: balance;
 }
 
 /* Colour field: swatch + text box */
-.sbtweaks-colour {
+.sb-tweaks-colour {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
 }
 
-.sbtweaks-colour__swatch {
+.sb-tweaks-colour__swatch {
 	width: 32px;
 	height: 30px;
 	padding: 2px;
@@ -355,12 +355,12 @@
 	cursor: pointer;
 }
 
-.sbtweaks-colour__value {
+.sb-tweaks-colour__value {
 	width: 220px;
 }
 
 /* Header version */
-.sbtweaks-header__version {
+.sb-tweaks-header__version {
 	padding: 3px 9px;
 	background: rgba(255, 255, 255, 0.1);
 	border-radius: 999px;
@@ -371,7 +371,7 @@
 }
 
 /* Updates panel */
-.sbtweaks-updates__status {
+.sb-tweaks-updates__status {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -379,105 +379,105 @@
 	margin: 0 0 14px;
 }
 
-.sbtweaks-updates__badge {
+.sb-tweaks-updates__badge {
 	padding: 3px 10px;
 	border-radius: 999px;
 	font-size: 12px;
 	font-weight: 600;
 }
 
-.sbtweaks-updates__badge.is-current {
+.sb-tweaks-updates__badge.is-current {
 	background: #edfaef;
 	border: 1px solid #00a32a;
 	color: #00681f;
 }
 
-.sbtweaks-updates__badge.is-available {
+.sb-tweaks-updates__badge.is-available {
 	background: #fcf3e6;
 	border: 1px solid #dba617;
 	color: #8a6116;
 }
 
-.sbtweaks-updates__meta {
+.sb-tweaks-updates__meta {
 	color: #646970;
 	font-size: 13px;
 }
 
-.sbtweaks-updates__actions {
+.sb-tweaks-updates__actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 12px;
 }
 
-.sbtweaks-updates__actions form {
+.sb-tweaks-updates__actions form {
 	margin: 0;
 }
 
-.sbtweaks-updates__link {
+.sb-tweaks-updates__link {
 	font-size: 13px;
 }
 
 /* Header version link */
-a.sbtweaks-header__version {
+a.sb-tweaks-header__version {
 	text-decoration: none;
 	transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-a.sbtweaks-header__version:hover,
-a.sbtweaks-header__version:focus {
+a.sb-tweaks-header__version:hover,
+a.sb-tweaks-header__version:focus {
 	background: rgba(255, 255, 255, 0.2);
 	color: #fff;
 }
 
-a.sbtweaks-header__version.is-outdated {
+a.sb-tweaks-header__version.is-outdated {
 	background: #4a0d0d;
 	color: #ff6b6b;
 }
 
-a.sbtweaks-header__version.is-outdated:hover,
-a.sbtweaks-header__version.is-outdated:focus {
+a.sb-tweaks-header__version.is-outdated:hover,
+a.sb-tweaks-header__version.is-outdated:focus {
 	background: #6b1414;
 	color: #ff8f8f;
 }
 
 /* Checklist field */
-.sbtweaks-checklist {
+.sb-tweaks-checklist {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 	gap: 6px 12px;
 }
 
-.sbtweaks-checklist label {
+.sb-tweaks-checklist label {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 }
 
 /* Card fields never outgrow the card */
-.sbtweaks-card .sbtweaks-field input[type="text"],
-.sbtweaks-card .sbtweaks-field input[type="url"],
-.sbtweaks-card .sbtweaks-field input[type="number"],
-.sbtweaks-card .sbtweaks-field select,
-.sbtweaks-card .sbtweaks-field textarea {
+.sb-tweaks-card .sb-tweaks-field input[type="text"],
+.sb-tweaks-card .sb-tweaks-field input[type="url"],
+.sb-tweaks-card .sb-tweaks-field input[type="number"],
+.sb-tweaks-card .sb-tweaks-field select,
+.sb-tweaks-card .sb-tweaks-field textarea {
 	width: 100%;
 	max-width: 100%;
 	box-sizing: border-box;
 }
 
-.sbtweaks-card .sbtweaks-colour {
+.sb-tweaks-card .sb-tweaks-colour {
 	display: flex;
 	max-width: 100%;
 }
 
-.sbtweaks-card .sbtweaks-colour__value {
+.sb-tweaks-card .sb-tweaks-colour__value {
 	flex: 1 1 auto;
 	min-width: 0;
 }
 
 
 /* Images page */
-.sbtweaks-images {
+.sb-tweaks-images {
 	display: grid;
 	grid-template-columns: minmax(320px, 1fr) minmax(320px, 1.2fr);
 	gap: 20px;
@@ -485,16 +485,16 @@ a.sbtweaks-header__version.is-outdated:focus {
 }
 
 @media (max-width: 1100px) {
-	.sbtweaks-images {
+	.sb-tweaks-images {
 		grid-template-columns: 1fr;
 	}
 }
 
-.sbtweaks-images .sbtweaks-section {
+.sb-tweaks-images .sb-tweaks-section {
 	margin: 0;
 }
 
-.sbtweaks-widths {
+.sb-tweaks-widths {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
@@ -502,16 +502,16 @@ a.sbtweaks-header__version.is-outdated:focus {
 	max-width: 320px;
 }
 
-.sbtweaks-width {
+.sb-tweaks-width {
 	display: flex;
 	align-items: center;
 	gap: 10px;
 	flex-wrap: wrap;
 }
 
-.sbtweaks-width input[type="number"] {\n\twidth: 90px;\n}
+.sb-tweaks-width input[type="number"] {\n\twidth: 90px;\n}
 
-.sbtweaks-width__name {
+.sb-tweaks-width__name {
 	flex: 1 1 auto;
 	padding: 6px 10px;
 	background: #f0f0f1;
@@ -522,7 +522,7 @@ a.sbtweaks-header__version.is-outdated:focus {
 	white-space: nowrap;
 }
 
-.sbtweaks-width__remove {
+.sb-tweaks-width__remove {
 	color: #b32d2e;
 	font-size: 15px;
 	line-height: 1;
@@ -530,44 +530,44 @@ a.sbtweaks-header__version.is-outdated:focus {
 	opacity: 0.6;
 }
 
-.sbtweaks-width__remove:hover,
-.sbtweaks-width__remove:focus {
+.sb-tweaks-width__remove:hover,
+.sb-tweaks-width__remove:focus {
 	opacity: 1;
 }
 
-.sbtweaks-images .sbtweaks-grid {
+.sb-tweaks-images .sb-tweaks-grid {
 	grid-template-columns: 1fr;
 }
 
 /* The banner needs breathing room before whatever follows it */
-.sbtweaks-wrap .wp-header-end + * {
+.sb-tweaks-wrap .wp-header-end + * {
 	margin-top: 20px;
 }
 
-.sbtweaks-wrap form > .sbtweaks-images:first-child,
-.sbtweaks-wrap > .sbtweaks-images:first-child {
+.sb-tweaks-wrap form > .sb-tweaks-images:first-child,
+.sb-tweaks-wrap > .sb-tweaks-images:first-child {
 	margin-top: 20px;
 }
 
-.sbtweaks-images .sbtweaks-section {
+.sb-tweaks-images .sb-tweaks-section {
 	margin-top: 0;
 }
 
 /* Wider width inputs */
-.sbtweaks-width input[type="number"] {
+.sb-tweaks-width input[type="number"] {
 	width: 120px;
 }
 
-.sbtweaks-widths {
+.sb-tweaks-widths {
 	max-width: 380px;
 }
 
 /* Rebuild panel */
-.sbtweaks-rebuild__counts {
+.sb-tweaks-rebuild__counts {
 	margin: 0 0 12px;
 }
 
-.sbtweaks-rebuild__bar {
+.sb-tweaks-rebuild__bar {
 	height: 8px;
 	margin-bottom: 10px;
 	background: #f0f0f1;
@@ -575,7 +575,7 @@ a.sbtweaks-header__version.is-outdated:focus {
 	overflow: hidden;
 }
 
-.sbtweaks-rebuild__bar span {
+.sb-tweaks-rebuild__bar span {
 	display: block;
 	width: 0;
 	height: 100%;
@@ -583,32 +583,32 @@ a.sbtweaks-header__version.is-outdated:focus {
 	transition: width 0.25s ease;
 }
 
-.sbtweaks-rebuild__status {
+.sb-tweaks-rebuild__status {
 	min-height: 20px;
 	margin: 0 0 12px;
 	color: #50575e;
 	font-size: 13px;
 }
 
-.sbtweaks-rebuild__actions {
+.sb-tweaks-rebuild__actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 14px;
 }
 
-.sbtweaks-rebuild__force {
+.sb-tweaks-rebuild__force {
 	color: #50575e;
 	font-size: 13px;
 }
 
 /* Size list, on the page and in the media modal */
-.sbtweaks-sizes {
+.sb-tweaks-sizes {
 	margin: 0 0 10px;
 	font-size: 12px;
 }
 
-.sbtweaks-sizes li {
+.sb-tweaks-sizes li {
 	display: flex;
 	justify-content: space-between;
 	gap: 10px;
@@ -617,16 +617,16 @@ a.sbtweaks-header__version.is-outdated:focus {
 	border-bottom: 1px solid #f0f0f1;
 }
 
-.sbtweaks-sizes li.is-present span:last-child {
+.sb-tweaks-sizes li.is-present span:last-child {
 	color: #00681f;
 }
 
-.sbtweaks-sizes li.is-missing span:last-child {
+.sb-tweaks-sizes li.is-missing span:last-child {
 	color: #d63638;
 	font-weight: 600;
 }
 
-.sbtweaks-sizes li.is-skipped span:last-child {
+.sb-tweaks-sizes li.is-skipped span:last-child {
 	color: #8c8f94;
 }
 
@@ -636,10 +636,10 @@ a.sbtweaks-header__version.is-outdated:focus {
  * which showed as a grey box over the track, so the switch keeps its own
  * appearance here whatever state it is in.
  */
-.sbtweaks-switch input[type="checkbox"],
-.sbtweaks-switch input[type="checkbox"]:disabled,
-.sbtweaks-switch input[type="checkbox"]:checked,
-.sbtweaks-switch input[type="checkbox"]:focus {
+.sb-tweaks-switch input[type="checkbox"],
+.sb-tweaks-switch input[type="checkbox"]:disabled,
+.sb-tweaks-switch input[type="checkbox"]:checked,
+.sb-tweaks-switch input[type="checkbox"]:focus {
 	-webkit-appearance: none;
 	appearance: none;
 	opacity: 0;
@@ -652,13 +652,13 @@ a.sbtweaks-header__version.is-outdated:focus {
 	min-height: 0;
 }
 
-.sbtweaks-switch input[type="checkbox"]:checked::before,
-.sbtweaks-switch input[type="checkbox"]::before {
+.sb-tweaks-switch input[type="checkbox"]:checked::before,
+.sb-tweaks-switch input[type="checkbox"]::before {
 	content: none;
 }
 
 /* The logo takes you back to the main page */
-.sbtweaks-header__home {
+.sb-tweaks-header__home {
 	display: inline-flex;
 	align-items: center;
 	line-height: 0;
@@ -666,23 +666,23 @@ a.sbtweaks-header__version.is-outdated:focus {
 	transition: opacity 0.15s ease;
 }
 
-.sbtweaks-header__home:hover,
-.sbtweaks-header__home:focus {
+.sb-tweaks-header__home:hover,
+.sb-tweaks-header__home:focus {
 	opacity: 0.75;
 }
 
-.sbtweaks-header__home:focus-visible {
+.sb-tweaks-header__home:focus-visible {
 	outline: 2px solid #85df07;
 	outline-offset: 3px;
 }
 
 /* Feature list on a module card */
-.sbtweaks-features {
+.sb-tweaks-features {
 	margin: 0 0 4px;
 	font-size: 13px;
 }
 
-.sbtweaks-features li {
+.sb-tweaks-features li {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -691,11 +691,11 @@ a.sbtweaks-header__version.is-outdated:focus {
 	color: #50575e;
 }
 
-.sbtweaks-features li.is-off {
+.sb-tweaks-features li.is-off {
 	color: #8c8f94;
 }
 
-.sbtweaks-dot {
+.sb-tweaks-dot {
 	flex: 0 0 auto;
 	width: 8px;
 	height: 8px;
@@ -703,47 +703,47 @@ a.sbtweaks-header__version.is-outdated:focus {
 	border-radius: 50%;
 }
 
-.sbtweaks-features li.is-on .sbtweaks-dot {
+.sb-tweaks-features li.is-on .sb-tweaks-dot {
 	background: #85df07;
 	box-shadow: 0 0 0 2px rgba(133, 223, 7, 0.25);
 }
 
 /* The settings link sits at the foot of every card */
-.sbtweaks-grid {
+.sb-tweaks-grid {
 	align-items: stretch;
 }
 
-.sbtweaks-card {
+.sb-tweaks-card {
 	display: flex;
 	flex-direction: column;
 }
 
-.sbtweaks-card__link {
+.sb-tweaks-card__link {
 	margin-top: auto;
 	padding-top: 12px;
 }
 
 /* Divider between the description and the feature list */
-.sbtweaks-features {
+.sb-tweaks-features {
 	margin-top: 14px;
 	padding-top: 12px;
 	border-top: 1px solid #e6e7e8;
 }
 
 /* A section heading with its own switch */
-.sbtweaks-section__head--switch {
+.sb-tweaks-section__head--switch {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
 }
 
-.sbtweaks-section__head--switch p {
+.sb-tweaks-section__head--switch p {
 	margin-bottom: 0;
 }
 
 /* Add and reset, at either end of the row */
-.sbtweaks-width-actions {
+.sb-tweaks-width-actions {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -751,31 +751,31 @@ a.sbtweaks-header__version.is-outdated:focus {
 	margin-top: 14px;
 }
 
-.wp-core-ui .sbtweaks-button--danger {
+.wp-core-ui .sb-tweaks-button--danger {
 	background: #fff;
 	border-color: #d63638;
 	color: #d63638;
 }
 
-.wp-core-ui .sbtweaks-button--danger:hover,
-.wp-core-ui .sbtweaks-button--danger:focus {
+.wp-core-ui .sb-tweaks-button--danger:hover,
+.wp-core-ui .sb-tweaks-button--danger:focus {
 	background: #d63638;
 	border-color: #d63638;
 	color: #fff;
 }
 
 /* Image report */
-.sbtweaks-report__panel {
+.sb-tweaks-report__panel {
 	margin-top: 4px;
 }
 
-.sbtweaks-stats {
+.sb-tweaks-stats {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 	gap: 12px;
 }
 
-.sbtweaks-stat {
+.sb-tweaks-stat {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
@@ -785,56 +785,56 @@ a.sbtweaks-header__version.is-outdated:focus {
 	border-left: 3px solid #c3c4c7;
 }
 
-.sbtweaks-stat.is-good {
+.sb-tweaks-stat.is-good {
 	border-left-color: #85df07;
 }
 
-.sbtweaks-stat.is-warn {
+.sb-tweaks-stat.is-warn {
 	border-left-color: #dba617;
 	background: #fdf8e8;
 }
 
-.sbtweaks-stat__value {
+.sb-tweaks-stat__value {
 	font-size: 24px;
 	font-weight: 600;
 	line-height: 1.1;
 	color: #1d2327;
 }
 
-.sbtweaks-stat__label {
+.sb-tweaks-stat__label {
 	font-size: 13px;
 	color: #1d2327;
 }
 
-.sbtweaks-stat__note {
+.sb-tweaks-stat__note {
 	font-size: 12px;
 	color: #646970;
 }
 
-.sbtweaks-report__title {
+.sb-tweaks-report__title {
 	margin: 20px 0 4px;
 	font-size: 14px;
 }
 
-.sbtweaks-report__note {
+.sb-tweaks-report__note {
 	margin: 0 0 10px;
 	color: #646970;
 	font-size: 12px;
 }
 
-table.sbtweaks-report {
+table.sb-tweaks-report {
 	width: 100%;
 	max-width: 700px;
 	border-collapse: collapse;
 	font-size: 13px;
 }
 
-table.sbtweaks-report td {
+table.sb-tweaks-report td {
 	padding: 6px 10px 6px 0;
 	border-bottom: 1px solid #f0f0f1;
 }
 
-table.sbtweaks-report td:last-child {
+table.sb-tweaks-report td:last-child {
 	width: 90px;
 	color: #646970;
 	text-align: right;
@@ -844,22 +844,22 @@ table.sbtweaks-report td:last-child {
  * WordPress styles .button with a display of its own, which beats the browser
  * rule for the hidden attribute, so hidden buttons kept showing.
  */
-.sbtweaks-wrap [hidden] {
+.sb-tweaks-wrap [hidden] {
 	display: none !important;
 }
 
 /* Orphan list */
-table.sbtweaks-report td:last-child {
+table.sb-tweaks-report td:last-child {
 	width: auto;
 }
 
-.sbtweaks-report__size {
+.sb-tweaks-report__size {
 	color: #646970;
 	text-align: right;
 	white-space: nowrap;
 }
 
-.wp-core-ui .sbtweaks-report__delete {
+.wp-core-ui .sb-tweaks-report__delete {
 	min-height: 0;
 	padding: 1px 9px;
 	height: auto;
@@ -869,16 +869,16 @@ table.sbtweaks-report td:last-child {
 	border-color: #d63638;
 }
 
-.wp-core-ui .sbtweaks-report__delete:hover,
-.wp-core-ui .sbtweaks-report__delete:focus,
-.wp-core-ui .sbtweaks-report__delete:active {
+.wp-core-ui .sb-tweaks-report__delete:hover,
+.wp-core-ui .sb-tweaks-report__delete:focus,
+.wp-core-ui .sb-tweaks-report__delete:active {
 	background: #d63638;
 	border-color: #d63638;
 	color: #fff;
 	box-shadow: none;
 }
 
-.wp-core-ui .sbtweaks-report__delete:focus {
+.wp-core-ui .sb-tweaks-report__delete:focus {
 	outline: 2px solid transparent;
 	box-shadow: 0 0 0 1px #fff, 0 0 0 3px #d63638;
 }
@@ -886,7 +886,7 @@ table.sbtweaks-report td:last-child {
 
 
 /* Progress, shown only while something is running */
-.sbtweaks-progress {
+.sb-tweaks-progress {
 	position: relative;
 	margin: 18px 0;
 	padding: 14px 40px 14px 16px;
@@ -894,11 +894,11 @@ table.sbtweaks-report td:last-child {
 	border-radius: 6px;
 }
 
-.sbtweaks-progress .sbtweaks-rebuild__status {
+.sb-tweaks-progress .sb-tweaks-rebuild__status {
 	margin: 8px 0 0;
 }
 
-.sbtweaks-progress__close {
+.sb-tweaks-progress__close {
 	position: absolute;
 	top: 6px;
 	right: 8px;
@@ -911,12 +911,12 @@ table.sbtweaks-report td:last-child {
 	cursor: pointer;
 }
 
-.sbtweaks-progress__close:hover {
+.sb-tweaks-progress__close:hover {
 	color: #1d2327;
 }
 
 /* Orphan list in a box of its own */
-.sbtweaks-report__orphans {
+.sb-tweaks-report__orphans {
 	margin-top: 20px;
 	padding: 16px 18px;
 	background: #fbfbfc;
@@ -924,57 +924,57 @@ table.sbtweaks-report td:last-child {
 	border-radius: 6px;
 }
 
-.sbtweaks-report__orphans .sbtweaks-report__title {
+.sb-tweaks-report__orphans .sb-tweaks-report__title {
 	margin-top: 0;
 }
 
-.sbtweaks-report__orphans table.sbtweaks-report tr:last-child td {
+.sb-tweaks-report__orphans table.sb-tweaks-report tr:last-child td {
 	border-bottom: 0;
 }
 
 /* Room between the results, the progress panel and the buttons */
-.sbtweaks-report__orphans {
+.sb-tweaks-report__orphans {
 	margin-bottom: 20px;
 }
 
-.sbtweaks-rebuild .sbtweaks-stats {
+.sb-tweaks-rebuild .sb-tweaks-stats {
 	margin-bottom: 20px;
 }
 
-.sbtweaks-progress {
+.sb-tweaks-progress {
 	margin: 0 0 20px;
 }
 
-.sbtweaks-rebuild__actions {
+.sb-tweaks-rebuild__actions {
 	margin-top: 0;
 }
 
 /* Notes on a width row */
-.sbtweaks-width__clash,
-.sbtweaks-width__dupe {
+.sb-tweaks-width__clash,
+.sb-tweaks-width__dupe {
 	font-size: 11px;
 	color: #8a6116;
 	white-space: nowrap;
 }
 
-.sbtweaks-width__dupe {
+.sb-tweaks-width__dupe {
 	color: #d63638;
 	font-weight: 600;
 }
 
-.sbtweaks-width.is-duplicate input[type="number"] {
+.sb-tweaks-width.is-duplicate input[type="number"] {
 	border-color: #d63638;
 }
 
 /* The image being worked on */
-.sbtweaks-progress__line {
+.sb-tweaks-progress__line {
 	display: flex;
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 14px;
 }
 
-.sbtweaks-progress__timer {
+.sb-tweaks-progress__timer {
 	flex: none;
 	margin: 0 0 12px;
 	color: #787c82;
@@ -984,7 +984,7 @@ table.sbtweaks-report td:last-child {
 }
 
 /* Sits exactly where the close cross does, and they swap. */
-.sbtweaks-progress__cancel {
+.sb-tweaks-progress__cancel {
 	position: absolute;
 	top: 6px;
 	right: 8px;
@@ -998,11 +998,11 @@ table.sbtweaks-report td:last-child {
 	cursor: pointer;
 }
 
-.sbtweaks-progress__cancel:hover {
+.sb-tweaks-progress__cancel:hover {
 	color: #8a2424;
 }
 
-.sbtweaks-progress__cancel:disabled {
+.sb-tweaks-progress__cancel:disabled {
 	color: #a7aaad;
 	cursor: default;
 }
@@ -1011,7 +1011,7 @@ table.sbtweaks-report td:last-child {
 
 
 
-.sbtweaks-progress__thumb img {
+.sb-tweaks-progress__thumb img {
 	width: 44px;
 	height: 44px;
 	object-fit: cover;
@@ -1020,22 +1020,22 @@ table.sbtweaks-report td:last-child {
 }
 
 /* Orphan rows: in use, or kept on purpose */
-.sbtweaks-report__used,
-.sbtweaks-report__keptflag {
+.sb-tweaks-report__used,
+.sb-tweaks-report__keptflag {
 	display: block;
 	margin-top: 2px;
 	font-size: 11px;
 }
 
-.sbtweaks-report__used {
+.sb-tweaks-report__used {
 	color: #8a6116;
 }
 
-.sbtweaks-report__keptflag {
+.sb-tweaks-report__keptflag {
 	color: #00681f;
 }
 
-.wp-core-ui .sbtweaks-report__keep {
+.wp-core-ui .sb-tweaks-report__keep {
 	min-height: 0;
 	margin-right: 6px;
 	padding: 1px 9px;
@@ -1052,53 +1052,53 @@ table.sbtweaks-report td:last-child {
 
 
 /* Orphan table */
-table.sbtweaks-report {
+table.sb-tweaks-report {
 	width: 100%;
 	max-width: none;
 	border-collapse: separate;
 	border-spacing: 0;
 }
 
-table.sbtweaks-report td {
+table.sb-tweaks-report td {
 	padding: 8px 10px;
 	vertical-align: middle;
 	border-bottom: 1px solid #f0f0f1;
 }
 
-table.sbtweaks-report tr:last-child td {
+table.sb-tweaks-report tr:last-child td {
 	border-bottom: 0;
 }
 
-table.sbtweaks-report td:first-child {
+table.sb-tweaks-report td:first-child {
 	padding-left: 12px;
 	border-left: 3px solid transparent;
 }
 
-table.sbtweaks-report td.sbtweaks-report__size {
+table.sb-tweaks-report td.sb-tweaks-report__size {
 	width: 90px;
 	color: #646970;
 	text-align: right;
 	white-space: nowrap;
 }
 
-table.sbtweaks-report td.sbtweaks-report__action {
+table.sb-tweaks-report td.sb-tweaks-report__action {
 	width: 1%;
 	white-space: nowrap;
 	text-align: right;
 }
 
 /* Kept on purpose */
-table.sbtweaks-report tr.is-kept td {
+table.sb-tweaks-report tr.is-kept td {
 	background: #fdf8e8;
 }
 
-table.sbtweaks-report tr.is-kept td:first-child {
+table.sb-tweaks-report tr.is-kept td:first-child {
 	border-left-color: #dba617;
 }
 
 /* Row buttons, matched so the columns line up */
-.wp-core-ui .sbtweaks-report__keep,
-.wp-core-ui .sbtweaks-report__delete {
+.wp-core-ui .sb-tweaks-report__keep,
+.wp-core-ui .sb-tweaks-report__delete {
 	min-width: 96px;
 	min-height: 0;
 	padding: 2px 10px;
@@ -1108,38 +1108,38 @@ table.sbtweaks-report tr.is-kept td:first-child {
 	text-align: center;
 }
 
-.wp-core-ui .sbtweaks-report__keep {
+.wp-core-ui .sb-tweaks-report__keep {
 	margin-right: 8px;
 }
 
 /* Files beyond the first 25, until they are asked for */
-table.sbtweaks-report tr.is-extra {
+table.sb-tweaks-report tr.is-extra {
 	display: none;
 }
 
-table.sbtweaks-report tr.sbtweaks-report__morerow td {
+table.sb-tweaks-report tr.sb-tweaks-report__morerow td {
 	padding-top: 10px;
 }
 
 /* Sizes made by WordPress and other plugins */
-.sbtweaks-othersizes {
+.sb-tweaks-othersizes {
 	margin-top: 18px;
 	padding-top: 16px;
 	border-top: 1px solid #e6e7e8;
 }
 
-.sbtweaks-othersizes h3 {
+.sb-tweaks-othersizes h3 {
 	margin: 0 0 4px;
 	font-size: 13px;
 }
 
-.sbtweaks-othersizes__list {
+.sb-tweaks-othersizes__list {
 	margin: 10px 0 0;
 	max-width: 520px;
 	font-size: 12px;
 }
 
-.sbtweaks-othersizes__list li {
+.sb-tweaks-othersizes__list li {
 	display: flex;
 	align-items: baseline;
 	justify-content: space-between;
@@ -1149,26 +1149,26 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	border-bottom: 1px solid #f0f0f1;
 }
 
-.sbtweaks-othersizes__list code {
+.sb-tweaks-othersizes__list code {
 	background: none;
 	padding: 0;
 	font-size: 12px;
 }
 
-.sbtweaks-othersizes__list span {
+.sb-tweaks-othersizes__list span {
 	color: #646970;
 	white-space: nowrap;
 }
 
 /* Choosing which sizes a forced rebuild remakes */
-.sbtweaks-sizepicker {
+.sb-tweaks-sizepicker {
 	margin: 0 0 20px;
 	padding: 14px 16px;
 	background: #f6f7f7;
 	border-radius: 6px;
 }
 
-.sbtweaks-sizepicker__head {
+.sb-tweaks-sizepicker__head {
 	display: flex;
 	align-items: baseline;
 	justify-content: space-between;
@@ -1177,19 +1177,19 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 13px;
 }
 
-.sbtweaks-sizepicker__head span {
+.sb-tweaks-sizepicker__head span {
 	display: flex;
 	gap: 12px;
 	font-size: 12px;
 }
 
-.sbtweaks-sizepicker__list {
+.sb-tweaks-sizepicker__list {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 	gap: 4px 16px;
 }
 
-.sbtweaks-sizepicker__list label {
+.sb-tweaks-sizepicker__list label {
 	display: flex;
 	align-items: center;
 	gap: 7px;
@@ -1197,45 +1197,45 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 }
 
 /* Room above the size picker */
-.sbtweaks-sizepicker {
+.sb-tweaks-sizepicker {
 	margin-top: 16px;
 }
 
 /* What each image gained, as it happens */
-.sbtweaks-progress__log {
+.sb-tweaks-progress__log {
 	margin: 10px 0 0;
 	max-height: 420px;
 	overflow-y: auto;
 	font-size: 12px;
 }
 
-.sbtweaks-log__dims {
+.sb-tweaks-log__dims {
 	display: block;
 	margin: 1px 0 4px;
 	color: #787c82;
 	font-size: 11px;
 }
 
-.sbtweaks-progress__log li.is-skipped {
+.sb-tweaks-progress__log li.is-skipped {
 	color: #787c82;
 }
 
 
 
-.sbtweaks-progress__log li.is-skipped em {
+.sb-tweaks-progress__log li.is-skipped em {
 	font-style: normal;
 	font-size: 11px;
 }
 
-.sbtweaks-progress__log > li {
+.sb-tweaks-progress__log > li {
 	margin: 0 0 8px;
 }
 
-.sbtweaks-progress__log ul {
+.sb-tweaks-progress__log ul {
 	margin: 2px 0 0 4px;
 }
 
-.sbtweaks-progress__log ul li {
+.sb-tweaks-progress__log ul li {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -1243,63 +1243,63 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	color: #50575e;
 }
 
-.sbtweaks-tick {
+.sb-tweaks-tick {
 	color: #00681f;
 	font-weight: 600;
 }
 
 /* Editable and fixed sizes, one per line */
-.sbtweaks-othersizes__list li {
+.sb-tweaks-othersizes__list li {
 	gap: 14px;
 	padding: 6px 0;
 }
 
-.sbtweaks-othersizes__list code {
+.sb-tweaks-othersizes__list code {
 	flex: 1 1 auto;
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
-.sbtweaks-othersizes__edit {
+.sb-tweaks-othersizes__edit {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	flex: 0 0 auto;
 }
 
-.sbtweaks-othersizes__edit input[type="number"] {
+.sb-tweaks-othersizes__edit input[type="number"] {
 	width: 84px;
 }
 
-.sbtweaks-othersizes__edit span {
+.sb-tweaks-othersizes__edit span {
 	color: #646970;
 	white-space: nowrap;
 }
 
-.sbtweaks-othersizes__list em {
+.sb-tweaks-othersizes__list em {
 	flex: 0 0 auto;
 	color: #8c8f94;
 	font-size: 11px;
 	font-style: normal;
 }
 
-.sbtweaks-othersizes__fixed {
+.sb-tweaks-othersizes__fixed {
 	flex: 0 0 auto;
 	color: #646970;
 	white-space: nowrap;
 }
 
-.sbtweaks-othersizes__save {
+.sb-tweaks-othersizes__save {
 	margin: 14px 0 0;
 }
 
-.sbtweaks-othersizes__save {
+.sb-tweaks-othersizes__save {
 	display: flex;
 	align-items: center;
 	gap: 14px;
 }
 
-.sbtweaks-othersizes__save a {
+.sb-tweaks-othersizes__save a {
 	font-size: 12px;
 }
 
@@ -1329,10 +1329,10 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 .wp-core-ui .button-primary.sb-save--dirty,
 .wp-core-ui .button-primary.sb-save--dirty:hover,
 .wp-core-ui .button-primary.sb-save--dirty:focus {
-	background: var(--sbtweaks-accent, #2271b1) !important;
-	background: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 76%, #000) !important;
-	border: 1px solid var(--sbtweaks-accent, #2271b1) !important;
-	border-color: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 76%, #000) !important;
+	background: var(--sb-tweaks-accent, #2271b1) !important;
+	background: color-mix(in srgb, var(--sb-tweaks-accent, #2271b1) 76%, #000) !important;
+	border: 1px solid var(--sb-tweaks-accent, #2271b1) !important;
+	border-color: color-mix(in srgb, var(--sb-tweaks-accent, #2271b1) 76%, #000) !important;
 	color: #fff !important;
 	font-weight: 600;
 	box-shadow: none !important;
@@ -1382,14 +1382,14 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 }
 
 /* The page name after the plugin name in the banner. */
-.wrap .sbtweaks-header__title .sbtweaks-header__page {
+.wrap .sb-tweaks-header__title .sb-tweaks-header__page {
 	margin-left: 8px;
-	color: var(--sbtweaks-accent, #72aee6);
+	color: var(--sb-tweaks-accent, #72aee6);
 	font-weight: 600;
 }
 
 /* The notes panel on the Publishing page. */
-.sbtweaks-docs {
+.sb-tweaks-docs {
 	min-height: 420px;
 	font-family: Menlo, Consolas, monospace;
 	font-size: 12px;
@@ -1399,12 +1399,12 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	overflow-x: auto;
 }
 
-.sbtweaks-docs__heading {
+.sb-tweaks-docs__heading {
 	margin: 18px 0 4px;
 	font-size: 13px;
 }
 
-.sbtweaks-docs__prompt {
+.sb-tweaks-docs__prompt {
 	font-family: Menlo, Consolas, monospace;
 	font-size: 12px;
 	line-height: 1.6;
@@ -1413,48 +1413,48 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 
 /* Publishing: the token and the zip stack in one column, publishing beside them.
    Placed rather than reordered, so the markup and the reading order stay as they are. */
-.sbtweaks-release .sbtweaks-grid {
+.sb-tweaks-release .sb-tweaks-grid {
 	display: grid;
 	grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.1fr);
 	align-items: start;
 	gap: 16px;
 }
 
-.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(1) {
+.sb-tweaks-release .sb-tweaks-grid > .sb-tweaks-card:nth-child(1) {
 	grid-column: 1;
 	grid-row: 1;
 }
 
-.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(2) {
+.sb-tweaks-release .sb-tweaks-grid > .sb-tweaks-card:nth-child(2) {
 	grid-column: 2;
 	grid-row: 1 / span 2;
 }
 
-.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(3) {
+.sb-tweaks-release .sb-tweaks-grid > .sb-tweaks-card:nth-child(3) {
 	grid-column: 1;
 	grid-row: 2;
 }
 
 @media (max-width: 960px) {
-	.sbtweaks-release .sbtweaks-grid {
+	.sb-tweaks-release .sb-tweaks-grid {
 		grid-template-columns: 1fr;
 	}
 
-	.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(1),
-	.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(2),
-	.sbtweaks-release .sbtweaks-grid > .sbtweaks-card:nth-child(3) {
+	.sb-tweaks-release .sb-tweaks-grid > .sb-tweaks-card:nth-child(1),
+	.sb-tweaks-release .sb-tweaks-grid > .sb-tweaks-card:nth-child(2),
+	.sb-tweaks-release .sb-tweaks-grid > .sb-tweaks-card:nth-child(3) {
 		grid-column: 1;
 		grid-row: auto;
 	}
 }
 
 /* The release notes box, tall enough to match the two cards beside it. */
-.sbtweaks-release textarea {
+.sb-tweaks-release textarea {
 	min-height: 160px;
 }
 
 /* The plugin pages, along the bottom of the banner. */
-.sbtweaks-header__nav {
+.sb-tweaks-header__nav {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -1464,7 +1464,7 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.sbtweaks-header__link {
+.sb-tweaks-header__link {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -1475,20 +1475,20 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	text-decoration: none;
 }
 
-.sbtweaks-header__link:hover,
-.sbtweaks-header__link:focus {
+.sb-tweaks-header__link:hover,
+.sb-tweaks-header__link:focus {
 	background: rgba(255, 255, 255, 0.08);
 	color: #fff;
 	box-shadow: none;
 }
 
-.sbtweaks-header__link.is-current {
+.sb-tweaks-header__link.is-current {
 	background: rgba(255, 255, 255, 0.14);
 	color: #fff;
 	font-weight: 600;
 }
 
-.sbtweaks-header__badge {
+.sb-tweaks-header__badge {
 	display: inline-block;
 	padding: 1px 7px;
 	border-radius: 999px;
@@ -1500,13 +1500,13 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 }
 
 /* The orphan list: a thumbnail, the name, and the attachment it came from. */
-.sbtweaks-report__file {
+.sb-tweaks-report__file {
 	display: flex;
 	align-items: center;
 	gap: 12px;
 }
 
-.sbtweaks-report__thumb {
+.sb-tweaks-report__thumb {
 	flex: 0 0 auto;
 	display: block;
 	width: 40px;
@@ -1517,18 +1517,18 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	overflow: hidden;
 }
 
-.sbtweaks-report__thumb img {
+.sb-tweaks-report__thumb img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 	display: block;
 }
 
-.sbtweaks-report__name {
+.sb-tweaks-report__name {
 	min-width: 0;
 }
 
-.sbtweaks-report__id {
+.sb-tweaks-report__id {
 	display: inline-block;
 	margin-left: 6px;
 	padding: 1px 7px;
@@ -1540,13 +1540,13 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	text-decoration: none;
 }
 
-.sbtweaks-report__id:hover {
+.sb-tweaks-report__id:hover {
 	background: #e0e0e1;
 	color: #1d2327;
 }
 
 /* The rebuild log: one image to a row, with its own thumbnail. */
-.sbtweaks-log__row {
+.sb-tweaks-log__row {
 	display: flex;
 	align-items: flex-start;
 	gap: 12px;
@@ -1554,7 +1554,7 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	border-bottom: 1px solid #f0f0f1;
 }
 
-.sbtweaks-log__thumb {
+.sb-tweaks-log__thumb {
 	flex: 0 0 auto;
 	width: 44px;
 	height: 44px;
@@ -1564,11 +1564,11 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	object-fit: cover;
 }
 
-.sbtweaks-log__detail {
+.sb-tweaks-log__detail {
 	min-width: 0;
 }
 
-.sbtweaks-log__detail ul {
+.sb-tweaks-log__detail ul {
 	margin: 2px 0 0;
 }
 
@@ -1592,21 +1592,21 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	padding: 0;
 }
 
-.sbtweaks-attachment-box {
+.sb-tweaks-attachment-box {
 	margin: 12px 0 0;
 }
 
-.sbtweaks-attachment-box .hndle {
+.sb-tweaks-attachment-box .hndle {
 	padding: 0 12px;
 	font-size: 13px;
 }
 
-.sbtweaks-attachment-box .inside {
+.sb-tweaks-attachment-box .inside {
 	margin: 0;
 	padding: 8px 12px 12px;
 }
 
-.sbtweaks-width__name {
+.sb-tweaks-width__name {
 	flex: 1 1 auto;
 	min-width: 0;
 	min-height: 40px;
@@ -1619,11 +1619,11 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	white-space: normal;
 }
 
-.sbtweaks-width__name > .sbtweaks-width__value {
+.sb-tweaks-width__name > .sb-tweaks-width__value {
 	display: contents;
 }
 
-.sbtweaks-width__clash {
+.sb-tweaks-width__clash {
 	display: block;
 	margin: 0;
 	padding: 0;
@@ -1632,25 +1632,25 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 11px;
 }
 
-.sbtweaks-width {
+.sb-tweaks-width {
 	padding: 10px 0;
 	border-bottom: 1px solid #f0f0f1;
 }
 
-.sbtweaks-width:last-child {
+.sb-tweaks-width:last-child {
 	border-bottom: 0;
 }
 
-.sbtweaks-othersizes__list {
+.sb-tweaks-othersizes__list {
 	max-width: none;
 }
 
-.sbtweaks-widths {
+.sb-tweaks-widths {
 	max-width: none;
 	gap: 0;
 }
 
-.wp-core-ui .button-link.sbtweaks-width__remove {
+.wp-core-ui .button-link.sb-tweaks-width__remove {
 	flex: none;
 	color: #d63638;
 	font-weight: 700;
@@ -1659,22 +1659,22 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	opacity: 1;
 }
 
-.wp-core-ui .button-link.sbtweaks-width__remove:hover {
+.wp-core-ui .button-link.sb-tweaks-width__remove:hover {
 	color: #a00;
 }
 
-.sbtweaks-cleaner {
+.sb-tweaks-cleaner {
 	display: grid;
 	grid-template-columns: minmax(260px, 400px) minmax(0, 1fr);
 	gap: 20px;
 	align-items: start;
 }
 
-.sbtweaks-sizegroup {
+.sb-tweaks-sizegroup {
 	margin: 0 0 14px;
 }
 
-.sbtweaks-sizegroup__head {
+.sb-tweaks-sizegroup__head {
 	display: flex;
 	justify-content: space-between;
 	align-items: baseline;
@@ -1684,11 +1684,11 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 12px;
 }
 
-.sbtweaks-sizegroup__head .button-link {
+.sb-tweaks-sizegroup__head .button-link {
 	font-size: 11px;
 }
 
-.sbtweaks-sizegroup__item {
+.sb-tweaks-sizegroup__item {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -1698,15 +1698,15 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 12px;
 }
 
-.sbtweaks-sizegroup__item:nth-child(odd) {
+.sb-tweaks-sizegroup__item:nth-child(odd) {
 	background: #f6f7f7;
 }
 
-.sbtweaks-sizegroup__item input {
+.sb-tweaks-sizegroup__item input {
 	margin: 0;
 }
 
-.sbtweaks-sizegroup__item code {
+.sb-tweaks-sizegroup__item code {
 	flex: 1 1 auto;
 	min-width: 0;
 	background: none;
@@ -1715,13 +1715,13 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 }
 
 /* The pixels drop to their own line, right aligned, when the name is long. */
-.sbtweaks-sizegroup__item span {
+.sb-tweaks-sizegroup__item span {
 	margin-left: auto;
 	color: #787c82;
 	white-space: nowrap;
 }
 
-.sbtweaks-cleaner__sizes-foot {
+.sb-tweaks-cleaner__sizes-foot {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -1731,14 +1731,14 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 12px;
 }
 
-.sbtweaks-section__row {
+.sb-tweaks-section__row {
 	display: flex;
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 12px;
 }
 
-.sbtweaks-section__edit {
+.sb-tweaks-section__edit {
 	font-size: 12px;
 	white-space: nowrap;
 }
@@ -1885,19 +1885,19 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 }
 
 /* Amber, not red: a skipped size is a decision, not a failure. Last in the
-   file so it beats the green .sbtweaks-tick above it. */
-.sbtweaks-progress__log li.is-skipped .sbtweaks-tick--skip {
+   file so it beats the green .sb-tweaks-tick above it. */
+.sb-tweaks-progress__log li.is-skipped .sb-tweaks-tick--skip {
 	color: #b26200;
 }
 
-.sbtweaks-sizes li.is-skipped span:last-child em {
+.sb-tweaks-sizes li.is-skipped span:last-child em {
 	font-style: normal;
 	font-size: 11px;
 }
 
 /* A button, but it has to look exactly like the plain stat beside it: the
    default button chrome is what gave it a dark border. */
-.wp-core-ui .sbtweaks-stat.is-openable {
+.wp-core-ui .sb-tweaks-stat.is-openable {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
@@ -1914,13 +1914,13 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	height: auto;
 }
 
-.wp-core-ui .sbtweaks-stat.is-openable:hover,
-.wp-core-ui .sbtweaks-stat.is-openable:focus {
+.wp-core-ui .sb-tweaks-stat.is-openable:hover,
+.wp-core-ui .sb-tweaks-stat.is-openable:focus {
 	background: #f0f0f1;
 	box-shadow: none;
 }
 
-.sbtweaks-stat__more {
+.sb-tweaks-stat__more {
 	margin-top: 6px;
 	color: #2271b1;
 	font-size: 11px;
@@ -1928,32 +1928,32 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 }
 
 /* The same grey panel the progress log sits in, so the two read as one thing. */
-.sbtweaks-missing {
+.sb-tweaks-missing {
 	margin: 18px 0 0;
 	padding: 14px 16px;
 	background: #f6f7f7;
 	border-radius: 6px;
 }
 
-.sbtweaks-missing .sbtweaks-progress__log {
+.sb-tweaks-missing .sb-tweaks-progress__log {
 	margin: 0;
 }
 
-.sbtweaks-missing__log {
+.sb-tweaks-missing__log {
 	max-height: 460px;
 }
 
-.sbtweaks-missing__row .button-link {
+.sb-tweaks-missing__row .button-link {
 	font-size: 11px;
 }
 
-.sbtweaks-missing__note {
+.sb-tweaks-missing__note {
 	margin: 8px 0 0;
 	color: #787c82;
 	font-size: 12px;
 }
 
-.sbtweaks-deep {
+.sb-tweaks-deep {
 	position: relative;
 	margin: 18px 0 0;
 	padding: 14px 16px;
@@ -1961,47 +1961,47 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	border-radius: 6px;
 }
 
-.sbtweaks-deep__head p {
+.sb-tweaks-deep__head p {
 	margin: 0 0 6px;
 }
 
-.sbtweaks-deep__warn {
+.sb-tweaks-deep__warn {
 	color: #8a6400;
 	font-size: 12px;
 }
 
-.sbtweaks-deep__working,
-.sbtweaks-deep__none {
+.sb-tweaks-deep__working,
+.sb-tweaks-deep__none {
 	margin: 0;
 }
 
-.sbtweaks-deep__list {
+.sb-tweaks-deep__list {
 	margin: 10px 0;
 	max-height: 320px;
 	overflow-y: auto;
 	font-size: 12px;
 }
 
-.sbtweaks-deep__list li {
+.sb-tweaks-deep__list li {
 	margin: 0;
 	padding: 4px 6px;
 	border-radius: 3px;
 }
 
-.sbtweaks-deep__list li:nth-child(odd) {
+.sb-tweaks-deep__list li:nth-child(odd) {
 	background: #fff;
 }
 
-.sbtweaks-deep__list code {
+.sb-tweaks-deep__list code {
 	background: none;
 	padding: 0;
 }
 
-.sbtweaks-deep__list span {
+.sb-tweaks-deep__list span {
 	color: #787c82;
 }
 
-.sbtweaks-deep__foot {
+.sb-tweaks-deep__foot {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -2010,25 +2010,25 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 12px;
 }
 
-.sbtweaks-deep__foot .button {
+.sb-tweaks-deep__foot .button {
 	margin-left: auto;
 }
 
-.sbtweaks-deep__row {
+.sb-tweaks-deep__row {
 	display: flex;
 	align-items: center;
 	gap: 10px;
 }
 
-.sbtweaks-deep__row label {
+.sb-tweaks-deep__row label {
 	flex: 1 1 auto;
 }
 
-.sbtweaks-deep__files {
+.sb-tweaks-deep__files {
 	margin: 4px 0 8px 26px;
 }
 
-.sbtweaks-deep__files li {
+.sb-tweaks-deep__files li {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -2036,7 +2036,7 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	background: none;
 }
 
-.sbtweaks-deep__files img {
+.sb-tweaks-deep__files img {
 	flex: none;
 	width: 32px;
 	height: 32px;
@@ -2045,42 +2045,42 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	background: #fff;
 }
 
-.sbtweaks-deep__files a {
+.sb-tweaks-deep__files a {
 	flex: 1 1 auto;
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
-.sbtweaks-deep__more {
+.sb-tweaks-deep__more {
 	color: #787c82;
 	font-style: italic;
 }
 
 /* A quieter outline than the green actions: it starts a look, not a change. */
-.wp-core-ui .sbtweaks-button--deep {
+.wp-core-ui .sb-tweaks-button--deep {
 	background: #fff;
 	border-color: #8c8f94;
 	color: #3c434a;
 }
 
-.wp-core-ui .sbtweaks-button--deep:hover {
+.wp-core-ui .sb-tweaks-button--deep:hover {
 	border-color: #50575e;
 	color: #1d2327;
 }
 
-.sbtweaks-rebuild__help {
+.sb-tweaks-rebuild__help {
 	margin: 10px 0 0;
 	color: #787c82;
 	font-size: 12px;
 }
 
-.sbtweaks-deep__head h3 {
+.sb-tweaks-deep__head h3 {
 	margin: 0 0 6px;
 	color: #b32d2e;
 	font-size: 14px;
 }
 
-.sbtweaks-deep__close {
+.sb-tweaks-deep__close {
 	position: absolute;
 	top: 8px;
 	right: 10px;
@@ -2093,11 +2093,11 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	cursor: pointer;
 }
 
-.sbtweaks-deep__close:hover {
+.sb-tweaks-deep__close:hover {
 	color: #1d2327;
 }
 
-.sbtweaks-deep__skipped {
+.sb-tweaks-deep__skipped {
 	margin: 0 0 12px;
 	padding: 10px 12px;
 	background: #fcf9e8;
@@ -2106,44 +2106,44 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 12px;
 }
 
-.sbtweaks-deep__skipped p {
+.sb-tweaks-deep__skipped p {
 	margin: 0 0 4px;
 }
 
-.sbtweaks-deep__skipped ul {
+.sb-tweaks-deep__skipped ul {
 	margin: 0;
 }
 
-.sbtweaks-deep__skipped li {
+.sb-tweaks-deep__skipped li {
 	margin: 2px 0;
 }
 
-.sbtweaks-deep__skipped code {
+.sb-tweaks-deep__skipped code {
 	background: none;
 	padding: 0;
 }
 
-.sbtweaks-deep__skipped span {
+.sb-tweaks-deep__skipped span {
 	color: #787c82;
 }
 
-.sbtweaks-deep__bar {
+.sb-tweaks-deep__bar {
 	margin: 0 0 10px;
 }
 
-.sbtweaks-deep__skipped a,
-.sbtweaks-report__used a {
+.sb-tweaks-deep__skipped a,
+.sb-tweaks-report__used a {
 	text-decoration: underline;
 }
 
-.sbtweaks-faq-source {
+.sb-tweaks-faq-source {
 	margin: 12px 0;
 	padding: 12px 14px;
 	background: #f6f7f7;
 	border-radius: 6px;
 }
 
-.sbtweaks-faq-source__head {
+.sb-tweaks-faq-source__head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -2152,77 +2152,77 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	border-bottom: 1px solid #dcdcde;
 }
 
-.sbtweaks-faq-remove {
+.sb-tweaks-faq-remove {
 	color: #b32d2e;
 	font-size: 12px;
 }
 
-.sbtweaks-faq-source .sbtweaks-field {
+.sb-tweaks-faq-source .sb-tweaks-field {
 	margin-bottom: 10px;
 }
 
-.sbtweaks-grid--stack {
+.sb-tweaks-grid--stack {
 	grid-template-columns: 1fr;
 }
 
-.sbtweaks-faq-source__cols {
+.sb-tweaks-faq-source__cols {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 12px;
 	align-items: end;
 }
 
-.sbtweaks-faq-source__cols .sbtweaks-field {
+.sb-tweaks-faq-source__cols .sb-tweaks-field {
 	margin-bottom: 0;
 }
 
-.sbtweaks-faq-source__cols select {
+.sb-tweaks-faq-source__cols select {
 	width: 100%;
 }
 
-.sbtweaks-faq-clean {
+.sb-tweaks-faq-clean {
 	margin-top: 16px;
 	padding-top: 14px;
 	border-top: 1px solid #dcdcde;
 }
 
-.sbtweaks-faq-clean h4 {
+.sb-tweaks-faq-clean h4 {
 	margin: 0 0 4px;
 	font-size: 13px;
 }
 
-.sbtweaks-faq-clean__note {
+.sb-tweaks-faq-clean__note {
 	color: #787c82;
 	font-size: 12px;
 	max-width: 80ch;
 }
 
-.sbtweaks-faq-clean__list {
+.sb-tweaks-faq-clean__list {
 	margin: 10px 0;
 	max-height: 320px;
 	overflow-y: auto;
 	font-size: 12px;
 }
 
-.sbtweaks-faq-clean__list li {
+.sb-tweaks-faq-clean__list li {
 	margin: 0;
 	padding: 4px 6px;
 }
 
-.sbtweaks-faq-clean__list li:nth-child(odd) {
+.sb-tweaks-faq-clean__list li:nth-child(odd) {
 	background: #f6f7f7;
 }
 
-.sbtweaks-faq-clean__list span {
+.sb-tweaks-faq-clean__list span {
 	color: #787c82;
 }
 
-.sbtweaks-faq-clean__list code {
+.sb-tweaks-faq-clean__list code {
 	background: none;
 	padding: 0;
 }
 
-.sbtweaks-faq-clean__foot {
+.sb-tweaks-faq-clean__foot {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -2231,49 +2231,49 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 12px;
 }
 
-.sbtweaks-faq-clean__foot .button {
+.sb-tweaks-faq-clean__foot .button {
 	margin-left: auto;
 }
 
-.sbtweaks-faq-clean__row {
+.sb-tweaks-faq-clean__row {
 	display: flex;
 	align-items: center;
 	gap: 12px;
 	padding: 4px 0;
 }
 
-.sbtweaks-faq-clean__row label {
+.sb-tweaks-faq-clean__row label {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 }
 
-.sbtweaks-faq-clean__posts {
+.sb-tweaks-faq-clean__posts {
 	margin: 2px 0 6px 26px;
 }
 
-.sbtweaks-faq-clean__posts label {
+.sb-tweaks-faq-clean__posts label {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 }
 
-.sbtweaks-faq-clean__group + .sbtweaks-faq-clean__group {
+.sb-tweaks-faq-clean__group + .sb-tweaks-faq-clean__group {
 	border-top: 1px solid #f0f0f1;
 }
 
 /* A card that takes the whole grid: a long checklist needs the width */
-.sbtweaks-card--wide {
+.sb-tweaks-card--wide {
 	grid-column: 1 / -1;
 	scroll-margin-top: 64px;
 }
 
-.sbtweaks-card--wide .sbtweaks-checklist {
+.sb-tweaks-card--wide .sb-tweaks-checklist {
 	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 /* Select all and none above a checklist */
-.sbtweaks-checklist__tools {
+.sb-tweaks-checklist__tools {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -2281,25 +2281,25 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
 	font-size: 12px;
 }
 
-.sbtweaks-checklist__tools span {
+.sb-tweaks-checklist__tools span {
 	color: #c3c4c7;
 }
 
 
 /* A note under a checklist needs air, or it reads as another row */
-.sbtweaks-checklist + .sbtweaks-field__desc {
+.sb-tweaks-checklist + .sb-tweaks-field__desc {
 	margin-top: 12px;
 }
 
 /* The heading row carries Reorder Cards on its right */
-.sbtweaks-section__head--tools {
+.sb-tweaks-section__head--tools {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
 }
 
-.sbtweaks-section__head--tools .sb-cards__tools--reorder {
+.sb-tweaks-section__head--tools .sb-cards__tools--reorder {
 	flex: none;
 	margin: 0;
 }
@@ -2309,8 +2309,8 @@ table.sbtweaks-report tr.sbtweaks-report__morerow td {
    be styled again. Marked sb-toggle on the link itself. */
 .wp-core-ui .button-link.sb-toggle,
 a.sb-toggle {
-	color: var(--sbtweaks-accent, #2271b1);
-	color: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 72%, #000);
+	color: var(--sb-tweaks-accent, #2271b1);
+	color: color-mix(in srgb, var(--sb-tweaks-accent, #2271b1) 72%, #000);
 	font-size: 12px;
 	text-decoration: underline;
 	text-underline-offset: 2px;
@@ -2320,8 +2320,8 @@ a.sb-toggle {
 .wp-core-ui .button-link.sb-toggle:focus,
 a.sb-toggle:hover,
 a.sb-toggle:focus {
-	color: var(--sbtweaks-accent, #2271b1);
-	color: color-mix(in srgb, var(--sbtweaks-accent, #2271b1) 42%, #000);
+	color: var(--sb-tweaks-accent, #2271b1);
+	color: color-mix(in srgb, var(--sb-tweaks-accent, #2271b1) 42%, #000);
 	text-decoration: underline;
 }
 
@@ -2334,4 +2334,73 @@ a.sb-toggle:focus {
 	margin: 0 0 10px;
 	font-size: 12px;
 	color: #c3c4c7;
+}
+
+/* A switch used inside a card setting */
+.sb-tweaks-switch--inline {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sb-tweaks-switch--inline + .sb-tweaks-switch--inline {
+	margin-top: 10px;
+}
+
+.sb-tweaks-switch__label {
+	font-size: 13px;
+}
+
+/* Installs page (hub only). */
+.sb-installs__scroll {
+	overflow-x: auto;
+}
+
+.sb-installs th,
+.sb-installs td {
+	vertical-align: top;
+	white-space: nowrap;
+}
+
+.sb-installs th small,
+.sb-installs td small {
+	color: #646970;
+	font-weight: 400;
+}
+
+.sb-installs__version {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 10px;
+	background: #edfaef;
+	color: #00450c;
+	font-weight: 600;
+}
+
+.sb-installs__version.is-behind {
+	background: #fcf9e8;
+	color: #614200;
+}
+
+.sb-installs__version.is-off {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.sb-installs__none {
+	color: #a7aaad;
+}
+
+.sb-installs tr.is-stale td {
+	background: #fcf0f1;
+}
+
+.sb-installs__stale {
+	color: #d63638 !important;
+}
+
+.wp-core-ui .button-link.sb-installs__forget {
+	color: #d63638;
+	font-weight: 700;
+	text-decoration: none;
 }
