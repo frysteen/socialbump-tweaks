@@ -299,17 +299,8 @@ class SB_Tweaks_Screen {
 
 		echo '</h1>';
 
-		$state   = get_site_transient( 'update_plugins' );
-		$file    = plugin_basename( SB_TWEAKS_FILE );
-		$pending = ( $state && ! empty( $state->response[ $file ]->new_version ) ) ? $state->response[ $file ]->new_version : '';
-		$badge   = 'v' . esc_html( SB_TWEAKS_VERSION ) . ( $pending ? ' &rarr; v' . esc_html( $pending ) : '' );
-
-		if ( class_exists( 'SB_Tweaks_Updates' ) ) {
-			echo '<a class="sb-tweaks-header__version' . ( $pending ? ' is-outdated' : '' ) . '" href="' . esc_url( admin_url( 'admin.php?page=sb-tweaks-updates' ) ) . '">' . $badge . '</a>';
-		} else {
-			echo '<span class="sb-tweaks-header__version' . ( $pending ? ' is-outdated' : '' ) . '">' . $badge . '</span>';
-		}
-
+		// No version badge: a module has no version of its own. It ships inside
+		// SocialBUMP Tweaks, whose own pages show the plugin's version.
 		echo '</div>';
 
 		if ( $intro !== '' ) {

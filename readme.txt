@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.8
+Stable tag: 0.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.1.9 =
+* Module pages no longer show a version badge: a module has no version of its own, it ships inside SocialBUMP Tweaks, whose pages keep showing the plugin's version.
 
 = 0.1.8 =
 * New Bricks Tweaks module: everything from the standalone SocialBUMP Bricks Tweaks plugin (the Image Carousel element, five conditions, ACF loop sorting, the ACF gallery loop, Default To WP Editor and Gutenberg Block Styles), with the same settings, menu and page names, so nothing on any site needs changing. Once it is here, standalone Bricks Tweaks is switched off and cannot be switched back on, and the two never run together.

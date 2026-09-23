@@ -458,3 +458,7 @@ radius, 24px padding), the title top left, an X to close in the top right,
 Cancel on the left and the action on the right along the bottom, Escape and a
 click outside close it. Its action hands straight over to a progress popup.
 Markup and styles: .sb-hub__modal and .sb-hub__dialog in the Installs page.
+
+Module banners carry no version badge (SB_Tweaks_Screen::render_header): a
+module has no version of its own. The badge, linked to the Updates page, is
+only on SocialBUMP Tweaks' own pages (Modules, Updates, Installs, Publishing).
