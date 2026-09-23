@@ -184,6 +184,10 @@ class SB_Tweaks_Installs {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Site removed from the list. It comes back if it checks in again.', 'sb-tweaks' ) . '</p></div>';
 		}
 
+		// The hub gets its own table above: it runs every release before the sites do.
+		self::render_hub( $latest );
+		unset( $sites[ strtolower( SB_TWEAKS_HUB_HOST ) ] );
+
 		uasort(
 			$sites,
 			function ( $a, $b ) {
@@ -191,7 +195,7 @@ class SB_Tweaks_Installs {
 			}
 		);
 
-		echo '<section class="sb-tweaks-section"><div class="sb-tweaks-section__head"><h2>' . esc_html__( 'Installs', 'sb-tweaks' ) . '</h2>';
+		echo '<section class="sb-tweaks-section"><div class="sb-tweaks-section__head"><h2>' . esc_html__( 'Sites', 'sb-tweaks' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Every site that has checked in, with each SocialBUMP plugin it has. A version in amber is behind the one here on the hub. Sites report when a plugin changes and once a day.', 'sb-tweaks' ) . '</p></div>';
 		echo '<div class="sb-tweaks-section__body">';
 
@@ -279,6 +283,130 @@ class SB_Tweaks_Installs {
 		echo '</tbody></table></div></div></section>';
 
 		self::script();
+	}
+
+	/** Each plugin's release class and admin page, for the hub table. */
+	const RELEASES = [
+		'socialbump-site-kit'              => [ 'SBSK_Release', 'sb-site-kit' ],
+		'socialbump-bricks-tweaks'         => [ 'SBBT_Release', 'sb-bricks-tweaks' ],
+		'socialbump-ai-knowledge-exporter' => [ 'SBAIKE_Release', 'sb-ai-knowledge-exporter' ],
+		'socialbump-tweaks'                => [ 'SB_Tweaks_Release', 'sb-tweaks' ],
+	];
+
+	/**
+	 * The hub on its own: its copy of each plugin, what is live on GitHub, and
+	 * the notes waiting for the next release.
+	 *
+	 * The hub's copy is what the sites are compared against, so this is where
+	 * to see whether something built here has actually gone out. The GitHub
+	 * version comes from each plugin's own release class (cached five minutes),
+	 * the same figure its Publishing page shows.
+	 */
+	private static function render_hub( array $latest ) {
+		echo '<section class="sb-tweaks-section"><div class="sb-tweaks-section__head"><h2>' . esc_html__( 'Hub', 'sb-tweaks' ) . '</h2>';
+		/* translators: %s: hub address */
+		echo '<p>' . sprintf( esc_html__( '%s builds and publishes every release, so its copies are the versions the sites below are measured against.', 'sb-tweaks' ), '<strong>' . esc_html( SB_TWEAKS_HUB_HOST ) . '</strong>' ) . '</p></div>';
+		echo '<div class="sb-installs__scroll"><table class="widefat striped sb-installs sb-installs--hub"><thead><tr>';
+		echo '<th>' . esc_html__( 'Plugin', 'sb-tweaks' ) . '</th><th>' . esc_html__( 'On the hub', 'sb-tweaks' ) . '</th><th>' . esc_html__( 'On GitHub', 'sb-tweaks' ) . '</th><th>' . esc_html__( 'Publishing', 'sb-tweaks' ) . '</th></tr></thead><tbody>';
+
+		foreach ( self::LABELS as $slug => $label ) {
+			if ( empty( $latest[ $slug ] ) ) {
+				continue;
+			}
+
+			$class = self::RELEASES[ $slug ][0];
+			$page  = admin_url( 'admin.php?page=' . self::RELEASES[ $slug ][1] . '-publishing' );
+			$live  = '';
+			$notes = 0;
+
+			if ( class_exists( $class ) && method_exists( $class, 'instance' ) ) {
+				$release = $class::instance();
+
+				$live = self::live_version( $release, $slug );
+
+				$notes = method_exists( $release, 'pending_changes' ) ? count( (array) $release->pending_changes() ) : 0;
+			}
+
+			echo '<tr><td><strong>' . esc_html( $label ) . '</strong></td>';
+			echo '<td><span class="sb-installs__version">' . esc_html( $latest[ $slug ] ) . '</span></td>';
+
+			if ( $live === '' ) {
+				echo '<td><span class="sb-installs__version is-off">?</span><br><small>' . esc_html__( 'Could not reach GitHub', 'sb-tweaks' ) . '</small></td>';
+			} else {
+				$behind = version_compare( $live, $latest[ $slug ], '<' );
+				echo '<td><span class="sb-installs__version' . ( $behind ? ' is-behind' : '' ) . '">' . esc_html( $live ) . '</span>';
+				echo $behind ? '<br><small class="sb-installs__deactivated">' . esc_html__( 'Not published yet', 'sb-tweaks' ) . '</small>' : '';
+				echo '</td>';
+			}
+
+			if ( $notes > 0 ) {
+				/* translators: %d: number of queued release notes */
+				echo '<td><span class="sb-installs__version is-behind">' . esc_html( sprintf( _n( '%d change waiting', '%d changes waiting', $notes, 'sb-tweaks' ), $notes ) ) . '</span>';
+				echo '<br><small><a href="' . esc_url( $page ) . '">' . esc_html__( 'Publish', 'sb-tweaks' ) . '</a></small></td>';
+			} else {
+				echo '<td><span class="sb-installs__version">' . esc_html__( 'All published', 'sb-tweaks' ) . '</span>';
+				echo '<br><small><a href="' . esc_url( $page ) . '">' . esc_html__( 'Publishing', 'sb-tweaks' ) . '</a></small></td>';
+			}
+
+			echo '</tr>';
+		}
+
+		echo '</tbody></table></div></section>';
+	}
+
+	/**
+	 * The latest release on GitHub, asked with the plugin's own token.
+	 *
+	 * Without a token GitHub allows 60 checks an hour per server, and the hub
+	 * shares its server with other sites, so an unauthenticated check often
+	 * comes back refused. With the plugin's publishing token it is 5,000 an
+	 * hour for that token, separate from the shared allowance. Cached for five
+	 * minutes. Empty when there is no token or GitHub cannot be reached.
+	 */
+	private static function live_version( $release, $slug ) {
+		$cache  = 'sb_installs_live_' . md5( $slug );
+		$cached = get_transient( $cache );
+
+		if ( $cached !== false ) {
+			return (string) $cached;
+		}
+
+		$token = '';
+
+		try {
+			$method = new ReflectionMethod( $release, 'get_token' );
+			$method->setAccessible( true );
+			$token = (string) $method->invoke( $release );
+		} catch ( \Throwable $e ) {
+			$token = '';
+		}
+
+		if ( $token === '' ) {
+			return '';
+		}
+
+		$res = wp_remote_get(
+			'https://api.github.com/repos/' . SB_Tweaks_Push::OWNER . '/' . $slug . '/releases/latest',
+			[
+				'timeout' => 10,
+				'headers' => [
+					'Accept'        => 'application/vnd.github+json',
+					'Authorization' => 'Bearer ' . $token,
+					'User-Agent'    => 'SocialBUMP-Hub',
+				],
+			]
+		);
+
+		if ( is_wp_error( $res ) || (int) wp_remote_retrieve_response_code( $res ) !== 200 ) {
+			return '';
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $res ), true );
+		$live = isset( $data['tag_name'] ) ? ltrim( (string) $data['tag_name'], 'v' ) : '';
+
+		set_transient( $cache, $live, 5 * MINUTE_IN_SECONDS );
+
+		return $live;
 	}
 
 	/** The Update buttons: one request per plugin, so each cell shows its own result. */

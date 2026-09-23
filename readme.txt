@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.1.6 =
+* Installs: the hub has its own table above the sites, showing its copy of each plugin, the version live on GitHub, and any changes waiting to be published, with a link to each plugin's Publishing page. It asks GitHub with each plugin's publishing token, so it is not held up by the 60 checks an hour limit the hub's server shares with other sites.
 
 = 0.1.5 =
 * Updates page: laid out the same as the Site Kit and Bricks Tweaks Updates pages, with Updates and Settings as full-width sections and Export and Import in side-by-side cards.

@@ -2497,3 +2497,13 @@ a.sb-tweaks-header__version:hover,
 a.sb-tweaks-header__version:focus {
 	filter: brightness(1.25);
 }
+
+/* The hub table on the Installs page: plugin names left, figures centred. */
+.sb-installs--hub th:nth-child(n+2),
+.sb-installs--hub td:nth-child(n+2) {
+	text-align: center;
+}
+
+.sb-installs--hub th:first-child {
+	width: 30%;
+}
