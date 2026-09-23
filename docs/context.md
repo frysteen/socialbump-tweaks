@@ -206,7 +206,7 @@ settings export and import live on it.
 
 ## Where to be careful
 
-- Everything is developed on the hub, bricks.socialbump.com.au, through its
+- Everything is developed on the hub, plugins.socialbump.com.au, through its
   Novamira MCP connector. Lint every PHP file before writing it, and verify a
   change in a fresh request rather than the one that wrote the file.
 - Building PHP through a JSON tool call mangles double quotes. Build markup by
@@ -225,7 +225,7 @@ not on plugins_loaded, so it is already listening when a plugin is activated.
 It reports every tracked plugin on the site at once, active or not, since a
 deactivated plugin cannot speak for itself: site URL and name, each plugin's
 version and active state, WordPress and PHP versions. Nothing else. It posts to
-https://bricks.socialbump.com.au/wp-json/sb-tweaks/v1/checkin with the shared
+https://plugins.socialbump.com.au/wp-json/sb-tweaks/v1/checkin with the shared
 X-SB-Key header, non-blocking with a 3 second timeout, so it never slows a page.
 It sends on activated_plugin and deactivated_plugin for one of ours, on an admin
 page load when the plugin list changed or a day has passed (option
@@ -237,11 +237,18 @@ On the hub it calls sb_tweaks_installs_record() directly instead of over HTTP.
 To track another plugin, add its folder to SocialBUMP_Reporter::PLUGINS in every
 copy and a label to SB_Tweaks_Installs::LABELS, and bump the reporter VERSION.
 
+Reporter 1.0.1: WordPress fires deactivated_plugin before it saves the new
+active_plugins list, so reading the list then still showed the plugin as active.
+deactivated() sends with that plugin forced inactive (send() takes an override).
+activated_plugin fires after the save, so activation needs no such help.
+
 ## Installs page (hub only)
 
 includes/class-sb-tweaks-installs.php, booted in sb_tweaks_boot() only on the hub.
 The REST route sb-tweaks/v1/checkin (POST) checks X-SB-Key with hash_equals,
-allows one report per site host every 30 seconds (transient sb_installs_<md5>),
+allows 20 reports per site host in ten minutes (counter transient sb_installs_<md5>;
+one per 30 seconds silently lost reports when plugins were updated back to back,
+since the reporter does not wait for the reply),
 and record() keeps only the tracked plugin slugs and version strings matching
 /^[0-9][0-9A-Za-z.+-]{0,23}$/, strips the site name, and stores the latest report
 per host in the option sb_tweaks_installs (not autoloaded, capped at 1000 sites).
@@ -252,6 +259,20 @@ The Installs tab (sb-tweaks-installs, between Modules and Publishing) shows a ro
 per site and a column per plugin. The hub's own copy of each plugin is taken as
 the latest release, so a lower version shows amber, a deactivated one grey, and
 a site silent for over three days is tinted red (a deleted plugin, or a site that
-is down, cannot report). The cross on each row removes it; it returns if the site
+is down, cannot report). Active under a version links to that plugin's main page on the site (SB_Tweaks_Installs::PAGES, built from the reported home address plus /wp-admin/).
+The cross on each row removes it; it returns if the site
 checks in again. Later the check-in reply is the natural place to send a site
 instructions, such as switching features off on a site that has moved away.
+
+## Hub moved (September 2026)
+
+The hub moved from bricks.socialbump.com.au to plugins.socialbump.com.au, so the
+Bricks blueprint can stay clean for starting new sites. The site was copied with
+Duplicator, which kept the WordPress security keys, so the encrypted GitHub tokens
+were copied across as they were. Every hub address in the plugins (the *_HUB_HOST
+constants, SocialBUMP_Reporter::ENDPOINT and HUB_HOST, reporter 1.0.2, the docs and
+the AI prompts) now names plugins.socialbump.com.au. Watch for this on any future
+move: a copy of the hub on a new address is not the hub until the code says so, and
+the first admin page load there runs each plugin's tidy-up, deleting the GitHub
+token, the queued release notes and the latest release record. Sites keep
+reporting to the old address until they update to a release naming the new one.

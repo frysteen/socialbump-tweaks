@@ -584,7 +584,7 @@ class SB_Tweaks_Screen {
 
 		if ( ! is_string( $prompt ) || $prompt === '' ) {
 			$prompt = sprintf(
-				'Work on the %1$s module of the SocialBUMP Tweaks WordPress plugin, developed live on the hub bricks.socialbump.com.au through its Novamira MCP connector. Read modules/%2$s/docs/context.md inside the plugin folder first: it holds the notes for this module and how work is done here.',
+				'Work on the %1$s module of the SocialBUMP Tweaks WordPress plugin, developed live on the hub plugins.socialbump.com.au through its Novamira MCP connector. Read modules/%2$s/docs/context.md inside the plugin folder first: it holds the notes for this module and how work is done here.',
 				$this->def['title'],
 				basename( untrailingslashit( $this->def['path'] ) )
 			);

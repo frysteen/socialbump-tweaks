@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * a site that is down) cannot say so itself.
  *
  * The check-in only accepts the tracked plugin names and sensible version
- * strings, carries a shared key, and one site can report at most every thirty
- * seconds. The key ships inside the plugins, so it keeps out noise rather than
+ * strings, carries a shared key, and one site can report at most twenty times
+ * in ten minutes. The key ships inside the plugins, so it keeps out noise rather than
  * a determined sender; the worst a forged report can do is add a row, which
  * the page can remove.
  */
@@ -30,6 +30,14 @@ class SB_Tweaks_Installs {
 		'socialbump-bricks-tweaks'         => 'Bricks Tweaks',
 		'socialbump-ai-knowledge-exporter' => 'SEO for AI',
 		'socialbump-tweaks'                => 'Tweaks',
+	];
+
+	/** Each plugin's main admin page, so an Active version links straight to it. */
+	const PAGES = [
+		'socialbump-site-kit'              => 'sb-site-kit',
+		'socialbump-bricks-tweaks'         => 'sb-bricks-tweaks',
+		'socialbump-ai-knowledge-exporter' => 'sb-ai-knowledge-exporter',
+		'socialbump-tweaks'                => 'sb-tweaks',
 	];
 
 	public static function boot() {
@@ -64,13 +72,18 @@ class SB_Tweaks_Installs {
 			return new WP_REST_Response( [ 'ok' => false ], 400 );
 		}
 
-		$gate = 'sb_installs_' . md5( $host );
+		// Up to 20 reports per site in any ten minutes. Updating a few plugins
+		// back to back sends a report for each within seconds, and the reporter
+		// does not wait to hear whether one was refused, so a tighter limit
+		// silently lost the later ones. This still stops a flood.
+		$gate  = 'sb_installs_' . md5( $host );
+		$count = (int) get_transient( $gate );
 
-		if ( get_transient( $gate ) ) {
+		if ( $count >= 20 ) {
 			return new WP_REST_Response( [ 'ok' => false, 'wait' => true ], 429 );
 		}
 
-		set_transient( $gate, 1, 30 );
+		set_transient( $gate, $count + 1, 10 * MINUTE_IN_SECONDS );
 
 		return new WP_REST_Response( [ 'ok' => self::record( $payload ) ], 200 );
 	}
@@ -203,7 +216,8 @@ class SB_Tweaks_Installs {
 			echo '<tr' . ( $stale ? ' class="is-stale"' : '' ) . '>';
 			echo '<td><strong>' . esc_html( $site['name'] ?: $host ) . '</strong><br>';
 			echo '<a href="' . esc_url( $site['url'] ) . '" target="_blank" rel="noopener">' . esc_html( $host ) . '</a> &middot; ';
-			echo '<a href="' . esc_url( trailingslashit( $site['url'] ) . 'wp-admin/plugins.php' ) . '" target="_blank" rel="noopener">' . esc_html__( 'Plugins', 'sb-tweaks' ) . '</a></td>';
+			echo '<a href="' . esc_url( trailingslashit( $site['url'] ) . 'wp-admin/plugins.php' ) . '" target="_blank" rel="noopener">' . esc_html__( 'Plugins', 'sb-tweaks' ) . '</a> &middot; ';
+			echo '<a href="' . esc_url( trailingslashit( $site['url'] ) . 'wp-admin/update-core.php' ) . '" target="_blank" rel="noopener">' . esc_html__( 'Updates', 'sb-tweaks' ) . '</a></td>';
 
 			foreach ( array_keys( self::LABELS ) as $slug ) {
 				$info = $site['plugins'][ $slug ] ?? null;
@@ -217,7 +231,13 @@ class SB_Tweaks_Installs {
 				$class  = 'sb-installs__version' . ( $behind ? ' is-behind' : '' ) . ( $info['active'] ? '' : ' is-off' );
 
 				echo '<td><span class="' . esc_attr( $class ) . '">' . esc_html( $info['version'] ) . '</span>';
-				echo '<br><small>' . ( $info['active'] ? esc_html__( 'Active', 'sb-tweaks' ) : esc_html__( 'Deactivated', 'sb-tweaks' ) ) . '</small></td>';
+				// Active links to the plugin's own page on that site; a deactivated one has no page to go to.
+				if ( $info['active'] && isset( self::PAGES[ $slug ] ) ) {
+					$link = trailingslashit( $site['url'] ) . 'wp-admin/admin.php?page=' . self::PAGES[ $slug ];
+					echo '<br><small><a href="' . esc_url( $link ) . '" target="_blank" rel="noopener">' . esc_html__( 'Active', 'sb-tweaks' ) . '</a></small></td>';
+				} else {
+					echo $info['active'] ? '<br><small>' . esc_html__( 'Active', 'sb-tweaks' ) . '</small></td>' : '<br><small class="sb-installs__deactivated">' . esc_html__( 'Deactivated', 'sb-tweaks' ) . '</small></td>';
+				}
 			}
 
 			echo '<td>' . esc_html( $site['wp'] ) . '</td><td>' . esc_html( $site['php'] ) . '</td>';

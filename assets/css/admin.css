@@ -1,3 +1,8 @@
+/* Shared colours for anything that warns or goes wrong. WordPress's own red. */
+:root {
+	--sb-tweaks-danger: #d63638;
+}
+
 .sb-tweaks-wrap .sb-tweaks-intro {
 	max-width: 60ch;
 	font-size: 14px;
@@ -2403,4 +2408,16 @@ a.sb-toggle:focus {
 	color: #d63638;
 	font-weight: 700;
 	text-decoration: none;
+}
+
+/* Plugin, WordPress and PHP columns centred: headings, versions and Active or Deactivated. */
+.sb-installs th:nth-child(n+2):nth-child(-n+7),
+.sb-installs td:nth-child(n+2):nth-child(-n+7) {
+	text-align: center;
+}
+
+/* Deactivated under a version, in the framework's danger red. */
+.sb-installs td small.sb-installs__deactivated {
+	color: var(--sb-tweaks-danger);
+	font-weight: 600;
 }
