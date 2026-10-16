@@ -10,12 +10,17 @@
  * up with what just happened.
  *
  *   var job = SBTweaksProgress.open( 'Publishing' );
+ *   job.busy();                                  // a spinner in place of the bar
  *   job.step( 1, 3, 'Bricks Tweaks: 1.1.7' );    // bar, "1 of 3", current item
  *   job.status( 'Building the zip' );            // replace the bold line
  *   job.log( 'Bricks Tweaks 1.1.7', 'published' );              // a report line
  *   job.log( 'SEO for AI 1.1.6', 'did not publish: ...', true ); // a failure
  *   job.finish( 'Publishing complete' );         // report and Close
  *   job.fail( 'GitHub could not be reached' );   // stop, bar red, Close
+ *
+ * busy() is for one step with no telling how long it will take, such as
+ * Publish release: a spinner turns in place of the bar until step(),
+ * finish() or fail().
  *
  * The current item is written as "Label: detail"; the label is shown in bold.
  * finish() takes an optional second argument, a function to run on Close in
@@ -44,6 +49,7 @@
 			'<div class=' + q( 'sb-tweaks-job__box' ) + '>' +
 			'<span class=' + q( 'sb-tweaks-job__timer' ) + '></span>' +
 			'<h2 class=' + q( 'sb-tweaks-job__title' ) + '></h2>' +
+			'<span class=' + q( 'sb-tweaks-job__spin' ) + ' aria-hidden=' + q( 'true' ) + '></span>' +
 			'<div class=' + q( 'sb-tweaks-job__track' ) + '><div class=' + q( 'sb-tweaks-job__bar' ) + '></div></div>' +
 			'<p class=' + q( 'sb-tweaks-job__count' ) + '></p>' +
 			'<p class=' + q( 'sb-tweaks-job__current' ) + '></p>' +
@@ -109,13 +115,14 @@
 		part( 'count' ).textContent = '';
 		part( 'current' ).textContent = '';
 		timer.textContent = '0s';
-		panel.classList.remove( 'is-done', 'is-failed' );
+		panel.classList.remove( 'is-done', 'is-failed', 'is-busy' );
 		Array.prototype.forEach.call( panel.querySelectorAll( '.sb-tweaks-job__report, .sb-tweaks-job__close' ), function ( node ) {
 			node.parentNode.removeChild( node );
 		} );
 		panel.removeAttribute( 'hidden' );
 
 		function stop() {
+			panel.classList.remove( 'is-busy' );
 			window.clearInterval( ticking );
 			timer.textContent = clock( Math.floor( ( Date.now() - started ) / 1000 ) );
 		}
@@ -142,9 +149,16 @@
 		}
 
 		return {
+			/** No count to show: a spinner in place of the bar until step(), finish() or fail(). */
+			busy: function () {
+				panel.classList.add( 'is-busy' );
+			},
+
 			/** Move the bar and say where it is up to, and what is being done now. */
 			step: function ( done, total, current ) {
 				var percent = total > 0 ? Math.round( ( done / total ) * 100 ) : 100;
+
+				panel.classList.remove( 'is-busy' );
 
 				part( 'bar' ).style.width = percent + '%';
 				part( 'count' ).textContent = done + ' of ' + total;

@@ -12,7 +12,7 @@ the detail on each feature. changes.md holds its 23 release notes, 0.1.0 to
 
 ## What it does
 
-Ten features in three groups, each with its own switch:
+Eleven features in three groups, each with its own switch:
 
 - Bricks Elements: Image Carousel (sb-bricks-image-carousel), an SEO friendly
   Splide carousel with real img tags, ACF gallery support, breakpoints,
@@ -21,7 +21,8 @@ Ten features in three groups, each with its own switch:
   ACF Relationship, ACF Repeater, Bricks Content, Post Type, WooCommerce
   Archive Display.
 - Extras: ACF Loop Sorting (repeater and relationship loops, each with its own
-  setting), ACF Gallery Loop, Default To WP Editor, Gutenberg Block Styles.
+  setting), ACF Gallery Loop, Default To WP Editor, Gutenberg Block Styles,
+  Hide Unpublished ACF Posts.
 
 The module requires Bricks (the framework checks the active theme, because
 themes load after plugins and BRICKS_VERSION is not defined while modules
@@ -104,3 +105,31 @@ registered (with its hidden legacy name), listed in the panel and rendered a
 gallery, the module's pages loaded, and activate_plugin(), a direct write to
 active_plugins and the Plugins screen link all failed to bring the standalone
 plugin back. A group switched off hides its page, as before.
+
+## Hide Unpublished ACF Posts (October 2026)
+
+The first feature added after the merge, so the standalone plugin never had it.
+features/acf-published-only: an Extras tweak, needs ACF, off by default.
+
+ACF hands back every post a relationship or post object field holds, whatever
+its status, so a related post picked while still a draft showed in a Bricks
+relationship loop straight away. SB_Bricks_Published_Only filters
+acf/format_value/type=relationship and type=post_object at 20, after ACF's own
+formatting, and keeps only posts whose status is publish. A single post object
+that is not published becomes null. Attachments are always kept: an attachment
+reports its parent's status, so an image attached to a draft post reads as
+draft and would otherwise vanish. Formatted values are what Bricks loops,
+dynamic data, conditions and get_field() read, so all of those follow it.
+
+Front end only (it boots nothing when is_admin()), as the original ran: the
+edit screens still list drafts so they can be picked ahead of time, and the
+saved field keeps them. Bricks' own loop requests (load more, filters) go
+through the REST API, which is not is_admin(), so they are filtered too. It
+hides unpublished posts from logged in admins on the front end as well.
+
+Taken from WPCodeBox snippet 97 on thecosmeticstudionoosa.com.au ("Hide
+unpublished posts in ACF relationship loops"), which was switched off there
+when this was added. The only change from the snippet is keeping attachments.
+Checked on the hub with real posts: publish kept; draft, future, private,
+pending and trash dropped; an image attached to a draft kept; a single draft
+post object gave null; empty values passed through untouched.

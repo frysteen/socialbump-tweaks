@@ -2790,3 +2790,33 @@ a.sb-tweaks-header__version:focus {
 .wp-core-ui .sb-tweaks-job__close {
 	margin-top: 16px;
 }
+
+/*
+ * busy(): one step with no telling how long it will take, such as Publish
+ * release, so a spinner turns in place of the bar.
+ */
+.sb-tweaks-job__spin {
+	display: none;
+}
+
+.sb-tweaks-job.is-busy .sb-tweaks-job__track {
+	display: none;
+}
+
+.sb-tweaks-job.is-busy .sb-tweaks-job__spin {
+	display: block;
+	box-sizing: border-box;
+	width: 34px;
+	height: 34px;
+	margin: 4px auto 0;
+	border: 3px solid #f0f0f1;
+	border-top-color: var(--sb-tweaks-accent, #2271b1);
+	border-radius: 50%;
+	animation: sb-tweaks-job-spin 0.8s linear infinite;
+}
+
+@keyframes sb-tweaks-job-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

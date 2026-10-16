@@ -97,6 +97,17 @@ class SB_Tweaks_Release {
 			5 * MINUTE_IN_SECONDS
 		);
 
+		// Publish posted in the background wants the answer, not the page. The
+		// notice is still saved, so it shows when the popup's Close reloads.
+		if ( ! empty( $_POST['sb_tweaks_background'] ) ) {
+			wp_send_json(
+				[
+					'ok'      => $type === 'success',
+					'message' => trim( wp_strip_all_tags( $message ) ),
+				]
+			);
+		}
+
 		wp_safe_redirect( admin_url( 'admin.php?page=' . SB_Tweaks_Settings::PAGE_SLUG . '-publishing' ) );
 		exit;
 	}
@@ -319,7 +330,27 @@ class SB_Tweaks_Release {
 		$files    = $this->files();
 		$tree     = [];
 		$keep     = [ 'README.md', 'LICENSE', '.gitignore', '.github' ];
-		$top      = $this->github( 'GET', $git . '/trees/' . $old_tree, $token );
+		$known    = [];
+
+		/**
+		 * What the repo already holds, file by file, so anything unchanged is
+		 * pointed at rather than sent again. Every publish used to send all of
+		 * it: the text files in one big request and each of the 37 others (the
+		 * update checker's translations and the icons) in one of its own,
+		 * though they almost never change. If the full listing cannot be had,
+		 * everything is sent as before.
+		 */
+		$top = $this->github( 'GET', $git . '/trees/' . $old_tree . '?recursive=1', $token );
+
+		if ( $top['code'] === 200 && ! empty( $top['body']['tree'] ) && empty( $top['body']['truncated'] ) ) {
+			foreach ( $top['body']['tree'] as $entry ) {
+				if ( isset( $entry['type'], $entry['path'], $entry['sha'] ) && $entry['type'] === 'blob' ) {
+					$known[ $entry['path'] ] = $entry['sha'];
+				}
+			}
+		} else {
+			$top = $this->github( 'GET', $git . '/trees/' . $old_tree, $token );
+		}
 
 		if ( $top['code'] === 200 && ! empty( $top['body']['tree'] ) ) {
 			foreach ( $top['body']['tree'] as $entry ) {
@@ -336,6 +367,21 @@ class SB_Tweaks_Release {
 
 		foreach ( $files as $rel => $abs ) {
 			$content = (string) file_get_contents( $abs );
+
+			// Git names a file by this hash of its contents, so the same hash
+			// means GitHub already has exactly this file.
+			$sha = sha1( 'blob ' . strlen( $content ) . chr( 0 ) . $content );
+
+			if ( isset( $known[ $rel ] ) && $known[ $rel ] === $sha ) {
+				$tree[] = [
+					'path' => $rel,
+					'mode' => '100644',
+					'type' => 'blob',
+					'sha'  => $sha,
+				];
+				continue;
+			}
+
 			$binary  = strpos( $content, "\0" ) !== false || ! preg_match( '//u', $content );
 
 			if ( ! $binary ) {
@@ -796,7 +842,7 @@ class SB_Tweaks_Release {
 						printf( esc_html__( 'This site: %1$s. Latest on GitHub: %2$s.', 'sb-tweaks' ), '<strong>' . esc_html( $current ) . '</strong>', '<strong>' . ( $latest !== '' ? esc_html( $latest ) : esc_html__( 'none yet', 'sb-tweaks' ) ) . '</strong>' );
 						?>
 					</p>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<form id="sb-tweaks-publish-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="sb_tweaks_publish">
 						<?php wp_nonce_field( 'sb_tweaks_publish' ); ?>
 						<label for="sb_tweaks_version"><?php esc_html_e( 'New version number', 'sb-tweaks' ); ?></label>
@@ -849,6 +895,84 @@ class SB_Tweaks_Release {
 							<button type="submit" class="button button-primary" <?php disabled( $token === '' ); ?> onclick="return confirm('Publish version ' + this.form.sb_tweaks_version.value + ' to every site running this plugin?');"><?php esc_html_e( 'Publish release', 'sb-tweaks' ); ?></button>
 						</div>
 					</form>
+					<?php
+					/**
+					 * Publish posts in the background, so the page stays put and the
+					 * spinner keeps turning until GitHub has answered. A normal post
+					 * starts leaving the page at once, and the browser stops animating
+					 * while it waits. With sb_tweaks_background sent, back() answers with
+					 * JSON instead of redirecting, and the result shows in the progress
+					 * popup. Close reloads the page, which shows the usual notice too.
+					 * Without JavaScript the form posts the old way.
+					 */
+					$publish_text = [
+						'title'    => __( 'Publishing', 'sb-tweaks' ),
+						/* translators: %s: version number */
+						'status'   => __( 'Building, pushing to GitHub and publishing %s', 'sb-tweaks' ),
+						/* translators: %s: version number */
+						'item'     => __( 'SocialBUMP Tweaks %s', 'sb-tweaks' ),
+						'went'     => __( 'published', 'sb-tweaks' ),
+						'complete' => __( 'Publishing complete', 'sb-tweaks' ),
+						'unclear'  => __( 'No clear answer came back from the server, so check GitHub and this page before trying again.', 'sb-tweaks' ),
+						'dropped'  => __( 'The connection dropped before an answer came back, so check GitHub and this page before trying again.', 'sb-tweaks' ),
+					];
+					?>
+					<script>
+					( function () {
+						var form = document.getElementById( 'sb-tweaks-publish-form' );
+						var text = <?php echo wp_json_encode( $publish_text ); ?>;
+
+						if ( ! form || ! window.fetch || ! window.FormData || ! window.SBTweaksProgress ) {
+							return;
+						}
+
+						form.addEventListener( 'submit', function ( event ) {
+							var parts = form.elements.sb_tweaks_version.value.trim().split( '.' );
+							var data  = new FormData( form );
+							var job;
+
+							event.preventDefault();
+
+							// 1.1 is published as 1.1.0, so say that.
+							while ( parts.length < 3 ) {
+								parts.push( '0' );
+							}
+
+							job = window.SBTweaksProgress.open( text.title );
+							job.busy();
+							job.status( text.status.replace( '%s', parts.join( '.' ) ) );
+							data.append( 'sb_tweaks_background', '1' );
+
+							// getAttribute, because form.action is the hidden field named action.
+							window.fetch( form.getAttribute( 'action' ), { method: 'POST', body: data, credentials: 'same-origin' } )
+								.then( function ( response ) {
+									return response.text();
+								} )
+								.then( function ( body ) {
+									var res = null;
+
+									// Anything PHP printed before the answer is skipped.
+									try {
+										res = JSON.parse( body.slice( Math.max( 0, body.indexOf( '{"ok"' ) ) ) );
+									} catch ( err ) {
+										res = null;
+									}
+
+									if ( ! res || typeof res.ok !== 'boolean' ) {
+										job.fail( text.unclear );
+									} else if ( ! res.ok ) {
+										job.fail( res.message || text.unclear );
+									} else {
+										job.log( text.item.replace( '%s', parts.join( '.' ) ), text.went );
+										job.finish( text.complete );
+									}
+								} )
+								.catch( function () {
+									job.fail( text.dropped );
+								} );
+						} );
+					}() );
+					</script>
 				</div>
 
 				<div class="sb-tweaks-card sb-tweaks-release__card">

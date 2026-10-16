@@ -415,6 +415,7 @@ sites, rebuilds, bulk changes. Loaded on every SocialBUMP Tweaks and module page
 alongside framework.js, so a module never ships its own.
 
     var job = SBTweaksProgress.open( 'Publishing' );
+    job.busy();
     job.step( 0, 3, 'Bricks Tweaks: building and publishing 1.1.7' );
     job.status( 'Publishing 1 of 3' );
     job.log( 'Bricks Tweaks 1.1.7', 'published' );
@@ -433,6 +434,10 @@ How it looks and acts, and how every long action in these plugins should:
   written "Label: detail" so the label shows in bold.
 - It cannot be closed while it runs: no X, no Close, Escape does nothing. The
   work is usually partway through something that should not be abandoned.
+- busy() is for one step with no telling how long it will take, such as
+  Publish release on a Publishing page: a spinner turns in place of the bar
+  until step(), finish() or fail(). Sam's call: a bar suggests a count that a
+  single post does not have.
 - step( done, total, current ) moves the bar and sets "done of total"; call
   status() after it to reword that line. Work through items one at a time
   when each one touches something external (GitHub, a client site).
@@ -482,3 +487,60 @@ The Install button is generic: any site with a plugin that some module's
 replaces names, and no SocialBUMP Tweaks, gets it once its reporter is 1.2.0
 or later. When the Site Kit module lands with replaces set, Site Kit only sites
 get it with no further change.
+
+## Publish posts in the background (October 2026)
+
+The spinner Site Kit's Publish release shows sat still, because a normal form
+post starts leaving the page and browsers stop animating while they wait. The
+Publishing pages of all three hub plugins (this one, Site Kit and SEO for AI)
+now post Publish release in the background, and this plugin's page now shows
+the progress popup too, where before it had none.
+
+- progress.js gained busy() and the __spin element (styles .sb-tweaks-job__spin,
+  .is-busy and the sb-tweaks-job-spin keyframes in admin.css). step(), finish()
+  and fail() take the spinner away again. See Popups.
+- SB_Tweaks_Release::render(): the publish form has id sb-tweaks-publish-form
+  and an inline script after it. On submit (after the browser's confirm() in
+  the button's onclick, and after the browser's own validation) it opens the
+  popup with busy(), sends the same form with fetch plus
+  sb_tweaks_background=1, and shows the answer: "SocialBUMP Tweaks x.y.z
+  published" and "Publishing complete", or fail() with the handler's message.
+  A reply that is not the JSON, or a dropped connection, fails with "No clear
+  answer came back", because the publish may still have gone through. Close
+  reloads the page, which shows the usual notice and the new version.
+- back() still saves the notice, then, with sb_tweaks_background set, answers
+  wp_send_json( { ok, message } ) instead of redirecting (message is the
+  notice without its tags). Without the field it redirects as before, which
+  is what SB_Tweaks_Hub_Publish on the Installs page relies on; it never sends
+  the field.
+- The confirm on this page is still the browser's own confirm(), not the
+  confirm popup. Left for Sam to decide.
+- Hub only in effect (client sites carry progress.js and the CSS but never
+  see Publishing), so no release note.
+- Checked: progress.js passes node --check, md5 matched on the hub. In jsdom:
+  the spinner while waiting, then success, a refused publish, an HTML answer,
+  a dropped connection, and a cancelled confirm posting nothing. On the hub
+  over HTTP with a session: the Publishing page loads with progress.js; a
+  background post with the current version comes back as JSON ok false "has
+  to be higher than the current version" with the main file untouched; the
+  same post without the field still redirects (302). Not yet seen in a
+  browser, and no real publish has been run through it yet.
+- Fix, same day: the first real publish failed at once with No clear answer. The
+  script fetched form.action, and in a browser that is the hidden input named
+  action, not the form's address, so the post went to a junk URL and never
+  reached WordPress (nothing was published). It now uses
+  form.getAttribute( 'action' ). jsdom does not do that lookup, which is why
+  the simulation passed; the test now fakes it, failed the old code, and
+  passes the fix.
+
+## Faster publish (October 2026)
+
+push_code() now lists the repo's tree once (?recursive=1) and works out git's
+blob hash for each local file (sha1 of "blob <length>\0<contents>"). A file
+whose hash matches is put in the new tree by that sha and not sent again;
+only changed files go inline or as blobs. It used to send everything each
+time, including 37 non-text files (the update checker's .mo translations and
+the icons) as a request each. If the listing fails or comes back truncated it
+sends everything as before. Proven first in Site Kit: its publish went from
+32 to 11 seconds, and afterwards every file on GitHub matched the hub. A dry
+run here showed most files would be reused. Hub only, no release note.
