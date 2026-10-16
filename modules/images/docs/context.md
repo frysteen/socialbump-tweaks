@@ -126,3 +126,16 @@ Every question and every summary is the framework's popup (SBTweaksConfirm):
 ask() and confirmed() before a delete or a rebuild, tell() for a refusal, and
 open() for the summary at the end of a run, with Scan again. images.js wraps
 the four as local functions, so its code reads as it did in Site Kit.
+
+## Leftover sizes from other sources
+
+The list Image Cleaner shows after a scan (SB_Images_Tools::foreign_html()) has
+Select all and Select none above it (Sam, October 2026: Doogood had 23 to
+tick). They are data-sb-images-foreign="all" or "none" buttons, handled in
+images.js on the report panel, and tick only that form's sb_images_adopt[]
+boxes, firing one real change event like the size groups do.
+
+Ticking a size here only adds it to Old thumbnails to clear. Remove old sizes
+still keeps any file another size of the image, ticked or not, still names
+(SB_Images_Rebuild::file_has_other_owner()), so a leftover size that shares
+its file with a kept one only loses its entry.

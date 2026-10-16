@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.2.1 =
+* Image Cleaner: Leftover sizes from other sources now has Select all and Select none links, so a long list can be ticked in one go.
 
 = 0.2.0 =
 * Import settings on the Updates page now asks in the SocialBUMP style popup instead of the browser's own box.

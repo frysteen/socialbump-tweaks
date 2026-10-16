@@ -922,6 +922,17 @@
 				} );
 			} );
 
+			// Leftover sizes from other sources: tick or untick the whole list.
+			$panel.on( 'click', '[data-sb-images-foreign]', function () {
+				var $boxes = $( this ).closest( 'form' ).find( 'input[name="sb_images_adopt[]"]' );
+
+				$boxes.prop( 'checked', this.getAttribute( 'data-sb-images-foreign' ) === 'all' );
+
+				if ( $boxes.length ) {
+					$boxes[0].dispatchEvent( new Event( 'change', { bubbles: true } ) );
+				}
+			} );
+
 			$panel.on( 'click', '#sb-images-show-all', function () {
 				$panel.find( 'tr.is-extra' ).removeClass( 'is-extra' );
 				$( this ).closest( 'tr' ).remove();

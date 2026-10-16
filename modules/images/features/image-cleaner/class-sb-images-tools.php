@@ -1096,6 +1096,7 @@ class SB_Images_Tools {
 			$html .= '<h3 class="sb-images-report__title">' . esc_html__( 'Leftover sizes from other sources', 'sb-tweaks' ) . '</h3>';
 			$html .= '<p class="sb-images-report__note">' . esc_html__( 'These sizes were registered by something other than Image Management and no longer exist. Only tick a size if you removed it on purpose.', 'sb-tweaks' ) . '</p>';
 			$html .= '<form method="post" action="' . $post . '"><input type="hidden" name="action" value="sb_images_adopt_sizes">' . wp_nonce_field( 'sb_images_adopt_sizes', '_wpnonce', true, false );
+			$html .= '<p class="sb-images-report__pick"><button type="button" class="button-link" data-sb-always-on data-sb-images-foreign="all">' . esc_html__( 'Select all', 'sb-tweaks' ) . '</button> | <button type="button" class="button-link" data-sb-always-on data-sb-images-foreign="none">' . esc_html__( 'Select none', 'sb-tweaks' ) . '</button></p>';
 			$html .= '<table class="sb-images-report"><tbody>';
 
 			foreach ( $foreign as $name => $found ) {

@@ -231,6 +231,11 @@
 	font-size: 14px;
 }
 
+.sb-images-report__pick {
+	margin: 0 0 6px;
+	font-size: 12px;
+}
+
 .sb-images-report__note {
 	margin: 0 0 10px;
 	color: #646970;
