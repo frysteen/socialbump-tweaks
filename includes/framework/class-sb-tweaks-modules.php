@@ -42,6 +42,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                 together. Every admin load rather than an activation hook,
  *                 because an activation hook does not fire when a plugin is
  *                 updated.
+ *   'waits_for'   Another plugin's basename this module must not run beside,
+ *                 without replacing it. The module sits out any request in
+ *                 which that plugin had loaded, as it does for 'replaces'.
+ *                 Image Management uses it for Site Kit, whose image code it
+ *                 took over while the Site Kit module replaces the plugin.
+ *   'migrate'     Optional callable( $def ), run on every request before any
+ *                 module is asked whether it is on, so settings it takes over
+ *                 from elsewhere exist by the time 'auto' looks for them. It
+ *                 must check for itself whether there is anything left to do.
+ *   'menu' parent Optional menu file, e.g. 'upload.php'. The module's pages
+ *                 then sit in that menu, one per group, with no menu and no
+ *                 Features page of their own; the Modules page switch turns
+ *                 the whole module on or off.
  *   'boot'        Optional callable( $context ), where $context holds def,
  *                 features (SB_Tweaks_Features) and screen (SB_Tweaks_Screen).
  */
@@ -85,6 +98,22 @@ class SB_Tweaks_Modules {
 		// are switched off below, but one that was already loaded has run its
 		// code for this request, so its module sits this one out.
 		$this->running = (array) get_option( 'active_plugins', [] );
+
+		// Settings a module takes over from elsewhere are copied before anything
+		// asks whether the module is on, because 'auto' decides that from
+		// whether its options exist yet. Each migrate checks for itself whether
+		// there is anything left to do, so this costs nothing once done.
+		foreach ( $this->modules as $id => $def ) {
+			if ( ! is_callable( $def['migrate'] ) ) {
+				continue;
+			}
+
+			try {
+				call_user_func( $def['migrate'], $def );
+			} catch ( \Throwable $e ) {
+				$this->failed[ $id ] = 'migrate: ' . $e->getMessage();
+			}
+		}
 
 		// The old standalone plugins must stop running once their module is here:
 		// switched off straight away, front end included, and kept off.
@@ -160,6 +189,8 @@ class SB_Tweaks_Modules {
 					'bar'         => [],
 					'prompt'      => '',
 					'replaces'    => '',
+					'waits_for'   => '',
+					'migrate'     => null,
 					'boot'        => null,
 				],
 				$def
@@ -404,11 +435,17 @@ class SB_Tweaks_Modules {
 		return $claimed;
 	}
 
-	/** True when the plugin this module replaces had loaded for this request. */
+	/** True when the plugin this module replaces, or waits for, had loaded for this request. */
 	public function replaced_running( $id ) {
-		$replaces = $this->modules[ $id ]['replaces'] ?? '';
+		foreach ( [ 'replaces', 'waits_for' ] as $key ) {
+			$file = $this->modules[ $id ][ $key ] ?? '';
 
-		return $replaces !== '' && in_array( $replaces, $this->running, true );
+			if ( $file !== '' && in_array( $file, $this->running, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/** The basenames every module on disk replaces. */

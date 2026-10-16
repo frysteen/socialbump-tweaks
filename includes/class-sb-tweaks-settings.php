@@ -201,7 +201,19 @@ class SB_Tweaks_Settings {
 		}
 
 		if ( $on && ! $failed ) {
-			echo '<p class="sb-tweaks-card__link"><a href="' . esc_url( admin_url( 'admin.php?page=' . $def['menu']['slug'] ) ) . '">' . esc_html__( 'Open', 'sb-tweaks' ) . '</a></p>';
+			// Its first page: the Features page, or the first page of a module
+			// that sits under another menu (Image Management under Media).
+			$screen = SB_Tweaks_Modules::instance()->screen( $id );
+
+			if ( $screen ) {
+				$open = $screen->page_url( $screen->front_door() );
+			} elseif ( ! empty( $def['menu']['parent'] ) && $def['groups'] ) {
+				$open = admin_url( $def['menu']['parent'] . '?page=' . $def['menu']['slug'] . '-' . sanitize_key( (string) array_key_first( $def['groups'] ) ) );
+			} else {
+				$open = admin_url( 'admin.php?page=' . $def['menu']['slug'] );
+			}
+
+			echo '<p class="sb-tweaks-card__link"><a href="' . esc_url( $open ) . '">' . esc_html__( 'Open', 'sb-tweaks' ) . '</a></p>';
 		}
 
 		echo '</div>';
@@ -431,6 +443,11 @@ class SB_Tweaks_Settings {
 			// The progress popup, for anything that takes more than a moment.
 			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/progress.js' ) ) {
 				wp_enqueue_script( 'sb-tweaks-progress', SB_TWEAKS_URL . 'assets/js/progress.js', [], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/progress.js' ), true );
+			}
+
+			// The confirm popup, for anything that asks before it acts.
+			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/confirm.js' ) ) {
+				wp_enqueue_script( 'sb-tweaks-confirm', SB_TWEAKS_URL . 'assets/js/confirm.js', [ 'jquery' ], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/confirm.js' ), true );
 			}
 		}
 

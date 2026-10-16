@@ -828,7 +828,7 @@ class SB_Tweaks_Release {
 						<div class="sb-tweaks-release__actions">
 							<button type="submit" class="button button-primary"><?php esc_html_e( 'Save token', 'sb-tweaks' ); ?></button>
 							<?php if ( $token !== '' ) : ?>
-								<button type="submit" name="sb_tweaks_remove_token" value="1" class="button-link button-link-delete" onclick="return confirm('Remove the saved GitHub token?');"><?php esc_html_e( 'Remove token', 'sb-tweaks' ); ?></button>
+								<button type="submit" name="sb_tweaks_remove_token" value="1" class="button-link button-link-delete" data-sb-tweaks-confirm="<?php esc_attr_e( 'Remove the saved GitHub token? Publishing stays switched off until a new one is saved.', 'sb-tweaks' ); ?>" data-sb-tweaks-confirm-title="<?php esc_attr_e( 'Remove token', 'sb-tweaks' ); ?>" data-sb-tweaks-confirm-action="<?php esc_attr_e( 'Remove', 'sb-tweaks' ); ?>"><?php esc_html_e( 'Remove token', 'sb-tweaks' ); ?></button>
 							<?php endif; ?>
 						</div>
 					</form>
@@ -892,7 +892,7 @@ class SB_Tweaks_Release {
 							</p>
 						<?php endif; ?>
 						<div class="sb-tweaks-release__actions">
-							<button type="submit" class="button button-primary" <?php disabled( $token === '' ); ?> onclick="return confirm('Publish version ' + this.form.sb_tweaks_version.value + ' to every site running this plugin?');"><?php esc_html_e( 'Publish release', 'sb-tweaks' ); ?></button>
+							<button type="submit" class="button button-primary" <?php disabled( $token === '' ); ?> data-sb-tweaks-confirm="<?php esc_attr_e( 'Publish version %s to every site running this plugin?', 'sb-tweaks' ); ?>" data-sb-tweaks-confirm-field="sb_tweaks_version" data-sb-tweaks-confirm-title="<?php esc_attr_e( 'Publish release', 'sb-tweaks' ); ?>" data-sb-tweaks-confirm-action="<?php esc_attr_e( 'Publish', 'sb-tweaks' ); ?>"><?php esc_html_e( 'Publish release', 'sb-tweaks' ); ?></button>
 						</div>
 					</form>
 					<?php
@@ -922,11 +922,17 @@ class SB_Tweaks_Release {
 						var form = document.getElementById( 'sb-tweaks-publish-form' );
 						var text = <?php echo wp_json_encode( $publish_text ); ?>;
 
-						if ( ! form || ! window.fetch || ! window.FormData || ! window.SBTweaksProgress ) {
+						if ( ! form || ! window.fetch || ! window.FormData ) {
 							return;
 						}
 
 						form.addEventListener( 'submit', function ( event ) {
+							// Looked for here, not when the page loads: the popup script loads
+							// in the footer, after this one, so it is never there that early.
+							if ( ! window.SBTweaksProgress ) {
+								return;
+							}
+
 							var parts = form.elements.sb_tweaks_version.value.trim().split( '.' );
 							var data  = new FormData( form );
 							var job;

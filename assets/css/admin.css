@@ -3,6 +3,56 @@
 	--sb-tweaks-danger: #d63638;
 }
 
+/* Buttons
+   Every button on these pages has a 2px border, filled or outline, so two
+   buttons of the same size always come out the same size. WordPress 7.1
+   draws a 1px border, so for each size the line height drops by 2px and the
+   side padding by 1px, which keeps WordPress's own heights: 40px standard
+   and large, 32px compact, 24px small, 48px hero, and 40px for all of them
+   under 782px. This sits first so the page sizes further down (popups,
+   Installs, the image report) still win. Outline colours are at the end. */
+
+.wp-core-ui .button,
+.wp-core-ui .button-primary,
+.wp-core-ui .button-secondary {
+	border-width: 2px;
+	padding: 0 15px;
+	line-height: 36px;
+}
+
+.wp-core-ui .button.button-large,
+.wp-core-ui .button-group.button-large .button {
+	padding: 0 15px;
+	line-height: 36px;
+}
+
+.wp-core-ui .button.button-compact,
+.wp-core-ui .button-group.button-compact .button {
+	padding: 0 11px;
+	line-height: 28px;
+}
+
+.wp-core-ui .button.button-small,
+.wp-core-ui .button-group.button-small .button {
+	padding: 0 7px;
+	line-height: 20px;
+}
+
+.wp-core-ui .button.button-hero,
+.wp-core-ui .button-group.button-hero .button {
+	padding: 0 35px;
+	line-height: 44px;
+}
+
+@media screen and (max-width: 782px) {
+	.wp-core-ui .button,
+	.wp-core-ui .button.button-large,
+	.wp-core-ui .button.button-compact,
+	.wp-core-ui .button.button-small {
+		padding: 0 13px;
+		line-height: 36px;
+	}
+}
 .sb-tweaks-wrap .sb-tweaks-intro {
 	max-width: 60ch;
 	font-size: 14px;
@@ -756,19 +806,6 @@ a.sb-tweaks-header__version.is-outdated:focus {
 	margin-top: 14px;
 }
 
-.wp-core-ui .sb-tweaks-button--danger {
-	background: #fff;
-	border-color: #d63638;
-	color: #d63638;
-}
-
-.wp-core-ui .sb-tweaks-button--danger:hover,
-.wp-core-ui .sb-tweaks-button--danger:focus {
-	background: #d63638;
-	border-color: #d63638;
-	color: #fff;
-}
-
 /* Image report */
 .sb-tweaks-report__panel {
 	margin-top: 4px;
@@ -1102,11 +1139,11 @@ table.sb-tweaks-report tr.is-kept td:first-child {
 }
 
 /* Row buttons, matched so the columns line up */
-.wp-core-ui .sb-tweaks-report__keep,
-.wp-core-ui .sb-tweaks-report__delete {
+.wp-core-ui .button.sb-tweaks-report__keep,
+.wp-core-ui .button.sb-tweaks-report__delete {
 	min-width: 96px;
 	min-height: 0;
-	padding: 2px 10px;
+	padding: 1px 9px;
 	height: auto;
 	line-height: 1.8;
 	font-size: 12px;
@@ -1320,7 +1357,7 @@ table.sb-tweaks-report tr.sb-tweaks-report__morerow td {
 .wp-core-ui .button-primary.sb-save--clean:hover,
 .wp-core-ui .button-primary.sb-save--clean:focus {
 	background: transparent !important;
-	border: 1px solid #dcdcde !important;
+	border: 2px solid #dcdcde !important;
 	color: #a7aaad !important;
 	box-shadow: none !important;
 	text-shadow: none !important;
@@ -1336,7 +1373,7 @@ table.sb-tweaks-report tr.sb-tweaks-report__morerow td {
 .wp-core-ui .button-primary.sb-save--dirty:focus {
 	background: var(--sb-tweaks-accent, #2271b1) !important;
 	background: color-mix(in srgb, var(--sb-tweaks-accent, #2271b1) 76%, #000) !important;
-	border: 1px solid var(--sb-tweaks-accent, #2271b1) !important;
+	border: 2px solid var(--sb-tweaks-accent, #2271b1) !important;
 	border-color: color-mix(in srgb, var(--sb-tweaks-accent, #2271b1) 76%, #000) !important;
 	color: #fff !important;
 	font-weight: 600;
@@ -2061,18 +2098,6 @@ table.sb-tweaks-report tr.sb-tweaks-report__morerow td {
 	font-style: italic;
 }
 
-/* A quieter outline than the green actions: it starts a look, not a change. */
-.wp-core-ui .sb-tweaks-button--deep {
-	background: #fff;
-	border-color: #8c8f94;
-	color: #3c434a;
-}
-
-.wp-core-ui .sb-tweaks-button--deep:hover {
-	border-color: #50575e;
-	color: #1d2327;
-}
-
 .sb-tweaks-rebuild__help {
 	margin: 10px 0 0;
 	color: #787c82;
@@ -2545,16 +2570,16 @@ a.sb-tweaks-header__version:focus {
 .wp-core-ui .sb-hub__dialog .button {
 	min-height: 28px !important;
 	height: auto !important;
-	padding: 0 12px !important;
+	padding: 0 11px !important;
 	font-size: 13px !important;
-	line-height: 26px !important;
+	line-height: 24px !important;
 }
 
 .wp-core-ui .sb-installs .button.button-small {
 	min-height: 24px !important;
-	padding: 0 9px !important;
+	padding: 0 8px !important;
 	font-size: 12px !important;
-	line-height: 22px !important;
+	line-height: 20px !important;
 }
 
 /* Popups: the waiting changes, and publishing progress. */
@@ -2819,4 +2844,155 @@ a.sb-tweaks-header__version:focus {
 	to {
 		transform: rotate(360deg);
 	}
+}
+
+/*
+ * The confirm popup (assets/js/confirm.js, SBTweaksConfirm): the same box as
+ * the Installs page's popup and the progress popup.
+ */
+.sb-tweaks-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	background: rgba(29, 35, 39, 0.6);
+}
+
+.sb-tweaks-dialog {
+	position: relative;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 600px;
+	max-height: 80vh;
+	overflow: auto;
+	padding: 24px;
+	background: #fff;
+	border-radius: 10px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.sb-tweaks-dialog h2 {
+	margin: 0 30px 12px 0;
+	font-size: 16px;
+}
+
+.sb-tweaks-dialog__message {
+	margin: 0 0 18px;
+	font-size: 13px;
+	line-height: 1.5;
+	white-space: pre-line;
+}
+
+.sb-tweaks-dialog__check {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 0 0 18px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.sb-tweaks-dialog__check input {
+	margin: 2px 0 0;
+}
+
+.sb-tweaks-dialog__list {
+	margin: 6px 0 0 18px;
+	list-style: disc;
+}
+
+.sb-tweaks-dialog__list li {
+	margin: 0 0 2px;
+}
+
+.sb-tweaks-dialog__buttons {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	margin: 0;
+}
+
+/* A popup with only OK keeps it on the right. */
+.sb-tweaks-dialog__buttons > :only-child {
+	margin-left: auto;
+}
+
+.wp-core-ui .sb-tweaks-modal .sb-tweaks-dialog .button {
+	min-height: 28px;
+	height: auto;
+	padding: 0 11px;
+	font-size: 13px;
+	line-height: 24px;
+}
+
+.wp-core-ui .sb-tweaks-dialog__x {
+	position: absolute;
+	top: 12px;
+	right: 14px;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: #646970;
+	font-size: 22px;
+	line-height: 28px;
+	cursor: pointer;
+}
+
+.wp-core-ui .sb-tweaks-dialog__x:hover,
+.wp-core-ui .sb-tweaks-dialog__x:focus {
+	color: #1d2327;
+}
+
+/* A summary in the popup uses the progress popup's report card. */
+.sb-tweaks-dialog .sb-tweaks-job__report {
+	margin: 0 0 18px;
+}
+
+/* Outline buttons
+   The same size and 2px border as every other button (see Buttons at the
+   top), so only the colours live here: green starts a change, red deletes
+   or resets, grey only looks. Disabled ones take WordPress's grey. */
+
+.wp-core-ui .button.sb-tweaks-button--go:not(:disabled) {
+	background: #fff;
+	border-color: #457a03;
+	color: #457a03;
+}
+
+.wp-core-ui .button.sb-tweaks-button--go:not(:disabled):hover,
+.wp-core-ui .button.sb-tweaks-button--go:not(:disabled):focus {
+	background: #457a03;
+	border-color: #457a03;
+	color: #fff;
+}
+
+.wp-core-ui .button.sb-tweaks-button--danger:not(:disabled) {
+	background: #fff;
+	border-color: #d63638;
+	color: #d63638;
+}
+
+.wp-core-ui .button.sb-tweaks-button--danger:not(:disabled):hover,
+.wp-core-ui .button.sb-tweaks-button--danger:not(:disabled):focus {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+}
+
+/* Grey keeps WordPress's own focus ring, so it is left alone on focus. */
+.wp-core-ui .button.sb-tweaks-button--quiet:not(:disabled):not(:focus) {
+	background: #fff;
+	border-color: #8c8f94;
+	color: #3c434a;
+}
+
+.wp-core-ui .button.sb-tweaks-button--quiet:not(:disabled):hover {
+	border-color: #50575e;
+	color: #1d2327;
 }

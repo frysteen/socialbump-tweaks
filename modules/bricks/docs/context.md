@@ -133,3 +133,39 @@ when this was added. The only change from the snippet is keeping attachments.
 Checked on the hub with real posts: publish kept; draft, future, private,
 pending and trash dropped; an image attached to a draft kept; a single draft
 post object gave null; empty values passed through untouched.
+
+## Sites moved over
+
+- thecosmeticstudionoosa.com.au, 16 October 2026, standalone 1.1.8 to SocialBUMP
+  Tweaks 0.1.11 with the Install button. Checked first: the standalone plugin
+  and the module read the same three options, with the same feature, setting
+  and group names and defaults (Gutenberg Block Styles had no saved value, on
+  by default in both); no old names in saved Bricks data (one socialbump_ hit
+  was a theme style id, socialbump_at); no snippet or child theme code hooking
+  sbbt/ filters. Afterwards: standalone off and its files gone, the same
+  eight features on, the four sb_bricks_ conditions registered, and 14 pages
+  (home, blog post, locations, team, offers, contact, concerns, products)
+  identical in text and markup to snapshots taken before. Hide Unpublished
+  ACF Posts was switched on; it drops the two draft blog posts held in
+  service and area of concern related posts fields, checked live on three
+  pages. Snippet 97 stays off. Those staff fields also hold a revision id
+  (5412) and three deleted ids beside the real posts; ACF drops those itself
+  because the fields only accept staff-member, so the switch changes nothing
+  there. Leftover, harmless: the sbbt_modules and sbbt_module_settings options
+  and a fix-acf-cpt-svg-icons key, which nothing reads.
+- drivingevents.com.au, 16 October 2026, standalone 1.1.8 to SocialBUMP Tweaks
+  0.1.11, the last site on the standalone plugin. Same standalone code as
+  Cosmetic Studio (class-sbbt-modules.php md5 abff5f0f...), same three
+  options, every saved name known to the module; groups never saved, so all
+  on by default in both; no old names in saved Bricks data (the same
+  socialbump_at theme style); no snippet, child theme or mu-plugin code
+  hooking sbbt/ filters. Image Carousel is saved in 29 places but only one is
+  a live page (Targa Tasmania); the rest are revisions or unpublished.
+  Afterwards: standalone gone from disk, the same nine features on (Post Type
+  off), conditions sb_bricks_acf_relationship, _acf_repeater, _bricks_content
+  and _woo_archive_display registered, sb-bricks-image-carousel and the hidden
+  sb-image-carousel registered. Hide Unpublished ACF Posts was switched on.
+  13 of 14 snapshot pages identical, Targa Tasmania with all 126 carousel
+  markers. The Courses page lost one Book Now entry: the draft product "Open
+  Pit Lane: Performance Night Sessions" (3223) in course 598's
+  course_related_products, which the new switch now hides, as meant.

@@ -27,7 +27,6 @@ class SB_Tweaks_Installs {
 	const STALE    = 3 * DAY_IN_SECONDS;
 	const LABELS   = [
 		'socialbump-site-kit'              => 'Site Kit',
-		'socialbump-bricks-tweaks'         => 'Bricks Tweaks',
 		'socialbump-ai-knowledge-exporter' => 'SEO for AI',
 		'socialbump-tweaks'                => 'Tweaks',
 	];
@@ -35,7 +34,6 @@ class SB_Tweaks_Installs {
 	/** Each plugin's main admin page, so an Active version links straight to it. */
 	const PAGES = [
 		'socialbump-site-kit'              => 'sb-site-kit',
-		'socialbump-bricks-tweaks'         => 'sb-bricks-tweaks',
 		'socialbump-ai-knowledge-exporter' => 'sb-ai-knowledge-exporter',
 		'socialbump-tweaks'                => 'sb-tweaks',
 	];
@@ -302,10 +300,11 @@ class SB_Tweaks_Installs {
 				echo '<button type="button" class="button button-small sb-installs__push-all">' . esc_html__( 'Update all', 'sb-tweaks' ) . '</button>';
 			}
 
-			echo '</td><td><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'' . esc_js( __( 'Remove this site from the list?', 'sb-tweaks' ) ) . '\');">';
+			echo '</td><td><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="sb_tweaks_forget_install"><input type="hidden" name="host" value="' . esc_attr( $host ) . '">';
 			wp_nonce_field( 'sb_tweaks_forget_install' );
-			echo '<button type="submit" class="button-link sb-installs__forget" aria-label="' . esc_attr__( 'Remove', 'sb-tweaks' ) . '">&#10005;</button></form></td>';
+			/* translators: %s: site address */
+			echo '<button type="submit" class="button-link sb-installs__forget" aria-label="' . esc_attr__( 'Remove', 'sb-tweaks' ) . '" data-sb-tweaks-confirm="' . esc_attr( sprintf( __( 'Remove %s from the list? It comes back if it checks in again.', 'sb-tweaks' ), $host ) ) . '" data-sb-tweaks-confirm-title="' . esc_attr__( 'Remove site', 'sb-tweaks' ) . '" data-sb-tweaks-confirm-action="' . esc_attr__( 'Remove', 'sb-tweaks' ) . '">&#10005;</button></form></td>';
 			echo '</tr>';
 		}
 
@@ -327,7 +326,6 @@ class SB_Tweaks_Installs {
 	/** Each plugin's release class and admin page, for the hub table. */
 	const RELEASES = [
 		'socialbump-site-kit'              => [ 'SBSK_Release', 'sb-site-kit' ],
-		'socialbump-bricks-tweaks'         => [ 'SBBT_Release', 'sb-bricks-tweaks' ],
 		'socialbump-ai-knowledge-exporter' => [ 'SBAIKE_Release', 'sb-ai-knowledge-exporter' ],
 		'socialbump-tweaks'                => [ 'SB_Tweaks_Release', 'sb-tweaks' ],
 	];

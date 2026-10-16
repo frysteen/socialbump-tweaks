@@ -1,0 +1,2343 @@
+# Standalone SocialBUMP Site Kit notes (reference)
+
+These are the notes of the standalone plugin as they stood at 1.2.6, the last
+version before it moved into SocialBUMP Tweaks. They are kept for the detail on
+how each feature works and why. Where they name code, read SBSK_ as
+SB_Site_Kit_ (and SBSK_Images as SB_Images, in the Image Management module),
+sbsk/ hooks as sb_site_kit/ or sb_images/, class-sbsk- files as
+class-sb-site-kit- or class-sb-images, and an includes/modules/<slug>/module.php
+as features/<slug>/feature.php. The Images and Image Cleaner pages are the Image
+Management module now, in the Media menu. Anything about publishing, Updates,
+Transfer, the shared files or the release process no longer applies: SocialBUMP
+Tweaks does those. The current notes are context.md.
+
+---
+
+# SocialBUMP Site Kit
+
+Notes for whoever picks this up next, most likely a new chat with no memory of
+how any of it came about. Read this first.
+
+**Keep it current.** Change how something works, add a feature, or learn
+something painful, and write it here in the same session. A note that is wrong is
+worse than no note, so fix anything you find that has gone stale.
+
+That means all of it, not just the overview. Add a module and it gets its own
+entry under the detailed list, describing what it does, how it does it, and what
+it can be set to. Change how a setting behaves and the entry for that setting
+changes with it. Add a setting to an existing module and add it to that entry.
+The detail is the point: an overview that says a module exists helps nobody who
+has to change it.
+
+## What it does
+
+The tweaks a SocialBUMP site expects, in one plugin: editor and excerpt tools,
+image sizes and upload tidying, admin access and appearance, and a set of
+WooCommerce corrections. It needs no page builder and runs on any site. Anything
+that needs Bricks lives in Bricks Tweaks instead.
+
+It does not ship base styles or ACF field groups. That was once the plan and the
+readme still hints at it; if either ever arrives, it arrives as a module.
+
+## How it is organised
+
+Everything is a module, and every module can be switched off. A module that is
+off is never loaded, so it costs nothing. Modules are grouped, and a group that is
+switched on gets its own page in the menu.
+
+| Group | What is in it |
+| --- | --- |
+| Content | Excerpt character counter, excerpts for pages, shortcodes in excerpts |
+| Images | Image sizes, tidy file names and alt text on upload |
+| Image Cleaner | Missing thumbnails, old sizes, orphaned files, and the sizes panel in the media library. Off by default |
+| WooCommerce | Corrections and tweaks, listed below |
+| Admin Settings | Block admin access, hide the front end toolbar, the SocialBUMP admin colour scheme, ACF post type menu icons |
+
+The WooCommerce group only appears when WooCommerce is active, and its card greys
+out and cannot be switched on without it. The modules in it:
+
+- Download Analytics as CSV, buttons on the WooCommerce Analytics screens.
+- Fix Default Category Title Bug, a WooCommerce bug from 10.9.4 that blanks the
+  default category name in the admin list.
+- From Price on Variable Products, in loops and optionally on the product page.
+- Hide Empty Decimals on Prices.
+- Require Login to Check Out. Greys out when guest checkout is on, and links to
+  that setting.
+- Show Both Prices in the Cart, the regular price struck through on a sale item.
+- Turn Off Product Image Zoom, which WooCommerce has no setting for.
+
+These were built on drivingevents.com.au, because the hub has no WooCommerce. See
+the shared notes on working from a client site.
+
+A group is on until switched off, unless its section carries default false, which
+is how Image Cleaner starts off on a fresh site. A group with one module shows
+that module's page as its own; Images and Image Cleaner are both like that.
+
+The shared block below still calls this the Modules page, because that block is
+identical in Bricks Tweaks and the word means something else after the merge.
+Site Kit renamed its own page in September 2026.
+
+The Features page cards can be collapsed to their title, by the chevron or by
+clicking the title, and put in any order with Reorder Cards. Both are per user,
+kept in user meta by the shared SocialBUMP_Cards class, and alphabetical until
+changed. The order is the same everywhere: ordered_groups() feeds the cards, the
+tab bar, the sidebar submenu and the admin bar, with Modules first and Updates
+and Publishing last. Saving an order also drops this menu's entry from Admin and
+Site Enhancements' submenu order, so ASE stops sitting on top of it. Only the
+Features page does any of this; group pages stay plain.
+
+## What each module does
+
+Default says whether a fresh install has it on.
+
+| Module | Default | What it does |
+| --- | --- | --- |
+| Excerpt Character Counter | on | Counts characters as you write an excerpt, in the block editor and the classic box, and warns when it runs long |
+| Excerpts For Pages | off | Gives pages an excerpt field, which WordPress only gives posts |
+| Shortcodes In Excerpts | off | Runs shortcodes written into an excerpt instead of printing them as text |
+| Force Gutenberg Page Refresh on Save | off | Refreshes the editor once a save has finished, so you see what was actually saved |
+| Images | on | The standard image sizes, plus tidy titles and alt text on upload, and the rebuild tools |
+| SocialBUMP Admin Colour Scheme | on | Adds the SocialBUMP admin colour scheme, chosen under Users, Profile. Based on Midnight with our palette in place of the red |
+| Hide Toolbar On The Front End | on | Tick the roles that lose the front end toolbar. Administrators keep their own profile setting |
+| Block Admin Access | off | Sends the ticked roles back to the front end if they open wp-admin. Administrators are never affected |
+| Fix ACF CPT SVG Icons | off | Makes SVG menu icons on post types created in ACF behave like the rest of the admin menu: same size, and they change colour on hover and when active. Icons from other plugins are left alone |
+| Fix Default Category Title Bug | on | WooCommerce blanks the default category name, edit link and row actions on Products, Categories. This puts them back |
+| Download Analytics as CSV | off | A Download CSV button on the Analytics reports for the range on screen. WooCommerce normally builds it in the background and emails a link |
+| From Price on Variable Products | off | The lowest price with a label, instead of a range. Loops by default, product page optional |
+| Hide Empty Decimals on Prices | off | 10.00 shows as 10. Real decimals such as 9.99 are left alone |
+| Require Login to Check Out | off | Sends a logged out customer to My Account, then straight back to the checkout |
+| Show Both Prices in the Cart | off | On a sale item the cart shows the regular price struck through, so the saving is visible |
+| Turn Off Product Image Zoom | off | Stops the magnifier over product images. WooCommerce has no setting for it |
+
+## Every module in detail
+
+What it does, how it does it, and what it can be set to. The hook named is the
+one to look at first when something misbehaves.
+
+### Content
+
+**Excerpt Character Counter.** Counts as you type and warns when the excerpt runs
+past the limit, which defaults to 160, the length Google tends to show. Loads on
+admin_enqueue_scripts. It has to deal with three different editors: the block
+editor sidebar, the classic excerpt box, and TinyMCE over the WooCommerce short
+description. TinyMCE is the awkward one, because it arrives after the page has
+loaded, so the script polls for it for ten seconds and binds to the editor own
+events rather than to the textarea. It counts trailing spaces, because they count
+in a meta description. Setting: max, a number.
+
+**Force Gutenberg Page Refresh on Save.** The block editor saves in the
+background and leaves you where you were, so anything the server changed during
+the save is not in front of you until you reload by hand. This watches the
+editor own save state through wp.data and reloads once it is done.
+
+Three things it has to get right, and they are the whole module:
+
+- An autosave is not a save you asked for, so it is ignored. Otherwise the page
+  would reload every minute while you type.
+- It waits for meta boxes as well as the post. WordPress sends those after the
+  post itself, so reloading when the post save finishes would cut off whatever
+  they were writing. ACF fields are the usual casualty. Tested with content and
+  ACF fields together: both survive.
+- A save that failed does not reload, so a dropped connection does not cost you
+  your work.
+
+The reload uses replace rather than a normal navigation, so the back button does
+not walk back through every save, and it carries a flag that raises a Saved
+snackbar afterwards, since the editor own notice does not survive a page load.
+It only loads where the block editor is running: the classic editor reloads on
+save already. Off by default, since it changes how saving feels.
+**Excerpts For Pages.** Adds excerpt support to the page post type on init. One
+line of work, but it means pages can carry a meta description and a card summary
+like any post. No settings.
+
+**Shortcodes In Excerpts.** Runs shortcodes written into an excerpt rather than
+printing them as text, by filtering the_excerpt and get_the_excerpt, and also the
+Yoast and Rank Math description filters so a shortcode in a meta description
+resolves too. No settings.
+
+### Images
+
+**Images and Image Cleaner.** The largest part of the kit, and the one to be most
+careful with. Two modules since the split. Images (modules/images) holds
+SBSK_Images for the sizes and the settings page, and _Rebuild, the size engine:
+building, clearing, present(), owned sizes. Image Cleaner (modules/image-cleaner)
+holds _Tools for the page, the AJAX handlers and the attachment panels, _Orphans
+for what is on disk but not in the database, and _Cleaner for its page. The
+engine stays with Images because registering a size is what records it as ours,
+and that has to keep happening whether or not the cleaner is on. The cleaner does
+not need Images switched on: its boot loads the two Images classes itself, which
+registers nothing, and it covers whatever sizes anyone has registered.
+
+With the cleaner off nothing of it loads, and that is the point: the sizes panel
+used to be built for every attachment the media library listed, about 600 file
+checks a page, and the edit screens carried a stylesheet, a script and jQuery
+for it. styles() only enqueues on upload.php, post.php and post-new.php while
+the cleaner is on. The old rebuild_on switch became the cleaner's group switch:
+sbsk_split_image_cleaner() in the main file carries it across once, records
+scheme 2 in sbsk_image_split, and drops rebuild_on from the settings.
+
+
+**Tidy titles on upload.** clean_title() keeps a name that already has spaces
+exactly as typed, minus the extension, so "Epoxy Flooring Warranties - UV
+Stability" survives with its dash and capitals. A name with no spaces is slug or
+camera style: dashes, underscores and dots become spaces, other punctuation goes,
+and each word gets a capital first letter without the rest being lowered, so
+sdi-UV-test becomes Sdi UV Test. It used to strip every dash and title-case with
+mb_convert_case, which also lowered the rest of each word (UV became Uv). Alt
+text copies the cleaned title, only when the image has none.
+
+on_upload() reads the stored title with get_post_field( 'post_title', $id, 'raw' ),
+not get_the_title(): that runs wptexturize, which turns " - " into &#8211;, and the
+entity ended up in the alt text (shown as 8211 by the old cleaner, as &#8211; by
+1.1.15). clean_title() also decodes entities first, as a second guard.
+
+**Gutenberg image zoom** (class-sbsk-images-zoom.php, gallery-zoom-editor.js,
+gallery-zoom.js, gallery-zoom.css): switched on under Image extras on the Images
+page, setting gallery_zoom (the key kept its first name). The core gallery and
+image blocks gain two attributes via the blocks.registerBlockType filter
+(sbskZoom, sbskZoomSize) and a Zoom sidebar panel: a toggle and the popup size,
+fed by size_choices(), which lists every registered size with its width. The
+size on the page is deliberately left to each block's own Resolution setting;
+an earlier build had its own page-size dropdown and it duplicated that. An image
+block inside a gallery hides the panel (getBlockParentsByBlockName), since the
+gallery's setting governs its images. On the front end render_block_core/gallery
+and render_block_core/image mark each wp-image-<id> img with data-sbsk-zoom,
+the popup size URL, through the WP HTML Tag Processor, and the lightbox assets
+enqueue once from whichever block rendered first. The popup is our own: a
+gallery's images page through with arrows and arrow keys, a single image opens
+alone, Esc or a click on the dark area closes, captions come from the
+figcaption. The native WordPress lightbox was no use here because it always
+opens the full-size original. The popup size is validated against
+get_intermediate_image_sizes() at render, falling back to full. Everything
+steps aside when the switch is off; the block attributes simply sit unused in
+the saved markup.
+
+On a Bricks site the gallery's columns, cropping and gaps depend on Bricks
+Tweaks' Gutenberg Block Styles, because Bricks strips core's block CSS on the
+pages it renders. Zoom itself works either way.
+
+#### The rule that everything else depends on
+
+A size counts as present only when its file is really there. Metadata is not
+proof, and treating it as proof caused the worst bug in this module.
+
+SBSK_Images_Rebuild::present( $id, $meta ) answers it, by checking each entry in
+the metadata against the disk. missing(), missing_all() and the per attachment
+panel all go through it. Anything new that asks what an attachment has must go
+through it too.
+
+What happened without it: a size was removed, its files were deleted, and the
+metadata entries stayed behind. Adding the size back left an entry pointing at a
+file that no longer existed, so the scan saw the entry, called it present, and
+reported nothing to build. 638 images sat with no 480 and nothing said a word.
+The same gap was showing in the details panel, which printed dimensions for a
+file that was not there. Three places, one wrong assumption.
+
+#### Which sizes the cleaner works on
+
+The Image Cleaner page carries the list: every registered size, grouped as Image
+Sizes (ours), WordPress, WooCommerce and Other Image Sizes, with all and none per
+group and Select all and none at the bottom. Whatever is ticked is what the scan
+counts, what Build fills in, what a forced rebuild remakes, and what Remove old
+sizes clears. It replaced the picker that only appeared when forcing.
+
+The choice is per user, in the sb_tweaks_site_kit_cleaner_sizes user meta, and everything is
+ticked until a choice is saved. A name that is no longer registered is dropped on
+the way out of chosen(), so removing a width cannot leave a stale tick behind.
+
+It is a plain form posting to admin-post, not AJAX, so save-state.js does the
+rest: the button stays quiet until a tick changes, the reminder follows you down
+the page, and leaving with changes pending warns first. Reloading without saving
+throws the ticks away, which is the point. The all and none links are marked
+data-sb-always-on so the reminder never mistakes one for the save button, and
+they dispatch a real DOM change event: save-state listens with addEventListener,
+and a jQuery trigger never reaches it, which left the button disabled while the
+ticks plainly changed.
+
+The engine takes it as an $only argument on missing_all() and build(). Null
+means every size, which is what the attachment panel and a single image rebuild
+still pass.
+
+It deliberately does not reach stale(), stale_files() or clean(). A size that has
+been removed is no longer registered, so it can never appear in the tick list,
+and filtering by that list meant removing a width left its files behind with the
+scan reporting nothing to clear. Clearing old sizes always covers every removed
+size, whatever is ticked.
+
+wanted() returns nothing at all while the Image sizes switch is off, because
+nothing is registered then, so every image-* file an attachment carries becomes
+a leftover to clear. Reading the saved widths without checking the switch meant
+turning the feature off left every file in place with the scan reporting nothing
+to remove.
+
+Each row is a flex line that wraps: a long size name such as
+woocommerce_gallery_thumbnail pushes its pixels down to their own line, right
+aligned, rather than out of the box. Rows are striped, every other one on a faint
+grey, purely to be easier to read down a long list.
+
+The progress box carries a clock on the right: how long the run has been going,
+and the average per image, which is the half worth reading because it says
+whether a large library means two minutes or twenty. Both are repeated in the
+finished line. Cancel sits where the close cross goes, and they swap: Cancel
+while it runs, the cross once it has stopped. Cancelling lets the batch in
+flight finish and asks for nothing after it, so nothing is half written; the
+line then reads Stopped rather than Finished. There is no thumbnail column any
+more: each row in the log carries its own image, and the column only left a gap
+down the left of everything.
+
+The log keeps every image of the run rather than the last twenty, and the box
+scrolls. Each row carries the file name, the original dimensions under it, the
+sizes made, and any size that was asked for and not made, which says why. All of it used to
+show as an image with nothing under it, reading like a failure.
+
+skip_reason() works out the wording, and the cropped and uncropped cases are not
+the same. A cropped size needs the original to be at least that big in both
+directions, so a wide but short original fails on the height. An uncropped size
+is a box to fit inside, so its height is a maximum, not a requirement: a
+1920 x 1280 original needs no 1920 x 1920 large because it already fits, and
+calling that image is smaller was simply wrong. The wordings are: already this
+size when the original sits on an edge of the box, image is smaller when it fits
+inside with room to spare, and not needed when it is bigger than the box, which
+means something other than the dimensions stopped it and guessing would lie.
+
+The sizes panel on an attachment says the same three things. A row that is not
+there now gives the size it would have been and why it was not made, rather than
+a bare not needed, which covered all three reasons at once and told you nothing. A clean
+logs its rows too. log_item() in the tools class builds all of it.
+
+A plain build only logs images something was actually done to, since it passes
+over most of the library and a row per untouched image says nothing. A forced
+run logs every image, because there the skipped ones are the interesting part.
+
+#### How the engine and the tools keep their cost down
+
+- make_sizes() decodes an image once and makes every wanted size from it with
+  multi_resize(), which on both GD and Imagick works from the original pixels
+  for each size. build() and rebuild() used to call wp_get_image_editor() per
+  size: thirteen decodes of one photo for one rebuild. multi_resize() names
+  files after the file it loaded, and the attached file can be the -scaled one
+  while the thumbnails carry the original name, so each made file is moved to
+  the base_name() the set uses, replacing what was there. Two sizes with the
+  same dimensions share one file, thumbnail and woocommerce_thumbnail both
+  being 300 x 300 cropped, so the first one moves it and the second finds its
+  source gone: it has to point at where the file went instead. Missing that
+  wrote metadata naming a file that was not there, and the size showed as
+  missing straight after being built. It only shows on a -scaled original,
+  where the names differ at all, and only with two sizes of equal dimensions,
+  so a site without WooCommerce never sees it. Test rebuilds on a site that
+  has both.
+- can_make() is the one rule for whether a size is worth making, used by both
+  missing_all() and rebuild() so forcing is never a smaller job than a plain
+  build. It asks image_resize_dimensions(), which is what WordPress itself
+  uses, rather than working the rule out again. Two hand rolled versions got
+  it wrong: judging on width alone made a forced rebuild skip a 1536 x 1536 on
+  a 1281 x 1920 portrait; requiring a crop to fit both ways reported 600 x 400
+  images as missing a 600 x 400 crop for ever, since WordPress makes no file
+  when the result would be the original, and hid the cropped sizes WordPress
+  does make from a short source, such as 600 x 466 for a 600 x 600 crop of a
+  1200 x 466 image. Ask WordPress; do not restate its rules.
+- dimensions() reads the original's size from the file, not the metadata, and
+  everything that decides what a size should be uses it: present(),
+  missing_all(), rebuild() and the leftover scan's expected_dimensions(). An
+  optimiser that caps uploads, WPvivid here, rewrites the file and leaves the
+  metadata saying what it used to be. Eleven images on feelsoma.com did, one
+  claiming 2560 x 1922 for a file that is 1920 x 1442. Everything between those
+  numbers was reported missing and could never be built, because the resize the
+  metadata implies is impossible, and 271 files were offered for deletion as
+  leftovers because they were judged against sizes that original cannot make.
+  Reading the header is about a tenth of a millisecond, 0.05s across 401
+  images, and it is the only number that can be acted on. The metadata itself
+  is left alone: correcting it is a repair, not a scan's business.
+- A run works through the images that have something to do, not the whole
+  library: ids() takes the mode and filters to the ones missing a size, or
+  carrying a stale one, before the run starts. A plain build on a library that
+  is nearly current walked all 416 images on feelsoma.com to find the 7 that
+  needed anything, and the bar crawled through hundreds doing nothing visible.
+  The filter costs a fifth of a second once. A forced rebuild remakes
+  everything, so it keeps the whole list. The batch reports the run length so
+  the bar counts to what it will really do.
+- A file still in use names what is using it, with a link to edit that post
+  where the person can edit it, through references_html(). references() carries
+  an edit URL beside each label, and references_text() is the plain version for
+  anywhere a link cannot go.
+- Deleting leftovers keeps the same clock the rebuild does: elapsed and per file
+  while it runs, and both again in the finished line.
+- stale() measures against every size registered right now, not just our own
+  list. A site can register image-480 from a snippet while this module is
+  switched off, and those files are live: comparing with our list alone called
+  1,234 working thumbnails old sizes to clear on feelsoma.com, one button press
+  from deleting them. A size anyone registers is never stale, whoever made the
+  files. Note the collision this implies: add_image_size is last-one-wins and
+  silent, and a snippet on init beats our after_setup_theme, so on a site with
+  both the settings page can show one spec while the site makes another.
+- present() counts a size as there only when the file exists AND its recorded
+  dimensions still match what the size would produce now. Checking existence
+  alone meant changing a size's dimensions was invisible: every image kept a
+  real file at the old size, so nothing ever showed as needing a rebuild, while
+  the old files turned up under leftovers. Changing staff_entry from 270 x 400
+  to 400 x 600 on doogood.com.au left 370 entries at the old size and a scan
+  reporting no work.
+- log_item() returns one list of rows, made and skipped together, smallest
+  size first, so the log reads as the set of sizes rather than two lists stuck
+  end to end.
+- The Sizes to build figure is a button when it is not zero, and opens the list
+  of images behind it: a row each, with the sizes that image is missing, a
+  Rebuild by the name for the whole image and one by each size for that size
+  alone. summary() collects the rows on the pass it already makes, capped at
+  LIST_CAP images, because adding a width makes the whole library missing it
+  and nobody reads six hundred rows. ajax_fix() does the work and returns what
+  is left, so a row updates itself or disappears.
+- clean() drops the metadata entry for a stale size, but the file only goes if
+  file_has_other_owner() says nothing else uses it: another size of the same
+  attachment with the same dimensions (medium at 480 and image-480 share one
+  file), the original itself, or any other attachment whose metadata names
+  the file. That last check reads file_owners(), built once per request
+  (see Clearing old thumbnails faster below); it used to be one LIKE on
+  postmeta per stale file.
+- A run holds its id list in a transient for ten minutes (sbsk_images_run_ per
+  user and per mode, pushed on another ten minutes by every batch that reads
+  it; sbsk_orphans_run_ for the orphan list) instead of every
+  batch fetching the whole library again. One list per tool: a build, a clean
+  and a forced rebuild each keep their own, so switching tools mid run cannot
+  hand one the other's ids. ids() also warms the attachment meta cache in
+  chunks of 500, so a scan reads metadata in a handful of queries rather than
+  one per image. Scan starts a run fresh; the last batch clears it.
+  The orphan run steps a whole batch on each time because the list is fixed;
+  remove() checks every file again before touching it, so a list gone a
+  little stale costs nothing.
+- summary() is one pass over the library and gathers the per size totals the
+  report needs on that pass; the report used to walk it all again. The orphan
+  reference lookups, three unindexed queries per file, run once per file and
+  the rows reuse the answer.
+- The media modal panel is a placeholder until its pane is on screen, then
+  sbsk_images_panel fetches the list. attachment_fields_to_edit runs for every
+  attachment the library sends to the browser, forty a page, and the list is a
+  file check per size, so building it there cost hundreds of stats a page for
+  panes nobody opened. admin.js watches the page for new panes with a
+  MutationObserver and fills each once. The full edit screen still builds its
+  meta box in place, one image, no cost worth saving.
+
+#### FAQ Settings
+
+Two ways to write FAQs, either or both, merged into one FAQPage block in
+wp_head on any single post that has questions.
+
+A repeater on the post types you tick, named faq_questions with faq_question
+and faq_answer inside. Those names are fixed and deliberately not ours to
+choose: sites already hold content in them and templates already read them, so
+turning this on where a hand made field group used to be loses nothing.
+
+Or a post type holding a library of questions, related to pages through a
+relationship field, so an answer edited once changes everywhere. Each source
+names its post type, which field the question comes from and which the answer,
+and the post types that get the relationship field. The two dropdowns offer the
+post title, content and excerpt plus any text, textarea or wysiwyg ACF field on
+that post type, refetched over AJAX when the post type changes.
+
+The relationship field is named sb_tweaks_faq_related_<post_type> unless the source
+overrides it. Old sites set the override to related_faq_questions and keep
+working with the field they already have. Consistent by default, explicit where
+it has to be.
+
+The field groups are registered through acf_add_local_field_group() rather than
+saved as posts: nothing to export, nothing a client can edit into a different
+shape, and they arrive with the plugin.
+
+Answers are run through do_shortcode, then stripped of shortcodes and tags and
+collapsed to single spaces. A shortcode nothing has registered is left as it is,
+because that is what a reader sees on the page too. A pair with an empty
+question or answer is dropped rather than printed hollow.
+
+FAQ Cleanup sits under the repeater card, on the page already rather than
+behind a scan button, and is not rendered at all when there is nothing to
+clear. It finds FAQ content on post types that no longer offer the field,
+repeater and relationship both, grouped by post type because that is how the
+decision is made: untick Services and you want its FAQ content gone, not a list
+of eleven posts. Each group opens to the posts inside it for the times you want
+only some.
+
+There are two ways a post type stops offering the field, and both have to
+count. Untick it here, and repeater_types no longer holds it. Untick it under
+Post Types for Add-ons, and repeater_types still holds it: the saved FAQ
+settings are not rewritten when the site wide list changes, and would only
+catch up the next time someone saves this page. So everything that asks where
+a field applies goes through SBSK_FAQ::offered(), which takes a saved list and
+returns the part of it still on offer site wide: the field group registration,
+the schema output, and the leftovers scan, for the repeater and for every
+source. Without it the field carried on appearing on a post type the site said
+it did not offer, and the content on it never showed up in the cleanup panel.
+With no site wide list to check against, offered() hands the saved list back
+untouched, because an empty answer there would switch every FAQ field off at
+once.
+
+Field names are remembered in sbsk_faq_fields when the settings save, so a
+source deleted from the settings can still be found. forget() removes the count
+row, every sub field row and the hidden key row beside each, because deleting
+the one row a person can see leaves the rest behind, and it refuses any field
+name that is not ours. The delete rechecks the list server side, so a tick made
+before someone turned a post type back on cannot remove anything.
+
+The panel says plainly that nothing is wrong: turning a post type off hides the
+field and leaves what was written, which is what you want for a change you
+might undo. Without that line the list reads as a fault to be fixed and invites
+deleting during a temporary change.
+
+Worth knowing: Google stopped showing FAQ rich results for most sites in August
+2023, keeping them for well known health and government sources. The markup is
+still correct and still read by other things, so this is not wasted, but it will
+not put questions under a search result the way it used to.
+
+Under the repeater's post type list sits one line saying where to change which
+post types are offered, linking to the Post Types for Add-ons card on Admin
+Settings by its anchor. Without it the list reads as everything the site has,
+and a type someone unticked there looks like a fault here.
+
+#### Post types
+
+Three layers, because they answer different questions.
+
+sbsk_post_type_choices() drops the plumbing: blocks, templates, font records,
+field groups, builder templates. Nobody wants FAQs on a reusable block, so
+these are never offered rather than being something to untick on every site.
+Filterable through sbsk/post_types/never.
+
+The Post Types card, in Admin Settings, decides which of the rest the plugin
+offers at all. It is stored inverted: the setting keeps the names left
+UNTICKED, so a post type a plugin adds next month is offered straight away
+rather than going quietly missing from every feature. That is what the invert
+flag on a multicheck field does, in the renderer and the sanitiser.
+
+sbsk_post_types() returns what is left, and each feature keeps its own choice
+from within it: FAQ Schema might pick post and service while something else
+picks page only.
+
+The card takes the full width of the page and is rendered after every other
+card in its group, because the list runs to fifty or more post types on a busy
+site and is unreadable in one column of a four column grid. A module asks for
+that with wide in its module.php; render_group() holds those back and draws
+them last, and .sbsk-card--wide spans every column. Every card now carries
+id="sbsk-module-<id>" so it can be linked to, with scroll-margin-top on the
+wide one so the admin bar does not sit over the heading.
+
+Select all and Select none sit above the list. Any multicheck field can have
+them with select_all on the field. They are buttons rather than submits and
+are marked data-sb-always-on, so the unsaved changes reminder never mistakes
+one for the save button, and they set each tick with a real DOM change event:
+save-state.js listens with addEventListener and a jQuery trigger never reaches
+it. Unticking everything is safe here despite the inverted storage, because an
+absent multicheck sanitises to nothing ticked, which inverts to every type
+hidden, which is what was asked for.
+
+The card has no on/off switch, which needed four small changes: in_group()
+now includes always-on modules so their settings have somewhere to appear,
+render_card() leaves out the toggle for them rather than showing one stuck on,
+save() skips writing a state they do not have, and the feature list on the
+Features page treats always as on. That last one was missed: the list asked for
+a stored state, found none, and showed the module greyed out as though it were
+switched off, on a card with nothing to switch. page_order() puts wide modules
+last in that list too, so it reads in the same order as the page it links to. render_field() also stopped
+casting an array default to a string, which warned on every multicheck.
+
+#### Find leftover thumbnails (the deep scan)
+
+Three things can be wrong with a size file, and each needs its own check.
+
+- Missing: a registered size with no file. missing_all(), fixed by Build.
+- Removed: a file the metadata still names, for a size the kit no longer
+  registers. stale(), fixed by Remove old sizes, and only ever our own names.
+- Unaccounted: a file on disk that nothing in the database names, whose
+  dimensions no registered size would produce. unaccounted(), fixed by the
+  deep scan.
+
+The third one exists because the orphan scan deliberately gives a free pass to
+any file whose name matches a real attachment, through belongs_to_attachment(),
+so that a WebP sibling or a thumbnail missing from its metadata is never
+deleted. The cost is that an old theme's photo-1300x200 is invisible: not an
+orphan, because it looks like it belongs, and not a removed size, because it
+was never in the metadata at all. On an old site that is most of the junk.
+
+unaccounted() walks the uploads folders, takes every file whose name ends in a
+WxH, and keeps the ones where the base is a real attachment, nothing in the
+database names the file, and those dimensions are not among the ones
+expected_dimensions() says the currently registered sizes would produce for
+that attachment. That last test is what protects a valid thumbnail whose
+metadata went missing: it would be rebuilt at those exact dimensions, so it is
+left alone. expected_dimensions() is pure arithmetic through
+image_resize_dimensions(), no files touched.
+
+The size list groups by ours, WordPress, WooCommerce and Other. Grouping the
+rest by the theme or plugin that registered them is not possible and was tried
+twice: WordPress records nothing about who registered a size; reading the code
+for add_image_size misses anything registered through a filter or with a built
+up name, which is how Total and Gravity Forms both do it; and registration
+timing puts the theme and the plugins in the same bucket, since both land on
+init. A wrong label is worse than none on a page whose next button deletes
+files, so Other it is.
+
+Results are grouped by dimensions, not by image, because that is the shape a
+person can judge: 1024 x 750, 412 files, 180 MB is recognisably the old
+WordPress large, where 412 file names would tell you nothing. You tick groups
+and confirm; nothing is deleted by scanning. The list carries a red heading, the
+instruction, and one line saying a plugin switched off right now will appear
+here as well. That last line is the only way this feature can bite, so keep it.
+
+The panel has its own cross, and a normal Scan images clears it, because by then
+it is the answer to the previous question. The quiet re-scan after a deletion
+leaves it alone, since that run redraws it with what is left.
+
+Deleting runs in batches of DEEP_BATCH files, the browser calling until done,
+behind the same bar the rebuild uses, with the count under it. Each batch is checked again server side: still
+unaccounted, not kept, and not referenced, through references_many(), which
+does the three LIKE scans once per fifty names with the names OR'd together
+rather than three per file. That is the slow part of a deletion, and on a big
+database it is still a few seconds per fifty, so a thousand files is a couple
+of minutes; per file it was closer to ten. Files left alone come back with a
+reason and are listed above the refreshed panel rather than quietly dropping
+out of the count.
+
+The reference check reads the content once rather than once per file.
+mentioned_names() pulls every image file name out of post content, postmeta and
+options, paged through by id so no row is ever left unread on a big site, and
+holds the set for ten minutes; after that a check is
+an array lookup, and only a name that is actually mentioned costs a query, to say
+what is using it. It was three LIKE scans per file before, each reading a whole
+table, so a site with 685 orphans spent 64 seconds on a scan that is otherwise
+a fifth of a second. Batching the names into one OR'd query does not help,
+because the LIKEs still scan; reading the content once is the only fix. Measured
+on doogood.com.au: 64s to 0.24s, plus 0.28s to build the index, same answers.
+The index used to stop at a fixed row cap per table, and rows past the cap were
+invisible: on a big Bricks site a used file could be called an orphan because
+the row naming it was never read. It pages through everything now. Do not put a
+cap back.
+
+The index is rebuilt at the start of every scan, not reused from the transient,
+because a scan answers for the site as it is now: content deleted since the last
+scan otherwise still looked like a use. The ten minute hold only covers the
+deletion that follows a scan. And when the targeted queries find nothing, the
+answer is nothing: an earlier version said site content instead, on the grounds
+that the index had seen the name somewhere, which held files back over a mention
+that had already been deleted. Term and user meta are not indexed, so they are
+checked directly when nothing else matches.
+
+Image optimisers keep a record of every file they have compressed, which
+mentions the file without using it. WPvivid's stopped a plainly stale thumbnail
+being deleted. Those meta keys are in bookkeeping_keys(), filterable, and both
+reference checks ignore them. Each group opens to the files behind
+it, with a thumbnail, the file name and a link that opens it in a new tab, capped
+at LIST_CAP per group, because dimensions alone are not enough to judge a
+deletion by.
+
+The honest limit, and it is on the screen: a size is only known to be
+registered if something registers it now. Deactivate WooCommerce and its three
+sizes look unaccounted. That is why this is ticked and confirmed rather than a
+single button, and why remove_unaccounted() recomputes the list and rechecks
+is_kept() and references() per file rather than trusting the paths the browser
+sends.
+
+#### Sizes
+
+- Registered on after_setup_theme, and added to the editor size chooser through
+  image_size_names_choose.
+- Widths live in the module settings. Saving them changes what the site wants;
+  it does not touch a single file. The scan, then Build or Clear, brings the
+  disk into line. That is deliberate: on a few hundred images it is a long job
+  and belongs behind a progress bar, not a form submit.
+- Never calls wp_create_image_subsizes(). That regenerates everything from the
+  original and loses manual crops. It builds size by size instead.
+- Sizes the kit did not create are left alone. sbsk_owned_image_sizes records
+  what it made, so a theme size is never cleared as though it were ours.
+- Removing a size deletes the file, the WebP and AVIF copies beside it, and the
+  metadata entry, in one pass. The metadata matters as much as the file: an entry pointing at a
+  deleted file makes WordPress hand out a URL for an image that is not there.
+
+#### Rebuilding
+
+- Batches of five over AJAX: sbsk_images_count, then sbsk_images_batch, then a
+  final sbsk_images_report. Each request is told its offset, so nothing depends
+  on order and nothing is redone.
+- A request that comes back empty is retried once, one image at a time, and only
+  a second failure is reported. Each request starts where the last finished, so
+  a failure costs nothing and what is built is kept.
+- All three handlers raise the time limit. Measured on a 672 image library the
+  scan takes well under a second, so slowness was not the cause of the one
+  failure seen in the wild: the rebuild had finished and a later request simply
+  never answered. The raised limits are insurance for a slower host.
+- The progress log gives each image its own row: its own thumbnail, its name,
+  and the sizes built for it underneath. It used to show one thumbnail beside a
+  batch of names, which never matched what you were reading.
+
+#### The orphan scan
+
+- Compares the uploads folder against every place the database records a file:
+  _wp_attached_file, _wp_attachment_metadata, and _wp_attachment_backup_sizes.
+- That last one is easy to forget and was missed at first. Editing an image in
+  WordPress writes a new set of files and keeps the old ones so Restore original
+  image still works, and those are recorded only in the backup meta. Without
+  reading it, every edited image contributed a pile of false orphans, and
+  deleting them would have quietly taken the undo away. If a site ever shows
+  orphans that are plainly in use, look for another meta key like that one.
+- Every known file is recorded along with its WebP and AVIF twins, since an
+  optimiser writes photo.jpg.webp or photo.jpg.avif, keeping the original
+  extension in front. The scan strips the .webp or .avif before checking the
+  extension, so those count as images.
+- A leftover thumbnail from an attachment that no longer exists is found, and
+  so are its WebP and AVIF copies. Tested by planting such files and scanning.
+- It walks the uploads root and its year and month folders only. A folder
+  belonging to another plugin is left alone on purpose.
+- Anything referenced anywhere, or marked Keep, is listed but never bulk
+  deleted, and the button counts only what it will actually remove. A list of
+  fourteen with a button offering two is correct, though it reads like a fault.
+  sbsk_kept_orphans holds what you told it to leave.
+- Each row shows a thumbnail and, where the file can be traced, the attachment
+  id as a grey pill linking to the media library. Tracing tries the filename,
+  then the same name with a size suffix stripped, then the backup data.
+
+#### On an attachment
+
+The list of sizes appears in two places, and they are not the same mechanism.
+
+- The full edit screen gets a real metabox, SocialBUMP Site Kit Sizes, through
+  add_meta_boxes_attachment. It can be dragged and collapsed like any other.
+- The media modal cannot have metaboxes at all, so the field built through
+  attachment_fields_to_edit carries its own postbox markup: an empty label, and
+  html holding a div.postbox with a postbox-header and an inside. That is how
+  the Replace Media panel does it, and it is the only way to get a title bar in
+  the modal.
+- The field bows out when the screen base is post, or the edit screen would
+  show the same thing twice.
+- WordPress lays an extra field out as a table row: a label column, and a field
+  cell floated right at 65 per cent to sit beside it. With an empty label that
+  leaves a gap, so the CSS takes the label column to zero and drops the float,
+  the width and the 1px margin from the field. The margin is the part people
+  miss: it is why a full width float overflows, and why other plugins use 99.8
+  per cent instead of removing it.
+- Each size that exists links to that file. A missing one stays plain text,
+  since there would be nothing to open.
+
+#### Uploads
+
+- On add_attachment the file name is tidied and alt text filled in from the
+  title, so an upload called DSC_0042 does not end up as alt text. Alt text
+  written by hand is left alone, and the file on disk is never renamed.
+
+### Admin Settings
+
+**SocialBUMP Admin Colour Scheme.** Registers a colour scheme on admin_init, based on
+Midnight with the SocialBUMP palette in place of the red, chosen per user under
+Users then Profile. The force setting applies it to everyone by filtering
+get_user_option_admin_color, which is how a client site ends up looking the same
+for whoever logs in. It also styles the block editor through enqueue_block_assets.
+Worth knowing: all three plugins read the current scheme for their accent colour,
+so this module quietly decides how the others look.
+
+**Hide Toolbar On The Front End.** Filters show_admin_bar for the roles you tick.
+Administrators are left to their own profile setting, so you cannot lock yourself
+out of the toolbar. Setting: roles, a list of checkboxes.
+
+**Block Admin Access.** On admin_init, sends the ticked roles back to the front
+end if they try to open wp-admin, to a URL you choose. AJAX requests are let
+through, or half the front end would break for those users. Administrators are
+never affected, deliberately and without an option to change it.
+Settings: roles, and redirect.
+
+**Fix ACF CPT SVG Icons.** A post type created in ACF with an SVG menu icon gets
+an icon that ignores the admin menu colours: wrong size, and it does not change
+on hover or when active. WordPress renders a menu icon given as a file URL as an
+img element, which cannot take the menu's colour. This prints CSS on admin_head
+that hides the img and uses the SVG as a mask instead, so the menu's own text
+colour paints it and it follows hover and current states like a dashicon. Only
+post types created in ACF are touched, and only when their icon is an .svg file,
+so icons from other plugins are left alone. Setting: colour, which applies at
+rest only so hover and the active item keep the menu highlight; a var() with no
+fallback is given currentColor as one, so the icon can never vanish. Needs ACF.
+
+It lived in Bricks Tweaks until September 2026, which was the wrong home: it has
+nothing to do with Bricks. A site that had it on there has to switch it on here,
+since the two plugins keep their own settings and nothing carries across.
+
+### WooCommerce
+
+The whole group hides when WooCommerce is not active, and every module in it
+declares woocommerce in requires. These were built on drivingevents.com.au,
+because the hub has no WooCommerce to test against.
+
+**Fix Default Category Title Bug.** On by default, because it fixes something
+broken rather than changing a preference. Since WooCommerce 10.9.4 the default
+product category shows with no name, no edit link and no row actions on Products,
+Categories, which makes it look corrupted. WooCommerce prints a script in the
+footer that rewrites that row; this removes that script on current_screen and
+prints its own on admin_footer, which puts the name and links back and appends
+the tooltip after the name rather than replacing it.
+
+**Download Analytics as CSV.** WooCommerce builds an export in the background and
+emails a link, which is slow and often never arrives. This adds a Download CSV
+button that exports the range on screen there and then. The Analytics screens are
+React, so the script polls for the toolbar to appear rather than assuming it is
+there, and reads the report data WooCommerce has already fetched. On the Overview
+page a Download All button zips every report together.
+
+**From Price on Variable Products.** Filters woocommerce_get_price_html to show
+the lowest price with a label in front of it instead of a range, so a product
+reads From $49 rather than $49 to $149. Settings: on_loops, on by default;
+on_single, off, since a product page usually wants the full range; and label, the
+wording in front of the price.
+
+**Hide Empty Decimals on Prices.** Filters woocommerce_price_trim_zeros so 10.00
+shows as 10. A price with real decimals, 9.99, is untouched. Sounds trivial, but
+on a store with round prices it removes a lot of visual noise.
+
+**Require Login to Check Out.** On template_redirect, a logged out customer
+reaching the checkout is sent to My Account, and the WooCommerce login and
+registration redirects send them straight back to the checkout afterwards, so the
+cart is not lost. The module greys itself out when WooCommerce guest checkout is
+switched on, since the two contradict each other, and links to that setting.
+
+**Show Both Prices in the Cart.** Filters woocommerce_cart_item_price so a sale
+item shows the regular price struck through next to the sale price. The saving is
+visible on the product page but disappears in the cart, which is exactly where it
+matters. Off by default, because it changes a customer facing layout.
+
+**Turn Off Product Image Zoom.** Dequeues the zoom script on wp. WooCommerce has
+no setting for it, so it has to be switched off in code. Worth reaching for when
+the magnifier fights a lightbox or a custom gallery.
+
+## The files, and what each one is for
+
+| File | What it is |
+| --- | --- |
+| socialbump-site-kit.php | constants, updater, hub check, sbsk_log_change(), loads everything |
+| includes/class-sbsk-settings.php | the Features page, group pages, banner, menu, admin bar |
+| includes/class-sbsk-modules.php | finds every module and works out what can run |
+| includes/class-sbsk-release.php | publishing, hub only |
+| includes/class-sbsk-updates.php | the Updates page |
+| includes/class-sbsk-transfer.php | settings export and import |
+| includes/class-sbsk-docs.php | these notes and the Publishing panel |
+| includes/class-sbsk-convert.php | moves the old sbsk_ options onto the sb_tweaks_site_kit_ names, once |
+| assets/js/admin.js | the module cards, the image tools, the confirm popup (SBSKConfirm), Image Cleaner's progress box and end of run summary |
+| assets/js/progress.js | SBSKProgress, a copy of SocialBUMP Tweaks' progress popup with busy() added; goes when Site Kit becomes a module |
+
+Every module is includes/modules/<slug>/, with a module.php and one class file
+per job. The ones with more than one file:
+
+| Module | Files | Why more than one |
+| --- | --- | --- |
+| images | class-sbsk-images.php, -rebuild.php, -media-grid.php, -media-search.php, -zoom.php | the sizes and the Images page; the size engine (building, clearing, owned, adopted and switched off sizes); Media Browser Enhancements with assets/js/media-grid.js and assets/css/media-grid.css; Better media search; Gutenberg image zoom with the gallery-zoom assets |
+| image-cleaner | class-sbsk-images-cleaner.php, -tools.php, -orphans.php | the Image Cleaner page; its AJAX handlers, the one job at a time lock and missing images; files on disk the library does not know about |
+| admin-colour-scheme | class plus assets | registers the SocialBUMP scheme, which the other plugins read for their accent |
+| excerpt-counter | class plus assets | has to cope with TinyMCE arriving late |
+| woo-analytics-csv | class plus assets | the buttons are injected into a React screen, so the script polls for it |
+
+The rest are a module.php and a single class: admin-access, fix-acf-cpt-svg-icons, front-toolbar,
+excerpt-shortcodes, page-excerpts, and the six other WooCommerce modules.
+
+## Writing a module
+
+A folder under includes/modules/<slug>/ with a module.php returning an array:
+id, title, description, section, default, requires, optional settings and
+features, and a boot callback that does the work.
+
+- requires names what it needs: acf, bricks, woocommerce. A module that needs
+  something missing shows why, and cannot be switched on.
+- Write the class file before the module.php that loads it, so a failed write
+  never leaves a module pointing at a file that is not there.
+- A module with its own settings page provides admin_page with a title,
+  description and render callback.
+- wide puts the card across the full width of the page, after every other card
+  in its group. For a list too long to read in a column.
+- A fatal inside one module is caught, so it cannot take the site down.
+
+## Images, the one with teeth
+
+The Images module owns the registered sizes, rebuilds thumbnails in batches, and
+decides what in the uploads folder is rubbish. It can delete files, so it gets
+its own warning here. The full account is under Every module in detail; these
+are the three rules worth reading before you touch it.
+
+- A size counts as present only when its file is really there. Never ask the
+  metadata on its own. SBSK_Images_Rebuild::present() is the only answer.
+- Never call wp_create_image_subsizes() on a rebuild. It regenerates from the
+  original and can lose crops. The rebuild works size by size instead.
+- Only touch what we made. sbsk_owned_image_sizes records what the kit created,
+  sbsk_kept_orphans what it was told to leave, and files WordPress keeps so an
+  image edit can be undone are never treated as strays.
+
+## What it stores
+
+| Name | Holds |
+| --- | --- |
+| sb_tweaks_site_kit_features | which modules are on |
+| sb_tweaks_site_kit_groups | which groups are on |
+| sb_tweaks_site_kit_settings | each module settings. Images also keeps wp_off here, the WordPress sizes switched off |
+| sb_tweaks_site_kit_owned_image_sizes | image sizes the kit created |
+| sb_tweaks_site_kit_kept_orphans | files in uploads it was told to leave alone, kept as paths relative to the uploads folder |
+| sb_tweaks_site_kit_image_split | that the Image Cleaner split migration has run, and which scheme |
+| sb_tweaks_site_kit_cleaner_sizes (user meta) | the sizes each user has ticked on the Image Cleaner page |
+| sb_tweaks_site_kit_adopted_image_sizes | removed sizes from other sources that someone chose to clear on the Image Cleaner page |
+| sb_tweaks_site_kit_media_grid (user meta) | each user's thumbnail size and fit, used in the Media Library grid and the media pop-up |
+| sbsk_images_run_<user>_<mode>, sbsk_orphans_run_<user> (transients) | the id or path list held for a run, one per tool so a build and a clean never share a list. Ten minutes; the images list is renewed each time a batch reads it, so a long run keeps it |
+| sbsk_images_stopped_<token> (transient) | a run token that was stopped from another window or by its page closing, ten minutes, so its requests are refused |
+| sbsk_images_job (transient) | the Image Cleaner job running now: token, kind, who started it, when, and its counts. Renewed by each batch and gone 150 seconds after the last, so a closed window frees it |
+| socialbump_cards (user meta) | each user's card order and collapsed cards, per page key |
+| sbsk_github_token | encrypted, hub only, and deleted on any site that is not the hub |
+| sb_tweaks_site_kit_image_defaults | that the old standard image sizes were saved for a site already running, before the new set came in |
+| sbsk_pending_changes | notes for the next release, hub only, deleted elsewhere |
+
+## Names, and what is stored where
+
+Site Kit saves almost everything in options. Unlike Bricks Tweaks it writes
+nothing of its own into page content, which is why its rename needed no per
+site conversion: the plugin update is the whole job.
+
+**Options**, renamed in September 2026 so the merge into SocialBUMP Tweaks
+inherits clean data and needs no converter of its own:
+
+| Now | Was |
+| --- | --- |
+| sb_tweaks_site_kit_features | sbsk_modules |
+| sb_tweaks_site_kit_settings | sbsk_module_settings |
+| sb_tweaks_site_kit_groups | sbsk_groups |
+| sb_tweaks_site_kit_faq | sbsk_faq |
+| sb_tweaks_site_kit_faq_fields | sbsk_faq_fields |
+| sb_tweaks_site_kit_image_split | sbsk_image_split |
+| sb_tweaks_site_kit_kept_orphans | sbsk_kept_orphans |
+| sb_tweaks_site_kit_owned_image_sizes | sbsk_owned_image_sizes |
+| sb_tweaks_site_kit_cleaner_sizes (user meta) | sbsk_cleaner_sizes |
+| sb_tweaks_site_kit_groups (the card key inside socialbump_cards) | sbsk_groups |
+
+SBSK_Convert does it on first load, backs the lot up into
+sb_tweaks_site_kit_backup, deletes nothing, and records SCHEME so it runs
+once. Bump SCHEME if the names ever move again. It is hooked at the very top
+of sbsk_boot(), before anything reads a setting: boot once on defaults and
+the site would save those back over what was actually configured.
+
+The GitHub token and the pending release notes keep their sbsk_ names. They
+are hub only, deleted on every client site, and they disappear at the merge.
+
+**Names that are not ours to choose.** faq_questions, faq_question and
+faq_answer stay exactly as they are: sites already hold content under them
+and templates already read them, which is the whole point of the FAQ module
+using them. The registered image size names, image-240 through image-1920,
+stay too: they are written into every attachment's metadata and turn up
+inside Bricks element settings, so renaming one would break every reference
+to it.
+
+The FAQ relationship field was the one exception worth taking. It is
+sb_tweaks_faq_related_<post_type> now, not sbsk_related_. It was renamed
+while no site had used one, because ACF stores values under the field name:
+do it later and every relationship on every post is orphaned. If that ever
+has to change again, it becomes a per site content conversion, not a rename.
+
+## Where to be careful
+
+- Saving one group page must not wipe another. The save starts from what is
+  already stored and updates what was submitted. It once started from an empty
+  array, which wiped every other group. Do not undo that.
+- The excerpt character counter has to cope with TinyMCE arriving late, which is
+  how the WooCommerce short description field behaves. It polls, binds to editor
+  events, and counts trailing spaces, because they count in a meta description.
+- The admin colour scheme module registers the SocialBUMP scheme. Other code
+  reads the current scheme for its accent, so changing it affects all three.
+- Anything that reports on image sizes must go through present(). Three separate
+  places trusted the metadata instead, and all three quietly lied: the library
+  scan, the per image check, and the attachment panel.
+- A form can hold more than one submit. If you add one that is not a save, mark
+  it data-sb-always-on, or the unsaved changes reminder may submit it instead of
+  the save.
+- When testing a change in the same request that wrote the file, the old class
+  is already loaded and you will see the old behaviour. Check in a fresh
+  request before believing a change did not work. This wasted time twice.
+- A module's unavailable callable must never call is_enabled() on another
+  module: is_enabled() asks every module in the group whether it is unavailable,
+  so that goes round in a circle. Read get_states() instead. The cleaner had a
+  dependency on Images written that way before it became its own group.
+- render_other_sizes() reads a note key that editable_sizes() does not set;
+  it is read with empty() now. Reading it blind warned on every size row.
+- Remove old sizes still only ever deletes sizes the kit registered itself.
+  Ticking a WordPress or a third party size on the cleaner page lets it be
+  built, never cleared. Do not widen that.
+- Anything that changes a form field from script has to dispatch a real DOM
+  event for save-state.js to see it. jQuery trigger does not.
+
+<!-- shared:start -->
+
+## House rules, shared by all three SocialBUMP plugins
+
+This block is identical in the docs of Site Kit and Bricks Tweaks. Change it in
+one and copy it to the other in the same session. They all live on the hub, so that
+is a two minute job, and the Publishing page warns you when they have drifted.
+
+### The two plugins
+
+| Plugin | Folder | Prefix | Menu |
+| --- | --- | --- | --- |
+| SocialBUMP Bricks Tweaks | socialbump-bricks-tweaks | SBBT_ / sbbt_ | SB Bricks Tweaks |
+| SocialBUMP Site Kit | socialbump-site-kit | SBSK_ / sbsk_ | SB Site Kit |
+
+SocialBUMP SEO for AI, in socialbump-ai-knowledge-exporter, used to be the third
+and is not any more. It was split off in September 2026: its own admin bar item,
+its own menu, no card on the Hub page, no part in the Hub's update checking or
+its master prompt, and its own copies of everything it used to share. It may go
+on copying from these two. Nothing is shared with it, so nothing done here can
+reach it, and its notes are its own to change.
+
+Which plugin does a job belong in? Needs the Bricks theme, Bricks Tweaks.
+Useful on any site, Site Kit. About what AI crawlers read, SEO for AI.
+
+### Files that are identical in each plugin
+
+- includes/class-socialbump-admin-bar.php
+- assets/js/save-state.js
+
+Change one, change both, then check the md5s match. Both are written so that
+whichever plugin loads first wins and the other stands aside, so a site running
+mixed versions still works.
+
+### The Modules page cards
+
+SocialBUMP_Cards and module-cards.js give a page of cards a chevron to collapse
+each to its title (the title toggles too), Collapse all, Expand all and Collapse
+disabled links above the grid, and a Reorder Cards button beside the heading, on
+the right, that opens a list to drag. It used to sit below the grid, directly
+above Save changes, where it was hit by mistake on the way to saving. Order and collapsed state are per user, in user meta, alphabetical
+until changed, and saved over AJAX as they change, never through the form. The
+saved order is meant to drive the menu, the tab bar and the admin bar as well,
+and saving one drops that menu's entry from ASE's submenu order. Both files are
+identical wherever they exist.
+
+Putting the page into a plugin takes five things, and it is broken in a quiet
+way if any one is missed. Porting it to Bricks Tweaks missed three of them and
+the page looked wrong rather than dead, which cost an hour:
+
+1. Copy class-socialbump-cards.php and module-cards.js in. The class guards
+   itself with class_exists, but require it behind class_exists as well: an
+   opcache entry compiled before that guard existed took a site down.
+2. Call register( prefix, menu slug ) at boot. Without it the AJAX endpoint
+   never exists, so the arrangement cannot save.
+3. Enqueue module-cards.js on the settings pages, handle sb-module-cards.
+   Without it nothing collapses or drags at all.
+4. Mark up the grid: container_attributes() on it, card_attribute() on each
+   card, toolbar() twice, links above and reorder below. A card's first child
+   must be its head, and the toolbar key must match the grid's.
+5. Copy the CSS. This is the part that hides: the rules are NOT all generic
+   .sb- classes in one chunk. Three of them are attribute selectors that a
+   search for .sb- will not find, and every one of them matters:
+
+       [data-sb-cards] { align-items: start; }
+       [data-sb-card] > :first-child > h3 { flex: 1; }
+       [data-sb-card].is-collapsed > :not(:first-child) { display: none; }
+
+   Without the first, cards stretch to the tallest in the row. Without the
+   second, the title does not take the space and the chevron and switch sit
+   wrong. Without the third, collapsing works and looks like nothing happened.
+   The prefixed card rules are needed too: card, card__head, card__desc,
+   card__link, switch, features and dot.
+
+To check a port, render the page, pull every class out of the markup and look
+each one up in that plugin's stylesheet. That catches the prefixed ones. Then
+check the three attribute selectors above by name, because they never appear in
+the markup: is-collapsed is added by the JS, and the other two are on elements
+whose classes are already there. Eyeballing the page does not catch any of this,
+because a missing rule looks like a layout opinion rather than a fault.
+
+### The shared admin bar item
+
+SocialBUMP_Admin_Bar::register() takes id, label, href and items, and optionally
+actions, attention, attention_title and current. Everything is drawn once, at
+admin_bar_menu priority 200.
+
+- One plugin active: that plugin sits on the bar on its own.
+- Two or more: a single SocialBUMP item, each plugin a row inside it, its pages
+  on a flyout from that row.
+- Each row has a dot: green when there is nothing to do, amber when there is.
+  Any amber row makes the SocialBUMP dot amber, so the top of the bar is the
+  only thing that needs watching.
+- attention means an update is waiting.
+- The current page is white and bold, never the admin colour scheme accent:
+  some accents are unreadable on the dark bar.
+- An action row marked sb-bar-action is-idle looks inactive and ignores hover.
+
+Two signals, and they mean different things. Keep them apart:
+
+- The dot is about this site: content waiting to be rebuilt, an update ready to
+  install. It is what someone looking after the site cares about.
+- Amber wording, and a small count beside it, is about the hub: changes noted but
+  not yet released. Publishing carries it, through attention and count on that
+  item. Never fold this into the dot, and never colour the dot for it: on a client
+  site there is nothing to publish and the distinction is the whole point.
+
+### Getting between the pages
+
+The banner carries a row of links to every page in the plugin, with the one you
+are on marked. The admin menu lists them too, but on a long menu the plugin can
+be a scroll away and its pages only show while you are already on one of them.
+
+- Updates shows the new version number when one is waiting.
+- Publishing shows how many changes are queued, and only exists on the hub, so a
+  client site gets a shorter row and no badges.
+- render_nav() builds it from bar_items(), the same list the admin bar uses, so
+  a new page appears in the menu, the admin bar and the banner at once.
+- It hides itself when a plugin has fewer than two pages.
+### The SocialBUMP Hub page
+
+class-socialbump-overview.php, identical in each plugin, same arrangement as the
+admin bar: first to load defines the class, the others register with it.
+
+- A top level SocialBUMP Hub menu, but only on the hub and only when more than
+  one plugin is active. It therefore disappears by itself on every site built
+  from the blueprint, which is the point: there is nothing to publish there.
+- A card per plugin: version, whether an update is waiting, how many changes are
+  queued for the next release, and links to its pages. The count is an amber pill
+  that jumps down to that plugin publishing panel.
+- Below that, each plugin publishing panel in turn, with the plugin name slid in
+  as the heading inside the panel, so all of them go out from one screen.
+- The item in the admin bar opens this page when it exists, and the first
+  plugin otherwise.
+- Between the cards and the publishing panels sits a master prompt for starting a
+  chat that could touch more than one plugin. It builds itself from whatever is
+  registered, so a fourth plugin would appear in it without being told, and it
+  covers what the per plugin prompts cannot: that shared code lands everywhere,
+  and that the shared block of the notes must stay identical in every copy.
+
+register() takes id, name, version, file and pages, and optionally notes, css,
+css_time, logo, accent_var, hub, and release, a callback that draws that plugin
+publishing panel.
+
+Two things about the page are easy to get wrong, and both have been:
+
+- It belongs to no plugin in particular, so it loads every registered stylesheet,
+  and each one is versioned by when the file changed rather than by the plugin
+  version. Version it by the plugin and a browser serves yesterday CSS after every
+  edit, which is exactly what happened.
+- Each plugin styles itself from its own CSS variable, and nothing sets those on a
+  page that belongs to none of them, so the page works out the accent itself and
+  sets every registered variable. Without that the panels fall back to the
+  WordPress blue and look nothing like the rest.
+
+### After an update
+
+Updating a plugin swaps its files out mid request. If you were on one of its own
+pages, the page you land on afterwards can still be running the old code, so its
+menus never register and the plugin appears to have vanished until you navigate
+somewhere else. Each plugin now clears the compiled copies of its own files on
+upgrader_process_complete, which settles it.
+
+The Update now button on each Updates page goes through update-core.php, the
+bulk path the dashboard uses: maintenance mode on, files swapped, maintenance
+mode off, plugin never deactivated. It used to go through update.php, the
+single plugin path, which deactivates the plugin first and does not reactivate
+it in PHP at all: the results page carries a hidden iframe that loads
+update.php?action=activate-plugin, and that iframe is the reactivation. Leave
+the page before it loads, or have anything block it, and the plugin stays off
+with nothing in any log. That happened twice on a client site. Keep the bulk
+path.
+
+### What a client site must not carry
+
+The hub is the blueprint new sites are built from, so whatever is in its database
+travels with every copy. On any site that is not the hub, each plugin deletes its
+GitHub token, its queued release notes and its release cache when an admin page
+loads. A token has no business on a client site.
+
+If you add anything else that only the hub should know, delete it there too.
+### Unsaved changes, and the save button
+
+Any form marked data-sb-dirty is watched, and every one of them also carries
+autocomplete="off". Without it a browser puts unsaved values back into the
+fields when the page is reloaded past the warning, and it does so after the
+page has parsed: the button flickers while the script and the form disagree
+about the baseline, and worse, the edits sit there on screen under a button
+saying there is nothing to save. Reloading should show what is saved. The save button sits disabled reading
+Nothing to save until something changes, then wakes up with its own wording and
+an amber reminder appears top right and follows you down the page. Put the change
+back the way it was and both go quiet. Leaving with something unsaved warns you.
+
+Attributes a button can carry:
+
+- data-sb-save: treat as a save button even though it is not a submit.
+- data-sb-label-dirty: the wording to use when there is something to save, for a
+  button whose resting label says there is nothing.
+- data-sb-always-on: never disable this one. Used for buttons that do work
+  rather than save, such as Full Rebuild, and for any submit that is an action
+  rather than a save, such as Reset to defaults.
+- data-sb-idle=1: nothing to run right now, so sit inactive until there is.
+
+The reminder saves with the button that actually saves: one marked data-sb-save,
+then the primary button, and only then the first submit in the form. A form can
+hold more than one submit and not all of them save. The image sizes form has
+Reset to defaults sitting above Save changes, and the reminder used to submit
+whichever came first, so clicking it reset the sizes rather than saving them.
+Worth remembering when adding any second submit to a form.
+
+Styling: .sb-save--clean is a grey outline on transparent, .sb-save--dirty fills
+with the admin colour scheme accent, white text, so the thing to press is the
+only solid button on the page. The accent is taken down a shade with
+color-mix( in srgb, var(--prefix-accent) 76%, #000 ): the SocialBUMP green is
+too bright at full strength and every other scheme reads better slightly
+darker. The flat var() is declared first as a fallback. The reminder stays pale
+yellow: it is a notice, not a button, and the two should not read as the same
+thing.
+
+Render the button wearing sb-save--clean already, by passing
+'primary sb-save--clean' as submit_button()'s second argument. The script is
+enqueued in the footer, so until it runs the button is an ordinary live primary
+button and flashed the accent colour on every page load before settling to
+Nothing to save. It is not rendered disabled, so a page whose JavaScript fails
+can still be saved. Both selectors lead with
+.wp-core-ui and .button, because WordPress styles disabled and primary buttons
+with important and would otherwise win.
+
+### The look
+
+- One stylesheet per plugin at assets/css/admin.css, every class prefixed.
+- Dark banner: SocialBUMP logo, plugin name, page name in a span in the accent
+  colour, then a version badge linking to Updates that turns amber when a
+  release is waiting. The heading reads plugin name then page name, including on
+  a landing page: Site Kit Modules, Bricks Tweaks Features, SEO for AI Content.
+- Panels: prefix-section, with __head for the heading and description and __body
+  for the content.
+- Cards: prefix-card, is-on for a live one, is-unavailable for one waiting on
+  something missing. The left edge carries the accent when live.
+- Pills: prefix-status__pill, is-good green, is-stale amber. An amber one that
+  can be acted on is a link, and clicking it does the thing it describes.
+- Text toggle links: sb-toggle on the link, sb-toggles on a pair's wrapper.
+  Select all and Select none, Collapse all, Expand all, Collapse disabled, the
+  all and none pairs on the Image Cleaner: all the same look, all defined once,
+  so a new one never has to be styled again. The colour is the admin scheme
+  accent taken down to 72 per cent against black, and hover goes to 42, which is
+  a change you can actually see on any scheme. A wrapper sits its pair at the
+  right, where the Modules links have always been.
+- Menu icon: the SocialBUMP exclamation, shared by all four items through
+  SocialBUMP_Overview::brand_icon(). Each plugin positions its menu next to the
+  others rather than at a fixed spot.
+- WordPress does not recolour an SVG menu icon. It only recolours Dashicons,
+  which are a font. An SVG given as a menu icon becomes a background image and
+  keeps whatever colour is baked into it, so ours is white and the dimming when
+  idle, and the brightening on hover, are done in CSS to match the icons around
+  it. Build the SVG by concatenation with chr( 34 ): a quote mangled in the
+  middle of it produces markup that silently draws nothing.
+- Publishing lays out as two columns: the token and the zip stacked on the left,
+  publishing beside them. The cards are placed with CSS grid rather than
+  reordered, so the markup and the reading order stay as they are.
+- The accent comes from the admin colour scheme, chosen by saturation so a
+  washed out swatch is never picked, and exposed as --prefix-accent.
+
+### Releasing
+
+Everything is developed and released on the hub, plugins.socialbump.com.au. Each
+plugin decides it is on the hub by host name, and only then loads its release
+code and shows a Publishing page.
+
+- Publishing pushes the code to GitHub, builds a zip, creates a release and
+  attaches the zip. Sites update through the plugin update checker.
+- One fine grained GitHub token per plugin, stored encrypted, scoped to that one
+  repo with Contents read and write. A token cannot create repositories, so a new
+  repo is made by hand first.
+- The notes box fills from prefix_log_change() calls made since the last release,
+  and the list empties once a release goes out. Call it after any change worth
+  telling someone about, in their words rather than yours.
+- Only log what a client site would notice. The Hub page, the Publishing page and
+  anything else that exists only on the hub never reach a client site, so a change
+  to them earns no note and no release of its own. It rides along with the next
+  real one. A release exists to tell other sites something changed for them.
+- Publishing retries on a 5xx, checks the zip actually attached, and checks again
+  before undoing anything, because GitHub has published a release and then failed
+  the response.
+- The first release may carry the version already in the files. Every release
+  after that has to be higher than the last.
+- A version needs all three parts, so 1.1 is padded to 1.1.0 when you leave the
+  field, and again on save in case the form never lost focus. Typing 1.1 used
+  to get you the browser complaining about a pattern it does not explain.
+- Everything in the plugin folder is published except .git, .github, node_modules
+  and .DS_Store. These docs ship with the plugin, so they reach every site, and
+  the repos are public: nothing private goes in them.
+
+### How work actually gets done here
+
+There is no local checkout and no git client. Everything happens on the live hub
+through its Novamira MCP connector, by running PHP on the site. That shapes how
+to work:
+
+- Read a file with file_get_contents, write it with file_put_contents.
+- Lint before you write. Put the new contents in a temporary file, run php -l on
+  it, and only write the real file when it passes. A fatal in a plugin file takes
+  the site down, and you are editing the site you would need to fix it.
+- JavaScript has no linter here. Walk the brackets, minding strings, comments
+  and regular expressions, before writing.
+- Call opcache_invalidate() on a file after writing it.
+- A class already loaded in the current request is still the old one. Check your
+  work in a fresh call, not the one that wrote the file.
+- Anchor edits on a unique string and check it matches exactly once. If it
+  matches twice, widen it until it does not.
+- Keep a copy before a risky edit. copy( $file, sys_get_temp_dir() . ... ) costs
+  nothing and has saved a rewrite more than once.
+- Verify after every write. A write that silently did nothing, because the anchor
+  never matched or the function returned early, has cost more time here than any
+  actual bug.
+
+Watch out for quoting when building PHP through a JSON tool call. A backslash in
+a regular expression, or a quote in a string, has to survive JSON, then PHP, then
+whatever it is written into. Building strings with chr( 34 ) and concatenation is
+uglier to read but far less likely to arrive mangled.
+
+### Where things live
+
+The hub is plugins.socialbump.com.au, and the plugins are in the usual place:
+wp-content/plugins/<folder>/. Client sites each have their own connector and the
+same folder structure.
+
+Every plugin has the same shape:
+
+| File | What it is |
+| --- | --- |
+| <plugin>.php | constants, updater, hub check, log_change(), loads everything |
+| includes/class-<pre>-settings.php or -admin.php | menu, pages, banner, admin bar registration |
+| includes/class-<pre>-modules.php | finds and boots the modules |
+| includes/class-<pre>-release.php | publishing to GitHub, hub only |
+| includes/class-<pre>-updates.php | the Updates page and the update check |
+| includes/class-<pre>-transfer.php | settings export and import |
+| includes/class-<pre>-docs.php | these notes, and the panel on Publishing |
+| includes/class-socialbump-admin-bar.php | shared, identical in both |
+| includes/class-socialbump-cards.php | shared: collapsible, reorderable cards. Both have it, with their Modules pages |
+| assets/js/module-cards.js | shared, goes with the cards class |
+| assets/css/admin.css | everything the admin pages look like |
+| assets/js/save-state.js | shared, identical in both |
+| vendor/plugin-update-checker | the updater library, left alone |
+
+### Working on a plugin from a client site
+
+Work on the hub by default. Build on a client site only when it has something
+the hub has not, which in practice means WooCommerce: the WooCommerce modules in
+Site Kit were built on drivingevents.com.au for that reason.
+
+When you have, bring it home carefully. Assume nothing at any step:
+
+1. List both folders and compare every file by md5 and by modified time. Not just
+   the files you think you touched: a file you did not expect to differ is
+   exactly the one worth knowing about.
+2. For each file that differs, work out which side is newer and why before you
+   move anything. The hub may have moved on while you were working elsewhere, and
+   the client copy may be an older release rather than your new work.
+3. Read any file the hub has changed, in full, before overwriting it. Two people
+   editing the same file from different directions is how work disappears.
+4. Copy back only the files that genuinely differ, one at a time.
+5. Compare the md5s again afterwards and confirm each one matches.
+6. Update these docs on the hub, never on the client site.
+7. Call prefix_log_change() on the hub, so the work appears in the next release.
+
+If the two sides have both changed the same file, stop and say so rather than
+picking one. Merging by hand with both versions in front of you takes minutes.
+Guessing wrong costs whatever was on the losing side, and nobody finds out until
+later.
+
+Nothing may live only on a client site. The next update overwrites the plugin
+folder, and anything not carried back to the hub is gone.
+
+### Habits that have paid off
+
+- Lint every PHP file before writing it, and bracket check any JavaScript.
+  Write to a temporary file, lint that, and only then put it in place.
+- Write a class file before the loader that requires it, so a failure never
+  leaves a plugin pointing at a file that is not there.
+- Keep each edit small and check it took. A write that silently did nothing has
+  cost more time here than any bug.
+- Anchor edits on unique strings. If an anchor matches twice, stop and widen it.
+- After editing a file, the class already loaded in that same request is still
+  the old one. Verify in a fresh request, not the one that wrote the file.
+
+### Things learned the hard way
+
+- **form.requestSubmit() only accepts a real submit button.** Pass it a button
+  with type=button, which is what data-sb-save allows, and the browser throws
+  and nothing is sent, while the button and the reminder both look exactly
+  right. SEO for AI's save button is type=button, so its settings pages
+  silently stopped saving. save-state.js now passes the button only when its
+  type is submit, and otherwise calls requestSubmit() with nothing. Found on
+  21 September 2026.
+- PHP declares top level classes and functions while compiling the file, before
+  a line of it runs. A class_exists() guard inside the file that declares the
+  class always sees its own class and returns, and the file never finishes. This
+  broke SEO for AI once. Guard by other means.
+- WordPress styles disabled and primary buttons with important. Beat it with
+  specificity, not with another important on its own.
+- admin_head has already been sent by the time the admin bar is built, so a
+  style hooked only there never appears. Hook the footer as well.
+- A settings page that submits only part of the settings must merge rather than
+  replace, or saving one page wipes the others. All three plugins have had this
+  bug. Site Kit and SEO for AI post a marker of which sections were on the page.
+  Bricks Tweaks caught it again in September 2026 when the group pages were
+  ported without the two lines that seed the save from what is already stored
+  and limit it to the group that was posted. Port a page, port its save.
+- An element with no link is rendered by the admin bar as an empty item, not an
+  anchor, so style both.
+- Nested admin bar flyouts need position relative on the row, or they fly off
+  to the right of the whole menu.
+- The admin menu can be renamed by an admin menu plugin. Admin and Site
+  Enhancements holds its own titles and wins over whatever the plugin registers.
+- opcache_invalidate() only reaches the PHP process it runs in. On a LiteSpeed
+  host with opcache.revalidate_freq set to 60, every other process keeps running
+  the old file for up to a minute after a write. A rebuild started in that
+  window ran half on old code and half on new, and stamped the cache both ways.
+  A fresh request is not proof until a minute has passed, and nothing that
+  writes stamps or data formats should be exercised in that minute.
+- Three plugins carrying the same shared file meant whichever loads first
+  declares the class, and the others must not declare it again. Bricks Tweaks
+  sorts before Site Kit, so when it started loading the cards class at the usual
+  time it declared it first, and an older published Site Kit whose copy had no
+  guard declared it again and killed two live sites. The lesson is not the
+  guard, which was already there: it is that the guard only helps in the copy
+  that has it, and published sites run old copies for months. A plugin that
+  sorts early loads a shared class last, on plugins_loaded at a late priority,
+  so the oldest copy present goes first and there is nothing to clash with.
+  SEO for AI has since been taken out of the arrangement altogether, and the
+  merge below finishes the job for the two that are left.
+- The error log is the fastest way to the truth and was checked third rather
+  than first during that outage, after two confident wrong explanations. Read
+  the log before forming a theory.
+
+### Where this is heading
+
+The three plugins are now two. SEO for AI was split off in September 2026 and
+shares nothing with either of these. What is left is to merge these two.
+
+The reason is everything above: the shared files exist in two copies and every
+one of them has drifted at least once. The cards CSS was missing three rules in
+Bricks Tweaks, bar_items() was never ported so the tabs listed nothing, and the
+load order of one shared class took down two client sites. None of these are
+hard problems. They are all the same problem, which is that one thing lives in
+more than one place and nothing checks that the copies agree.
+
+The shape agreed: one plugin, SocialBUMP Tweaks, in an all new folder with the
+prefix sbtweaks_, replacing the Hub as the front door. The shared functions and
+styles are combined into it once. Each plugin as it stands today becomes a
+folder inside it holding its own modules, so adding an area later is one more
+folder and nothing else. A group that cannot run on a site hides itself, so
+Bricks features do not appear where Bricks is not installed. group_needs()
+already does this, so it is configuration rather than new code.
+
+The work is not the code, which is mostly moving folders and changing a prefix.
+It is the three things around it, and each has an answer now:
+
+- Migration. Client sites hold sbsk_ and sbbt_ options and per user card meta.
+  About four sites have either plugin, so the first release reads the old keys,
+  writes them under the new prefix and erases the originals. Note what that has
+  to cover beyond the obvious two: sbsk_owned_image_sizes, sbsk_kept_orphans,
+  sbsk_image_split, sbsk_faq_fields, sbsk_groups, and the user meta
+  sbsk_cleaner_sizes and socialbump_cards. The card meta is keyed per page slug,
+  so it has to be remapped to the new slugs or everyone loses their card order.
+  The GitHub tokens and pending changes are hub only and are not carried.
+- Deployment. On each site, deactivate both old plugins, then activate the
+  merged one, which migrates on its activation hook. Options live in the
+  database whether or not a plugin is active, so nothing has to be running to
+  be read. Done in that order by hand on four sites there is no window where
+  both declare the same classes, which is why the old plugins do not need an
+  early bail out guard and do not need a release of their own first.
+- Releases. The merged plugin is a new repo with its own update stream, so it
+  starts at 0.1.0 and goes back to 1.x.x once every site is converted. Sites
+  still on the old plugins stop getting updates and are moved over by hand.
+
+The old release notes are worth keeping. They live in the GitHub releases of the
+two old repos, not on any site, since pending_changes empties at every release.
+So the merged plugin ships a release notes archive: a one off pull of both
+repos' releases into a file, read only, kept split by plugin because a note
+about a Bricks element means nothing on a site without Bricks, with the merged
+plugin's own releases appended from then on.
+
+Do it deliberately, on one site first, not as a big bang.
+
+<!-- shared:end -->
+
+## Robots.txt
+
+includes/modules/robots-txt, section seo, off by default. SBSK_Robots::filter() on
+robots_txt at priority 100 replaces the whole output. Rank Math hooks the same
+filter at 0 (its Sitemap line) and 10 (whatever is saved in its robots.txt
+editor), so its content simply stops being served; nothing needs switching off
+in Rank Math, though the page flags a non-empty Rank Math editor so nobody edits
+the wrong one. SEO for AI adds its llms.txt comment lines at 110, after us.
+
+The file is User-agent: *, the saved rules (settings robots-txt.rules, rows of
+type allow or disallow plus a path), the extra lines (robots-txt.extra, added as
+written), then a Sitemap line from sitemap_url(): Rank Math's sitemap_index.xml
+when its sitemap module is on, then Yoast's, then WordPress's own wp-sitemap.xml,
+filterable with sbsk/robots_txt/sitemap_url. The whole file can be changed on
+sbsk/robots_txt. No saved rules means DEFAULT_RULES; Reset to default rules puts
+those back and keeps the extra lines. clean_path() strips whitespace, quotes and
+angle brackets and adds a leading slash.
+
+The defaults were reviewed in September 2026 against the list used since 2025:
+/wp-content/plugins/, /wp-content/themes/ and /wp-includes/ are no longer
+blocked (Google renders pages and needs that CSS and JavaScript), /*/search
+became /search/ (the old pattern blocked any page whose later path segment
+started with search, like /services/search-engine-optimisation/), and the utm_,
+fbclid, gclid, mc_ and ref lines went in favour of the SEO plugin's canonicals.
+
+Two things the page warns about: a physical robots.txt in the site root, which
+the web server sends without asking WordPress, so nothing here is live until it
+is deleted; and a site set to discourage search engines, where WordPress's own
+Disallow: / is left alone. The Live robots.txt panel runs the real filter chain,
+so it shows exactly what /robots.txt serves, other plugins' lines included.
+
+The page is the SEO tab, sb-site-kit-seo: Site Kit names module pages after the
+section, not the module, so the save redirects with group_page_slug( 'seo' ). A
+module's page shows even while the module is off, and a module's boot only runs
+while it is on, which caught this page twice: the render loads the class itself,
+and the save handler is registered in module.php (sbsk_robots_save(), guarded by
+function_exists) so rules can be set up and saved before switching on. The switch
+in the Rules panel is the module's own switch: saving writes robots-txt into the
+features option, and switching on also turns the seo group on. While off, a note
+under the heading says the rules are saved but not served. Reset to default rules
+is disabled when the rows already match DEFAULT_RULES (checked in PHP on load and
+in the page script as rows change; save-state.js leaves data-sb-always-on buttons
+alone). Rows are tinted light red for Disallow and light green for Allow with
+:has() on the dropdown, so no script is involved. The sitemap address under Extra
+lines links to the sitemap itself.
+
+These three traps (page without its class, save only registered on boot, redirect
+by module id) are what the SocialBUMP Tweaks framework already handles centrally;
+any other Site Kit module page that shows while off is worth checking for them
+until Site Kit moves into the framework.
+
+## Hub reporter
+
+includes/class-socialbump-reporter.php is shared by every SocialBUMP plugin (Site
+Kit, Bricks Tweaks, SEO for AI, SocialBUMP Tweaks): the same file in each, kept
+identical like the shared admin bar, and guarded by class_exists so whichever
+loads first runs. It is required from the plugin's main file at the top level,
+not on plugins_loaded, so it is already listening when a plugin is activated.
+
+It reports every tracked plugin on the site at once, active or not, since a
+deactivated plugin cannot speak for itself: site URL and name, each plugin's
+version and active state, WordPress and PHP versions. Nothing else. It posts to
+https://plugins.socialbump.com.au/wp-json/sb-tweaks/v1/checkin with the shared
+X-SB-Key header, non-blocking with a 3 second timeout, so it never slows a page.
+It sends on activated_plugin and deactivated_plugin for one of ours, on an admin
+page load when the plugin list changed or a day has passed (option
+socialbump_reporter_last holds the time and a hash), and from the daily cron
+event socialbump_reporter_daily for sites nobody logs into. upgrader_process_
+complete clears the last report so the next admin load sends the new version.
+On the hub it calls sb_tweaks_installs_record() directly instead of over HTTP.
+
+To track another plugin, add its folder to SocialBUMP_Reporter::PLUGINS in every
+copy and a label to SB_Tweaks_Installs::LABELS, and bump the reporter VERSION.
+
+Reporter 1.0.1: WordPress fires deactivated_plugin before it saves the new
+active_plugins list, so reading the list then still showed the plugin as active.
+deactivated() sends with that plugin forced inactive (send() takes an override).
+activated_plugin fires after the save, so activation needs no such help.
+
+## Hub moved (September 2026)
+
+The hub moved from bricks.socialbump.com.au to plugins.socialbump.com.au, so the
+Bricks blueprint can stay clean for starting new sites. The site was copied with
+Duplicator, which kept the WordPress security keys, so the encrypted GitHub tokens
+were copied across as they were. Every hub address in the plugins (the *_HUB_HOST
+constants, SocialBUMP_Reporter::ENDPOINT and HUB_HOST, reporter 1.0.2, the docs and
+the AI prompts) now names plugins.socialbump.com.au. Watch for this on any future
+move: a copy of the hub on a new address is not the hub until the code says so, and
+the first admin page load there runs each plugin's tidy-up, deleting the GitHub
+token, the queued release notes and the latest release record. Sites keep
+reporting to the old address until they update to a release naming the new one.
+
+## Pushed updates (reporter 1.1.0)
+
+The Installs page can push a release to a site. SB_Tweaks_Push (hub only) signs
+an instruction with the hub's Ed25519 private key, sb_tweaks_push_secret, stored
+encrypted with wp_salt('auth') like the GitHub tokens (the public half is
+sb_tweaks_push_public). The instruction names the host, the plugin, the version,
+the download URL, an expiry five minutes out and a random 32 character nonce. It
+is posted to the site at ?rest_route=/socialbump/v1/update, which works whatever
+the permalink setting.
+
+Every reporter since 1.1.0 carries the public key (PUSH_KEY) and registers that
+route. receive() refuses anything that is not signed by the hub, not addressed
+to this host, expired or more than ten minutes ahead, already used (nonces kept
+as socialbump_push_<nonce> transients for fifteen minutes), not one of PLUGINS,
+not exactly https://github.com/frysteen/<slug>/releases/download/v<version>/<slug>.zip,
+or not newer than what is installed. It then runs Plugin_Upgrader::run() with
+Automatic_Upgrader_Skin and WordPress's temp_backup rollback, only when the
+filesystem method is direct, clears opcache for the plugin, reports, and replies
+with the new version. The version and URL come from the hub's own copy, so the
+site never asks GitHub's API, which is what the 60 an hour limit applies to;
+release file downloads are not limited that way.
+
+The hub records each site's reporter version and only shows Update buttons on
+sites at 1.1.0 or later (SB_Tweaks_Push::NEEDS). Update all pushes one plugin at
+a time. Tested September 2026: every refusal case, then a real push of Site Kit
+1.1.20 to bricks.socialbump.com.au in 8.3 seconds with settings and activation
+kept. A site whose security plugin blocks outside REST requests answers with an
+error the button shows as is.
+
+Reporter 1.2.0: a signed instruction can also say action install, for
+SocialBUMP Tweaks only (INSTALLABLE), from its own GitHub release. install_new()
+installs it with Plugin_Upgrader::install() if it is missing, switches it on,
+then posts once to admin-ajax.php (never page cached) so SocialBUMP Tweaks runs
+and switches off the standalone plugins it has modules for, reports, and
+answers with the version and which tracked plugins are now off. Any other
+action is refused. The hub offers it (SB_Tweaks_Push::can_install, reporter
+1.2.0 or later) as an Install button in the Tweaks column, only on a site
+with a plugin some module's replaces names.
+
+Admin bar (September 2026): the shared class-socialbump-admin-bar.php in the standalone plugins no longer groups them under a SocialBUMP item; each is drawn on the bar by itself. That item belongs to SocialBUMP Tweaks now (id sb-tweaks-group). The shared class-socialbump-overview.php (the SocialBUMP Hub admin page) is retired: available() returns false, and only its brand_icon() is still used.
+
+Reporter 1.2.1 (September 2026): reports sent without waiting (blocking false)
+were being lost, most visibly straight after a push, when the hub is busy
+waiting on that same site, so the Install button never appeared for sites the
+hub still thought were on reporter 1.1.0. Now:
+- send() waits up to 8 seconds for the hub's answer and only records
+  socialbump_reporter_last once the hub confirms ok. A failure sets the
+  socialbump_reporter_retry transient (15 minutes) so maybe_send() retries on
+  a later admin page load without hammering an unreachable hub.
+- receive() no longer sends a report during a push. The answer carries the
+  site's report instead (with_report() / report()), and SB_Tweaks_Push::push()
+  records it with SB_Tweaks_Installs::record() when its url matches the host.
+- payload()'s reporter is running_version(): the VERSION of the copy that will
+  load first next request (first active tracked plugin with the file), read
+  from disk, because straight after an update the copy in memory is older.
+- The hub's check-in handler calls ignore_user_abort( true ).
+The Install button is generic: any site with a plugin that some module's
+replaces names, and no SocialBUMP Tweaks, gets it once its reporter is 1.2.0
+or later. When the Site Kit module lands with replaces set, Site Kit only sites
+get it with no further change.
+
+## Orphan usage check (October 2026)
+
+Found on Villa Real Estate (Elementor): SBSK_Images_Orphans::mentioned_names()
+picked rows with LIKE '%wp-content/uploads%', but Elementor stores _elementor_data
+as JSON with escaped slashes (wp-content\/uploads), so every Elementor page was
+skipped and its images looked unused. It also only read posts, postmeta and
+options. Now:
+
+- mention_sources() lists where a use can live: post_content and post_excerpt
+  (not revisions), postmeta (minus attachment bookkeeping keys), options (minus
+  sbsk_ and transients), termmeta, usermeta (minus session_tokens), and every
+  JetEngine CCT table ({prefix}jet_cct_*, its text columns). Other tables can be
+  added with the sbsk/orphans/mention_sources filter.
+- collect_from() picks rows by REGEXP on an image extension, not by the uploads
+  path, paged by primary key; names_in() unescapes \/ and records each name
+  both as written and URL decoded.
+- references() matches the name as stored and rawurlencode()d, in content and
+  excerpts, postmeta, options, term and user meta, then any non core source,
+  named as table and row.
+- Log and history tables (MainWP stream, WP All Import, analytics, 404 logs) are
+  deliberately not sources: they mention files once uploaded or requested and
+  would hold everything back.
+
+Verified on Villa: the new index found 1,399 names against 732, saw
+web_dji_0218.jpg in an Elementor page that the old one missed, named the page,
+and agreed with an independent scan of all 146 tables and 243 text files that
+none of the 1,319 orphans was in use. Reading the whole site took 0.6s.
+
+## Leftover sizes from other sources (October 2026)
+
+Found on villarealestate.com.au: 12 sizes (image-{480..2000}-square and -4x3)
+registered by a WPCodeBox snippet were commented out, but Old thumbnails to clear
+showed 0 while 4,894 attachments still listed them (about 13 GB with WebP),
+because stale() only counts sizes in the owned list (OWNED_OPTION), which holds
+sizes Site Kit registered itself. That filter stays: it stopped 1,234 live
+thumbnails on feelsoma.com being called stale.
+
+Now:
+- SBSK_Images_Rebuild::foreign() lists sizes an attachment carries that are not
+  registered (all_wanted), not owned and not adopted. Tools::summary() collects
+  them in the same pass as 'foreign' => name => images, files (with .webp and
+  .avif) and bytes, via size_files().
+- The report shows them under Leftover sizes from other sources, unticked, with
+  size_warnings(): a plugin or theme style prefix, the name in _elementor_data
+  or in post content (size-NAME, sizeSlug), or the name in a snippet table
+  (any table matching %snippet%) or the active theme's PHP. Warnings, not blocks.
+- Ticking and saving posts to admin_post_sbsk_adopt_sizes (manage_options),
+  which calls adopt(): names currently registered or owned are refused, the
+  rest go in ADOPTED_OPTION (sb_tweaks_site_kit_adopted_image_sizes), separate from owned.
+  Other sizes chosen for clearing lists them, each with Stop clearing
+  (admin_post_sbsk_unadopt_sizes, unadopt()). The scan also takes a chosen
+  size off the list by itself once no image carries it any more
+  (forget_adopted_unused(), fed by summary()), so after a clear and a rescan
+  it is gone without pressing Stop clearing. If something writes it back
+  later, it shows under Leftover sizes again, unticked.
+- stale() intersects with owned + adopted, against what is registered at that
+  moment, and clean() asks stale() per image during removal, so a size
+  registered again is never cleared. file_has_other_owner() still guards each
+  file, so a file shared with a kept size stays and only the entry goes.
+
+Tested on the hub with image 489: a foreign size and one sharing the thumbnail
+file listed as foreign, not stale; adopt() refused 'thumbnail'; both stale once
+adopted; registering one again made it not stale; un-adopting dropped it; clean()
+removed the entries, deleted the size's own file and its .webp, kept the shared
+thumbnail; Site Kit's own (owned) sizes behaved as before.
+
+## Media Library thumbnail size (October 2026)
+
+The switch is now called Media Browser Enhancements (same media_grid key), since it
+also covers the media pop-up and the HappyFiles folder dropdown. See the two
+sections on the pop-up further down.
+
+A switch under Image extras on the Images page, media_grid in the images
+settings, on until someone turns it off. SBSK_Images_Media_Grid in
+modules/images, booted by SBSK_Images::boot() like the zoom, with
+assets/js/media-grid.js and assets/css/media-grid.css. Media, Library in grid
+view gets two dropdowns after Bulk select: Standard, Large or X-Large
+thumbnails, and Cropped squares or Whole image. The choice is per user, in the
+sb_tweaks_site_kit_media_grid user meta, saved over AJAX (sbsk_media_grid_save,
+needs upload_files) the moment a dropdown changes. List view loads nothing.
+
+WordPress has no setting for any of this, so it works on the grid's own
+scripts:
+
+- Size is the column width WordPress aims for. The Attachments view works out
+  its columns as the browser width over idealColumnWidth (150, or 135 under 640
+  wide), capped at 12, and the CSS sizes tiles from data-columns. Standard keeps
+  150, Large asks for 240, X-Large 360. The script wraps
+  AttachmentsBrowser.createToolbar, which runs before createAttachments, so the
+  width is in place for the first draw, and the dropdowns go in with
+  toolbar.set at priority -60, on the left.
+- A bigger tile needs a bigger file. Tiles normally show the medium size, which
+  goes soft at 360 wide on a high density screen. Attachment.imageSize is
+  wrapped for grid tiles only: Large uses medium on a normal screen and large on
+  a high density one, X-Large always large, falling back to the original when
+  no large copy exists and it is 2560 or less wide. The browser only knows
+  thumbnail, medium, large and full, because those are what
+  wp_prepare_attachment_for_js sends.
+- Changing size sets the new width, calls setColumns() and re-renders every
+  tile already drawn (_viewsByCid), so the new files load in place without a
+  reload.
+- Fit is CSS only. Standard with Cropped squares is left exactly as WordPress
+  draws it. Anything else draws the image at full tile size with object-fit,
+  cover for cropped and contain for whole, and takes off WordPress's translate
+  centring. Only image tiles (.type-image) are touched, so document and video
+  icons look as they always have. The body classes sbsk-grid-size-* and
+  sbsk-grid-fit-* come from admin_body_class, so a reload never flashes the
+  old layout first.
+- Masonry was left out on purpose. The grid's arrow keys, selection and
+  infinite scroll all assume equal tiles in rows, and HappyFiles hooks into the
+  same grid. Whole image in a square tile shows the full picture without
+  fighting any of that.
+
+It was its own module for an hour, and that broke the Images page: a second
+module in the images section turns the page into a card grid with the Images
+settings drawn underneath, header and all. An extra for an existing page
+belongs in that page's settings, not in a module of its own.
+
+Worth knowing: X-Large loads the large copy for every tile, several times the
+weight of the medium one, so a page of tiles is noticeably heavier on a slow
+connection.
+
+## Better media search (October 2026)
+
+A switch under Image extras on the Images page, media_search in the images
+settings, on until someone turns it off. SBSK_Images_Media_Search in
+modules/images, booted by SBSK_Images::boot().
+
+What WordPress does on its own, read from the 7.1.3 source:
+
+- Searches post_title, post_excerpt and post_content, word by word, every
+  word required. Alt text is never searched.
+- Adds the file name only when the caller adds the wp_allow_query_attachment_
+  by_filename filter first: query-attachments (the grid and every media
+  modal), list view and the REST media route all do. WP_Query reads that
+  filter and then calls remove_all_filters() on it, so whichever WP_Query runs
+  next uses it up. If a plugin runs a query of its own in between, the real
+  search loses its file names. HappyFiles has a comment about exactly this.
+- The file it checks is _wp_attached_file. A photo over 2560 is stored as
+  name-scaled.jpg, and an upload is renamed by sanitize_file_name(), so
+  "Test Photo (1).JPG" is saved as Test-Photo-1-scaled.jpg. Searching the name
+  it was uploaded with, or the unscaled name, found nothing.
+
+Measured on the hub with a 3000 x 2000 test upload named Test Photo (1).JPG
+(deleted afterwards): before, the upload name, Test-Photo-1.jpg, the alt text,
+a size file name and a pasted URL all found nothing. After, all of them find it,
+and every search that worked before still gives the same results.
+
+How it works: posts_search at priority 20, only when the query is for
+attachments alone, has a search, and is in wp-admin, admin AJAX or REST. The
+front end is never touched. It replaces the WHERE clause with:
+
+- each word (as WordPress parsed it, so stopwords, quotes and -exclusions
+  behave as before) in the title, caption, description, _wp_attached_file or
+  _wp_attachment_image_alt;
+- OR the whole search read as a file name: file_variants() takes the last part
+  of a URL or path, the sanitize_file_name() version, and the name without its
+  extension and without -WxH, -scaled, -rotated or -e<timestamp>, and matches
+  any of them against _wp_attached_file or _wp_attachment_metadata, which holds
+  original_image and every size file. Skipped when a -word is present, since
+  the OR would bring back what was excluded.
+
+Meta is matched through EXISTS subqueries rather than joins, so there are no
+duplicate rows and nothing depends on core's sq1 join being there. Filters:
+sbsk/media_search/applies and sbsk/media_search/file_variants.
+
+Not changed: HappyFiles limits a search to the folder that is open. That is
+HappyFiles' own behaviour, and a search from inside a folder only looks in
+that folder.
+
+## Clearing old thumbnails faster (October 2026)
+
+Found on villarealestate.com.au clearing twelve removed sizes from 3,547
+images: 1.39 seconds an image, nearly an hour and a half for the run.
+
+- The cost was file_has_other_owner(): one LIKE over every attachment's
+  metadata (4,997 rows, 14.5 MB) for each file about to be deleted, 150 ms a
+  time on Villa. SBSK_Images_Rebuild::file_owners() now reads all the metadata
+  once per request, paged by meta_id, and records which attachments name each
+  file: first (name to the first attachment seen) and shared (names more than
+  one attachment uses, with every owner). The check is then an array lookup.
+- It matches what the query matched: a serialised string value that is
+  exactly the file name, folder included where the entry has one (see
+  Size files in other folders below). Only values ending in a file extension
+  are kept, which leaves out mime types. Built once per request from what is
+  stored then, so a name cleared later in the same request can only keep a
+  file, never delete one in use.
+- Checked against the old query: every size file on the hub (59, 12 of them
+  shared) and 379 cases on Villa (all 150 shared image names tried, plus every
+  old size on 40 random images), no differences. Villa: the old query took
+  35.8 s for those, the new check 4.4 ms after a 0.2 s build.
+- The same run showed a second fault. ids() held the run's list for a fixed
+  ten minutes. Once that ran out, the next batch worked the list out again,
+  shorter by the images already done, while the browser kept its offset, so
+  as many images were skipped as had been done (Villa's list went 3,547, then
+  3,112, then 2,652 while the offset carried on). A rescan picked them up, but
+  the finished line was wrong. Every batch that reads the held list now pushes
+  its expiry on another ten minutes.
+- The adopt and un-adopt notices were printed inside .sbsk-cleaner, which is a
+  two column grid, so a notice took the left cell and pushed Sizes and Rebuild
+  Thumbnails out of place. render_page() prints them before opening the grid.
+  Anything printed on that page goes above the grid or inside a panel.
+
+## Size files in other folders (October 2026)
+
+Found on villarealestate.com.au: elementor_custom_1280x500 showed under
+Leftover sizes as 3 images, 0 files. Elementor makes a custom size on demand
+when an image widget is set to Custom, writes it to uploads/elementor/thumbs/,
+and records it in the image's metadata as elementor/thumbs/<name>, a path
+from the uploads folder, not a bare name beside the original. Every path
+here was built as the original's folder plus the entry, so the files were
+never found: the scan counted none, and a clear would have dropped the entries
+and left the files with nothing naming them.
+
+- SBSK_Images_Rebuild::size_path( $folder, $file ) is now the one way to turn
+  an entry into a path: a bare name sits beside the original, a name with a
+  folder is read from the uploads folder, and anything with a .. segment or a
+  null byte gives an empty path, which every caller skips. size_files(),
+  present(), process(), clean() and stale_files() all use it.
+- file_owners() keeps names with a folder in them, so a shared Elementor file
+  is still protected.
+- Not changed: the orphan and deep scans only walk the uploads root and the
+  dated folders, so uploads/elementor/ is never scanned by them.
+- Tested on the hub with planted files: an elementor/thumbs size and its .webp
+  were counted (2 files) and deleted, one named by a second image was kept,
+  both entries went, the image's other sizes were untouched, and everything
+  planted was removed. Villa's 3 files are now found (about 494 KB).
+- On Villa the size came from the Single - Property Layout template (5899):
+  the Post Featured Image and Image Carousel widgets still hold a 1280 x 500
+  custom dimension but are set to image-1200, so nothing makes it any more.
+
+## One Image Cleaner job at a time (October 2026)
+
+Found on Villa: a build was running in one window, and Image Cleaner opened in
+a second window looked idle. Worse than it looked: every window shares the
+held run lists (sbsk_images_run_<user>_<mode>), and ajax_count() clears them
+at the start of every run, so a Scan or a run started in the second window
+would have reset the list under the first and it would have skipped images.
+
+- A site wide lock, the transient sbsk_images_job (JOB in the tools class):
+  token, kind (build, force, clean, orphans, deep), who started it, when, done,
+  total and the current file. It lapses after JOB_LAPSE (150 seconds) with no
+  batch, so a closed window cannot leave it stuck.
+- The page makes a token per run (newJob() in admin.js) and sends it as job
+  with every request. job_gate() refuses count, batch, report, deep,
+  deep_remove, orphans, orphan_one and fix from anything without that token
+  while a job holds the lock, answering with busy: the job's public details,
+  never the token. ajax_count() claims the lock; each batch handler refreshes
+  it at the start (job_beat() with no counts keeps the last ones) and records
+  the counts after; the last batch ends it (job_end(), only for the holder).
+  When a run is cancelled or fails, the page lets go straight away through
+  sbsk_images_release. The page calls scan( true ) before releaseJob(), so
+  the quiet rescan still carries the token if the lock is still there.
+- Other windows, and other people: on load the page asks sbsk_images_status.
+  While a job runs, watch() shows the progress box with the job's label, who
+  started it, done of total, the current file and the time (per image or per
+  file), polls every 3 seconds, keeps the run buttons off, and shows Finished
+  in the other window when the lock is gone. A refused request does the same.
+  The per image log is not repeated there; it only exists in the running
+  window.
+- Tested on the hub through the real AJAX handlers with a temporary login
+  session (destroyed afterwards): a second window's scan, count and batch were
+  refused with the job's details; status showed the job to other windows but
+  not to the running one; the token never appeared in a reply; a release with
+  the wrong token kept the lock and the right one freed it; a whole build from
+  count to last batch left the lock free. The build was real and made the
+  hub's few missing thumbnails. Reading the transient in the same request as
+  those HTTP calls returned stale values from that request's cache, so check
+  through the status call or a fresh request.
+
+
+Stopping a run, and leaving the page (October 2026). A run left behind by a
+page closed part way through held the lock until it lapsed, 150 seconds after
+its last batch, and no window could stop it.
+
+- pagehide sends sbsk_images_release by navigator.sendBeacon with leaving=1.
+  The token is marked stopped (transient sbsk_images_stopped_<token>, ten
+  minutes) as well as the lock let go, because the batch still running on the
+  server would otherwise take the lock back through job_beat when it
+  finished. A normal release does not mark the token: the quiet scan at the
+  end of a run is sent with it and may arrive after the release.
+- job_beat never claims the lock for a stopped token, and job_gate turns its
+  requests away with { stopped: true }.
+- A window watching another run shows Stop that run (#sbsk-progress-takeover)
+  in the progress box. sbsk_images_stop (upload_files and the sbsk_images
+  nonce, like the rest) marks the holder's token stopped and deletes the lock.
+  The window that was running sees stopped on its next request and says it
+  was stopped from another window; what it had done stays done.
+- Checked through admin-ajax on the hub with a temporary session: stopping a
+  held lock, the old token turned away, a late beat after a leaving release
+  not taking the lock back, and a normal release leaving no mark. The pagehide
+  beacon and the button were not tried in a browser.
+## Missing images (October 2026)
+
+Found on Villa: 7 library images had no file on disk at all, not the original
+and not one size, all uploaded within 25 minutes on 13 April 2023 (a migration
+that lost them). They showed as 52 sizes to build across 7 images, with
+Rebuild links that could never work. All 7 were still used on published
+portfolio pages (featured image, gallery, property_slider_images). Sam chose
+to delete them rather than find the files.
+
+- SBSK_Images_Rebuild::original_missing( $id ): the attached file is not on
+  disk. missing() and missing_all() return nothing for such an image, so it
+  never counts as sizes to build and Build passes over it.
+- summary() collects them as gone (after noting their size names for the
+  adopted list tidy) and skips the rest of its checks for them. The report
+  shows a Missing images card, only when there are any, opening the
+  sbsk-gone list from gone_list(): each image's name, its id linking to the
+  attachment, the address WordPress expects the file at, and the page it was
+  uploaded to. Capped at LIST_CAP rows; the delete covers them all. Each
+  row keeps the thumbnail box, with a grey question mark in it
+  (.sbsk-gone__thumb), since there is no image to show.
+- Delete missing images (sbsk_images_gone_delete, GONE_BATCH 20 a request)
+  runs in the progress box under the job lock as kind gone. The page sends
+  the ids, and the server deletes only an image attachment whose file really
+  is gone and that the user may delete (wp_delete_attachment, force), so a
+  forged or stale id cannot take out a real image. WordPress itself drops
+  _thumbnail_id rows pointing at a deleted attachment; ids kept in gallery
+  fields (JetEngine and the like) are left as they are and point at nothing.
+- Usage is deliberately not shown: finding ids inside gallery meta took about
+  a second an image on Villa (a REGEXP over postmeta), too slow for a list.
+- Tested on the hub with a planted entry with no file and a real image (489):
+  the planted one showed only under Missing images, the card and list carried
+  its address, and a delete asked for both removed the planted one and kept
+  489 and its file. The planted entry is gone.
+
+## Switching off WordPress sizes (October 2026)
+
+Sam unticked 1536x1536 and 2048x2048 in the Image Cleaner's Sizes list and
+expected them gone. That list is per user and only chooses what the tools
+work on, so WordPress kept making them and their files stayed (Villa: 4,053
+files, 2.15 GB, and 1,057 files, 1.23 GB). Remove old sizes never clears a
+registered size, so nothing could touch them.
+
+- The Additional thumbnail sizes list on the Images page has a tick beside
+  each of SBSK_Images_Rebuild::OFFABLE: medium_large, large, 1536x1536 and
+  2048x2048. Thumbnail and medium have no tick and always stay, because the
+  media library and the editor show them. Unticked names are saved as
+  wp_off in the images settings; the form carries sbsk_wp_list so a save
+  without the list keeps what was there.
+- SBSK_Images::drop_off_sizes() filters intermediate_image_sizes, which is
+  what get_intermediate_image_sizes(), wp_get_registered_image_subsizes() and
+  so uploads and all_wanted() read. A switched off size is no longer made,
+  and Site Kit no longer counts it as registered. size_names() also drops it
+  from the editor's choices (only large is offered there by WordPress).
+- other_sizes() adds switched off sizes back from $_wp_additional_image_sizes
+  or the _size_w options, because WordPress no longer lists them, so they
+  stay on the page, unticked and dimmed (li.is-off), ready to switch on.
+- stale() treats wp_off names like owned and adopted ones, and foreign()
+  leaves them out, so their files go straight to Old thumbnails to clear on
+  the next scan, without adopting. Turning one back on makes it registered
+  again, so it is never cleared and Build makes it where it is missing.
+- srcset reads the sizes in each image's metadata, not the registered list,
+  so a switched off size keeps appearing in srcset until it is cleared.
+- Tested on the hub by submitting the page's own form as an admin with two
+  sizes unticked: wp_off saved as exactly those two, every other setting the
+  same. Then in a fresh request: neither in WordPress's list or what an
+  upload makes, stale for an image carrying 1536x1536 and not foreign, the
+  scan listing 5 hub images under Old thumbnails to clear (not cleared), both
+  still on the page unticked; with large off it also left the editor's
+  choices. The hub's settings were put back exactly afterwards.
+
+## Space on the Old thumbnails to clear figure (October 2026)
+
+The card's note ends with the space its files take, for example "2 removed
+sizes across 4,053 images, 3.4 GB". SBSK_Images_Rebuild::stale_usage()
+returns files and bytes (stale_files() now wraps it), and summary() adds up
+stale_bytes in the pass it already makes. The scan already checks each file
+exists, so the size is one more look at the same file. Like the file count,
+it includes a file shared with a size that is kept, which the clear leaves in
+place, so it is the most the clear can free. Orphaned images already showed
+its total. Checked on Villa: 3,620,226,845 bytes for 7,596 files, the same as
+an independent count from the disk; the whole scan pass took 2.1 seconds.
+
+## Add an orphan back to the library (October 2026)
+
+On Villa, deleting the 7 missing images turned up orphaned originals and their
+thumbnails, most likely because those records named slightly different files
+from the ones on disk (not confirmed: they were deleted before anyone looked).
+
+- The orphan list is sorted originals first (is_original(): no -WxH on the
+  end of the name, and not an optimiser's copy such as photo.jpg.webp), so an
+  original is never hidden under the 25 row cut off.
+- An original's row has Add to library (sbsk_images_orphan_add, one at a
+  time, under the job lock). The server only takes a file the orphan scan
+  lists at that moment (find() is run again), that is_original() and
+  looks_like_image() accept, and that WordPress takes as an image type. It
+  makes the attachment where the file is, without moving or renaming it,
+  titled through SBSK_Images::clean_title(), then wp_generate_attachment_
+  metadata() makes its sizes as an upload would, so thumbnails of it on disk
+  belong to it again. The page rescans and the row, and its thumbnails, drop
+  off the list. A big original goes through WordPress's -scaled step.
+- Tested on the hub with a planted original, one of its thumbnails and a
+  .webp copy: only the original had the button and came first, the other two
+  were refused, the original became a library image with its sizes, and the
+  rescan dropped all three. Everything planted was removed.
+
+## Thumbnail size and fit in the media pop-up (October 2026)
+
+The Media Library thumbnail size and fit choices now also apply in the media
+pop-up, wherever it opens (post screens, page builders, gallery fields such
+as JetEngine's), with the same two dropdowns in its toolbar. The choice is
+the same per user meta, so the pop-up follows the Media Library and the
+other way round.
+
+- SBSK_Images_Media_Grid::enqueue_modal() on wp_enqueue_media loads the
+  script with media-views as its dependency, skipping upload.php, which keeps
+  loading through enqueue() with media-grid. assets() holds the shared part
+  and loads only once.
+- media-grid.js: wanted() is the Media Library grid or any frame with a modal
+  (the Media Library's own frame has none). The bigger file is asked for on
+  grid tiles but not on the small selection bar thumbnails
+  (media.view.Attachment.Selection). Picker ids carry the view's cid, since a
+  page can build several pop-ups.
+- media-grid.css: every rule also covers .media-modal .attachments. In the
+  pop-up WordPress lays its filters on a two column grid in
+  .media-toolbar-secondary (labels above, selects below), so the picker takes
+  grid-area 2 / 3 / 3 / 4, level with their selects. That placement was set
+  from WordPress's CSS, not seen in a browser before release.
+- Checked through real page loads on the hub: the script, styles and config
+  load on a post edit screen and on Media Library grid, not in list view. The
+  dashboard loads them too, because something there calls wp_enqueue_media().
+- The filename caption over pictures in some pop-ups comes from neither
+  WordPress's templates nor the image records (both checked on Villa) and
+  shows on the hub as well; HappyFiles is on both. Left alone at Sam's call.
+
+## HappyFiles folder dropdown in the pop-up from a post list (October 2026)
+
+On a post list screen (edit.php, such as Admin Columns Pro inline edit of a
+featured image on Portfolios) HappyFiles leaves its folder panel out of the
+media pop-up and stops filtering it. The pop-up there now has a Filter by
+folder dropdown: All folders, Uncategorised, then every HappyFiles folder
+nested by parent. Anywhere HappyFiles shows its own panel there is no
+dropdown, so the two never double up.
+
+- SBSK_Images_Media_Grid::folders() sends the folder list (id, name, depth)
+  only when $pagenow is edit.php and happyfiles() is true (HAPPYFILES_VERSION
+  defined and the happyfiles_category taxonomy registered, checked when used
+  since HappyFiles may load after Site Kit); anywhere else it is false, an
+  empty string in SBSKMediaGrid.folders. folder_query() does nothing without
+  HappyFiles either.
+- The toggle (setting key media_grid, unchanged) is now called Media Browser
+  Enhancements, with a description covering the grid, the pop-up and the
+  folder dropdown. Same label in module.php's dashboard list.
+- media-grid.js: FolderFilter sets the sbsk_folder prop on the library's
+  props, added in a modal frame only when there are folders (priority -70,
+  before the size picker).
+- folder_query() on ajax_query_attachments_args (priority 20) reads
+  $_REQUEST['query']['sbsk_folder'], because WordPress drops query keys it
+  does not know. -1 is images in no folder (NOT EXISTS); a folder id shows
+  that folder's own images, not its children, the way HappyFiles does. 0, an
+  unknown id or anything below -1 is ignored.
+- media-grid.css: the dropdown takes grid column 3 (label above, select
+  below) and the size picker moves to column 4 when it is there. Set from
+  WordPress's CSS, not seen in a browser before release.
+- Checked through real page loads and query-attachments calls on the hub: the
+  list is sent on edit.php for posts and pages, not on a post edit screen or
+  the Media Library; each folder returned exactly the images the database
+  holds for it. On Villa the Portfolios list sends 7 folders, and
+  Uncategorised returns 4,755 of 4,928 images.
+
+## New standard image sizes (October 2026)
+
+The standard widths (SBSK_Images::DEFAULT_WIDTHS) are now 450, 665, 1330 and
+1920, from 240, 480, 640, 720, 960, 1200 and 1920. They suit a 1330 wide site
+and the srcset WordPress builds: thirds and quarters 450, halves 665, full
+width 1330, full width on high density screens 1920 (WordPress leaves anything
+over 2048 out of srcset, so 1920 is the top that gets used). With WordPress's
+medium 300 and large 1024 the steps are all about 1.3 to 1.5 times. On the same
+reasoning SBSK_Images_Rebuild::DEFAULT_OFF switches off medium_large (too
+close to 665), 1536x1536 and 2048x2048 (1920 covers both).
+
+- wp_off() uses DEFAULT_OFF when the images setting has no wp_off at all. A
+  saved empty list still means none off.
+- Reset to default sizes now puts back both the widths and DEFAULT_OFF.
+- sbsk_keep_old_image_defaults() in the main file runs once, straight after
+  sbsk_split_image_cleaner(), and records sb_tweaks_site_kit_image_defaults.
+  On a site already running Site Kit (an images setting saved, or the owned
+  sizes option present) it saves the old seven widths if none are saved (an
+  empty list counted as none) and an empty wp_off if that key is missing, so
+  nothing changes under the site. A new install has neither, since this runs
+  on plugins_loaded before the sizes are first registered, and gets the new
+  set. Moving an existing site over is done by hand on its Images page.
+- The size names image-240 to image-1200 stay on sites that already have
+  them; nothing renames or removes them.
+- Checked on the hub by running it against saved copies of the options (new
+  install, running and never saved, saved before wp_off existed, the hub as
+  it is) and restoring them, and through a real Reset to default sizes post,
+  also restored. The hub and Villa both had their own saved lists and kept
+  them.
+- The width list marks each of the standard widths with "default size" under
+  its name, from the server (width_row) and live as a width is typed
+  (admin.js, reading data-defaults on #sbsk-widths). Add default sizes, beside
+  Add a width, adds only the standard widths missing from the list, each in
+  order, and nothing is saved until Save changes. It is switched off when none
+  are missing. Reset's confirm now says it also switches off the three
+  WordPress sizes. Each name box has a left edge: green (#85df07, the is-good
+  colour) on a standard width, the row carrying is-default, and orange
+  (#dba617) on any other, blank rows included. Add a width now clears the
+  default mark, class and notes from the row it copies. Checked against the
+  real markup in jsdom: adding a row, adding the defaults, retyping a
+  default, removing one and adding again.
+
+## Two thirds size, Reset with WordPress sizes, confirm popups (October 2026)
+
+- DEFAULT_WIDTHS gained 890, for two thirds of a 1330 site: 450, 665, 890,
+  1330, 1920. WordPress's large is a 1024 box, so a portrait image comes out
+  well under 1024 wide; image-890 is width only. Sites with a saved list are
+  untouched; Add default sizes offers 890 there. A site that never saved its
+  Images page reads the defaults from the code and picks it up on update.
+- Reset to default sizes opens a popup. When thumbnail, medium,
+  medium_large or large differ from WordPress's own defaults
+  (SBSK_Images::WP_DEFAULTS: 150 x 150 cropped, 300 x 300, 768, 1024 x 1024),
+  wp_size_drift() lists them in data-wp-drift on the button and the popup
+  shows a tick box over a list of them, one to a line, the size name in
+  bold. Ticked, the form carries sbsk_reset_wp
+  and save() writes WP_DEFAULTS back. Left unticked, WordPress's sizes stay
+  as they are.
+- The Save sizes button under Additional thumbnail sizes is gone: it was a
+  second submit for the same form and lit up for any change on the page. The
+  Settings link stays; Save changes saves everything.
+- Every confirm in Site Kit is now the SocialBUMP popup, the same box as SEO
+  for AI and the SocialBUMP Tweaks hub's confirm popup (dark overlay, 10px
+  radius, 24px padding, title top left, X top right, Cancel left and the
+  action right; Escape, the X and a click outside close it). It lives in
+  admin.js: ask( element, options ) opens it and returns; the action clicks
+  the element again with a one shot pass that confirmed( element ) spends, so
+  each handler carries on unchanged after its check. tell() is the one button
+  version, for the failed Add to library message. window.SBSKConfirm exposes
+  them for scripts printed by module pages (FAQ's Delete content, with the
+  browser's confirm as a fallback). Buttons in PHP pages ask with
+  data-sbsk-confirm (the question, %s for the value of the field named in
+  data-sbsk-confirm-field), data-sbsk-confirm-title and
+  data-sbsk-confirm-action: Remove token and Publish release on Publishing,
+  Import settings on Updates. Styles: .sbsk-modal and .sbsk-dialog in
+  admin.css, copied from .sb-hub__modal and .sb-hub__dialog, without
+  !important.
+- Checked on the hub: the Images page sends the new defaults and an empty
+  drift list, the Save sizes button is gone and Settings stays; with medium
+  and large changed the drift list names both; a real Reset post with the
+  tick put WordPress's sizes back and one without left them; the Publishing,
+  Updates and FAQ pages carry the new attributes or code and load admin.js.
+  The popup itself was run against sample markup in jsdom (Cancel, the
+  action, Escape, the tick, the %s field and the one button version). Not
+  yet seen in a browser. Every option touched was put back.
+
+## Progress and summary popups in the SocialBUMP Tweaks style (October 2026)
+
+The look comes from SocialBUMP Tweaks' popups (its docs, Popups): a white
+box over a dark overlay, 10px radius, 24px padding, the elapsed time small
+and grey top right, a rounded bar in the accent colour, a bold status line,
+Finished over a grey report card (the summary in bold and the time taken).
+
+- Image Cleaner keeps its progress in the box on the page where it always
+  was (#sbsk-progress: bar, status, timer, Cancel, the live per image log,
+  and Stop that run, which only shows while this window is watching a run
+  going in another window and stops that run). Sam tried it as a popup and
+  preferred it on the page. Only the end pops up: finished() writes the last
+  line in the box as before ("Finished. 4 sizes built, 0 files removed. Took
+  6s, 1s per image.") and opens the confirm popup (openModal) with the run's
+  title, Finished or Stopped, the report card, and two buttons: Close, and
+  Scan again, which hides the box and runs a fresh scan. The X, Escape and a
+  click outside close it.
+- openJob( title ) shows the box for a run or for watching another window's,
+  and keeps the title for the summary: Building thumbnails, Rebuilding all
+  thumbnails, Removing old sizes, Deleting orphan images, Deleting missing
+  images, Deleting leftover thumbnails, or the other window's job name.
+  failJob( text ) turns the bar red (.is-failed) and leaves the reason in the
+  box, with no popup. Watching another window ends in the box with Finished
+  in the other window, also with no popup.
+- Find leftover thumbnails' delete used its own bar in its panel. It now
+  runs in the same progress box, honours Cancel, ends with the same summary,
+  and the files left alone plus the rescanned list go back into its panel.
+- openModal() gained body (extra content, here the summary) and cancel (the
+  left button's words, here Close).
+- assets/js/progress.js is a copy of SocialBUMP Tweaks' progress.js as
+  window.SBSKProgress (classes .sbsk-job, __box, __timer, __title, __track,
+  __bar, __count, __current, __report, __summary, __close, the framework's
+  sb-tweaks-job names with Site Kit's prefix), plus busy() and __spin: a
+  spinner in place of the bar for one step with no telling how long it will
+  take. Sam's call: a bar suggests a count that a single post does not have.
+  Only Publish release uses it: data-sbsk-progress and
+  data-sbsk-progress-status on the button open it once the confirm is
+  accepted (and only when the form is valid), and the form then posts in the
+  background (see Publish posts in the background). Enqueued with admin.js on
+  Site Kit's pages.
+- For the merge into SocialBUMP Tweaks: drop progress.js and the .sbsk-job
+  styles and point data-sbsk-progress at SBTweaksProgress, which has had
+  busy() since October 2026.
+  Image Cleaner's box and its summary need nothing from the framework beyond
+  a confirm popup that takes extra content and its own Cancel words.
+- Checked: admin.js passes node --check (the md5 matched the hub copy); in
+  jsdom against the page's markup, with the server's answers stubbed: a
+  build (the box, Cancel while running, the log, the last line, the summary
+  with Close and Scan again), Scan again (box hidden, a new scan sent),
+  closing with Escape and with a click outside, and a failed batch (red bar,
+  reason in the box, no popup). progress.js passes node --check and its
+  busy(), step() and finish() were run in jsdom. On the hub the Image Cleaner
+  page renders the box and loads both scripts, and Publish release carries
+  the attributes. Not yet seen in a browser.
+
+## Image Cleaner's size groups say where each size comes from (October 2026)
+
+The Sizes panel lists every registered size in four groups, in this order,
+each in width order with its own all | none links, and a group with nothing in
+it is not shown:
+
+- Image Sizes: Site Kit's own, the image-<width> names for the widths the
+  Images page registers right now (Images switched on, its Image sizes switch
+  on, SBSK_Images::widths()). Edit Sizes sits beside this heading, not on the
+  panel heading, since these are the only ones it edits, and only shows while
+  Images is on.
+- Other Image Sizes: everything else, with a grey line under the heading
+  ("Added by the theme, a snippet or another plugin."). WordPress does not
+  record who registered a size, so nothing finer can be said honestly.
+- WooCommerce: names starting woocommerce_.
+- WordPress: thumbnail, medium, medium_large, large, 1536x1536, 2048x2048.
+
+It used to put any name starting image- under Image Sizes, so a site with a
+WP Codebox snippet registering image-2000, or the old image-240 to
+image-1200, showed them all as Site Kit's. Checked on the hub by registering
+image-240, image-2000 and two WooCommerce sizes in one request and reading
+size_groups(): they landed in Other and WooCommerce, the hub's own five
+widths in Image Sizes. The live page shows Edit Sizes beside Image Sizes.
+
+## Publish posts in the background (October 2026)
+
+The spinner on Publish release sat still. The form posted the normal way, so
+the browser started leaving the page as soon as the popup opened, and browsers
+stop animating a page they are leaving. Now all three hub plugins (Site Kit,
+SocialBUMP Tweaks, SEO for AI) post Publish release in the background, so the
+page stays live and the spinner turns until GitHub has answered.
+
+- The script sends the same form with fetch, plus sbsk_background=1. back() in
+  SBSK_Release still saves the notice, then, with that field set, answers
+  wp_send_json( { ok, message } ) instead of redirecting. message is the
+  notice with its tags stripped.
+- admin.js: the confirm's before() stores { job, button, value } on the form
+  as sbskJob, and a submit handler on every form picks that up, stops the
+  normal post and calls background(). The browser's own validation still runs
+  first, because submit only fires on a valid form.
+- The outcome shows in the popup. Worked: a report line from
+  data-sbsk-progress-item ("Site Kit %s", the version padded to x.y.z) and
+  data-sbsk-progress-result ("published"), with data-sbsk-progress-done
+  ("Publishing complete") as the summary. Refused: fail() with the handler's
+  own message. Anything that is not that JSON (an expired link, a fatal error)
+  or a dropped connection: fail() saying no clear answer came back and to check
+  GitHub and the page first, because the publish may still have gone through.
+- Close reloads the Publishing page, which then shows the usual notice (with
+  View the release when it worked) and the new version.
+- Without JavaScript, or a post without the field, nothing changes: redirect
+  and notice as before. SocialBUMP Tweaks' Publish on the Installs page
+  (SB_Tweaks_Hub_Publish) never sends the field, so it still catches the
+  redirect the way it always has.
+- Hub only, so no release note.
+- Checked: admin.js and progress.js pass node --check, and the md5s matched on
+  the hub. In jsdom: confirm, then the spinner while the answer is awaited,
+  then a success, a refused publish, an HTML answer and a dropped connection;
+  Cancel and an invalid version post nothing. On the hub over HTTP with a
+  session: the Publishing page loads; a background post with the current
+  version comes back as JSON, ok false, "has to be higher than the current
+  version", with the main plugin file untouched; the same post without the
+  field still redirects (302); a bad nonce gives WordPress's 403 page. The
+  notices the tests left were deleted. Not yet seen in a browser, and no real
+  publish has been run through it yet.
+- Fix, same day: the first real publish failed at once with No clear answer. The
+  script fetched form.action, and in a browser that is the hidden input named
+  action, not the form's address, so the post went to a junk URL and never
+  reached WordPress (nothing was published). It now uses
+  form.getAttribute( 'action' ). jsdom does not do that lookup, which is why
+  the simulation passed; the test now fakes it, failed the old code, and
+  passes the fix.
+
+## Sizes panel in groups, left alone list in the summary (October 2026)
+
+Two follow ups to the size groups and the summary popup.
+
+- SBSK_Images_Tools::sizes_list() (the panel on each image: the media pop-up,
+  fetched by AJAX, and the box on the attachment edit screen) builds its rows
+  keyed by size name, then lays them out in SBSK_Images_Cleaner::size_groups()
+  order: Image Sizes, Other Image Sizes, WooCommerce, WordPress, each in width
+  order, an empty group left out. Each group is a p.sbsk-sizes__group label
+  over a ul.sbsk-sizes__list, no all | none links. Anything no group takes
+  (there should be nothing) goes in a final unlabelled list.
+- The whole thing is one div.sbsk-sizes. That matters: the pane's script
+  swaps .sbsk-sizes (the loading line, and the old list after Regenerate) for
+  the answer with replaceWith, so more than one .sbsk-sizes would duplicate
+  the list. The inner lists use sbsk-sizes__list for the same reason.
+- The panel's heading is still "SocialBUMP Site Kit Sizes". Offered to Sam as
+  plain "Image sizes"; not changed.
+- Find leftover thumbnails' delete: the files left alone (with why_html, the
+  in use links) now go into the summary popup under the bold line, through
+  finished( text, extra ). The list is div.sbsk-summary__skipped, capped at
+  100 rows plus "and N more", and scrolls past 220px so Close and Scan again
+  stay in view. The yellow .sbsk-deep__skipped box is no longer put in the
+  panel; the panel gets just the rescanned list, or is hidden when there is
+  none. deep_skipped() in the tools class builds the old box server side and
+  is not called anywhere.
+- Release notes queued for both.
+- Checked: admin.js passes node --check and its md5 matched on the hub. In
+  jsdom with stubbed answers: a delete with files left alone (list and link in
+  the popup, no yellow box behind, rescanned list in the panel), one with
+  none, and one with an empty rescan (panel hidden). On the hub: sizes_list()
+  for a real image gives one wrapper with Image Sizes and WordPress, a size
+  added for that request only showed under Other Image Sizes, and the
+  attachment edit page renders the grouped box with no PHP errors. Not yet
+  seen in a browser.
+
+## Progress counts that match the bar, and a faster publish (October 2026)
+
+Sam saw a bar finish well before its count on a big delete.
+
+- Find leftover thumbnails' delete: ajax_deep_remove() works out the matching
+  files afresh each request, so its total is what is left, and it shrinks as
+  files go. The page measured its running count (removed plus left alone)
+  against that shrinking number, so the bar was full about halfway. The page
+  now keeps the first answer's total (runTotal) for the whole run, and the
+  line reads "9 of 12 checked, 6 removed." It also sends seen and run_total
+  with each request; the server uses them only for job_beat, so a window
+  watching shows the same numbers. In jsdom with a shrinking total the old
+  code went 25%, 60%, 100% at 6 of 12 and the new one 25%, 50%, 75%.
+- Orphaned images delete: the bar is files checked from a list fixed for the
+  run, but the line counted only files removed, so kept or still used files
+  left it short. The line is now "400 of 900 checked, 250 removed."
+- The build and Remove old sizes already use one held list for both the bar
+  and the line; nothing found wrong there.
+- Publish (hub only, no release note): push_code() used to send every file
+  each time, the text ones in one big tree request and the 37 others (the
+  update checker's .mo translations and the two icons) as a blob request each.
+  Each GitHub call takes about a third of a second from the hub, and the
+  publish took 32 seconds. Now it first lists the repo's tree with
+  ?recursive=1 and, for each local file, works out git's blob hash
+  (sha1 of "blob <length>\0<contents>"). A match is put in the new tree by
+  that sha and nothing is sent; only changed files go inline or as blobs. The
+  keep list (README.md, LICENSE, .gitignore, .github) still comes from the
+  top level entries of the same listing. If the listing fails or comes back
+  truncated, it falls back to the old way and sends everything. A dry run
+  against the repo after 1.2.5: listing 0.36 seconds, 194 of 197 files
+  matched, the 3 changed files would be sent, no blob uploads. The real
+  publish of 1.2.6 took 11.2 seconds (32 before), and afterwards all 197 files
+  on GitHub matched the hub, README.md and LICENSE kept. The same change is now
+  in SocialBUMP Tweaks, Bricks Tweaks and SEO for AI's release classes.

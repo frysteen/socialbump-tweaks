@@ -237,7 +237,7 @@ class SB_Tweaks_Updates {
 		echo '<form method="post" enctype="multipart/form-data" action="' . $post . '"><input type="hidden" name="action" value="sb_tweaks_import_settings">';
 		wp_nonce_field( 'sb_tweaks_import_settings' );
 		echo '<p><input type="file" name="sb_tweaks_settings_file" accept="application/json,.json" required></p>';
-		echo '<p><button type="submit" class="button" data-sb-always-on onclick="return confirm(' . esc_attr( wp_json_encode( __( 'Replace the SocialBUMP Tweaks settings on this site?', 'sb-tweaks' ) ) ) . ');">' . esc_html__( 'Import settings', 'sb-tweaks' ) . '</button></p></form></div>';
+		echo '<p><button type="submit" class="button" data-sb-always-on data-sb-tweaks-confirm="' . esc_attr__( 'Replace the SocialBUMP Tweaks settings on this site with the ones in the file?', 'sb-tweaks' ) . '" data-sb-tweaks-confirm-title="' . esc_attr__( 'Import settings', 'sb-tweaks' ) . '" data-sb-tweaks-confirm-action="' . esc_attr__( 'Import', 'sb-tweaks' ) . '">' . esc_html__( 'Import settings', 'sb-tweaks' ) . '</button></p></form></div>';
 
 		echo '</div></section>';
 	}

@@ -10,9 +10,9 @@ is worse than no note, so fix anything you find that has gone stale.
 ## What it is
 
 One plugin holding what used to be separate SocialBUMP plugins, each now a
-module that can be switched on and off. Site Kit and Bricks Tweaks are being
-moved across one at a time, and an Elementor Tweaks module is planned. SEO for
-AI is not part of this: it is standalone and shares nothing with it.
+module that can be switched on and off. Bricks Tweaks moved in first and is
+done (October 2026); Site Kit is next, and an Elementor Tweaks module is
+planned. SEO for AI is not part of this: it is standalone and shares nothing with it.
 
 Naming, because the old plugins used these words differently and it matters:
 
@@ -24,9 +24,23 @@ Naming, because the old plugins used these words differently and it matters:
 
 ## Where it is up to
 
-The front door, the admin footer credit and the whole module framework. The
-Modules page draws real cards now, and falls back to its empty note until the
-first module is migrated in, because the modules folder does not exist yet.
+As of 16 October 2026, version 0.1.11:
+
+- One module, Bricks Tweaks (modules/bricks), with its own notes in
+  modules/bricks/docs/context.md. This plugin runs on bricks.socialbump.com.au,
+  hintercoasttransport.com.au, thecosmeticstudionoosa.com.au and
+  drivingevents.com.au, plus the hub. The last two moved over from standalone
+  Bricks Tweaks on 16 October, after which no site reported the standalone
+  plugin and it was deleted from the hub (see Bricks Tweaks retired, below).
+- Site Kit is still standalone on the sites: 1.2.6, active on 11 sites
+  including the hub. Its modules are built on the hub, not yet released: Site
+  Kit (modules/site-kit) and Image Management (modules/images), each with its
+  own notes. Both wait while standalone Site Kit is active. Standalone Site Kit
+  was switched off on the hub on 16 October and both modules were tested there:
+  every page, the settings copy, the registered sizes against the backup, a
+  cleaner scan, the sizes panel, robots.txt, FAQ schema and the old addresses.
+  See Site Kit and Image Management, below.
+- SEO for AI stays standalone for good.
 
 Built so far:
 
@@ -53,8 +67,8 @@ Built so far:
   socialbump/admin_bar/claim filter first; SB_Tweaks_Modules::claim_bar_item()
   takes any whose id (the folder minus socialbump-) a module replaces and
   registers it with SB_Tweaks_Bar, which renders at 210, after the shared bar
-  at 200. So on the hub, where standalone Bricks Tweaks runs for publishing, it
-  sits in the SocialBUMP item like the module. Unclaimed standalone plugins
+  at 200. So a standalone plugin a module replaces, while it still runs on the
+  hub for publishing, sits in the SocialBUMP item like its module. Unclaimed standalone plugins
   (Site Kit until its module exists) and SEO for AI sit on the bar alone. A
   claimed standalone plugin follows its module's switch: in the item while
   the module is on, not on the bar at all while it is off. Rows registered
@@ -192,6 +206,10 @@ the old plugin stays on, its module waits, and an info notice on this plugin's
 pages says so. Test a module against a real site (bricks.socialbump.com.au)
 rather than on the hub.
 
+For Bricks Tweaks that is over: the standalone plugin was switched off and
+deleted on the hub in October 2026, so the module runs there like anywhere
+else. It applies again to Site Kit while its module is being built.
+
 ### Names that cannot change
 
 The standalone plugins were cleaned up before the merge, so most identifiers
@@ -201,8 +219,10 @@ are free. These are not:
   sb-bricks-image-carousel, the loop settings sbBricks*, and the gallery query
   type sb_bricks_gallery_. All written into pages.
 - faq_questions, faq_question, faq_answer. Sites hold content under them.
-- The registered image size names, image-240 through image-1920. Written into
-  every attachment's metadata and into Bricks element settings.
+- The registered image size names, image-<width>: image-450, image-665,
+  image-890, image-1330 and image-1920 by default since Site Kit 1.2, and
+  image-240 to image-1920 on sites set up before that. Written into every
+  attachment's metadata and into Bricks element settings.
 - The shortcode tag social_bump_credit, which is a snippet rather than ours,
   but is placed by hand in templates.
 
@@ -221,9 +241,15 @@ bookmark breaks.
 | includes/class-sb-tweaks-credit.php | the admin footer credit |
 | includes/class-sb-tweaks-release.php | publishing to GitHub, hub only |
 | includes/class-sb-tweaks-docs.php | these notes, and the panel on Publishing |
+| includes/class-sb-tweaks-updates.php | the Updates page: check, update, export and import, every site |
+| includes/class-sb-tweaks-installs.php | the Installs page and the check-in route, hub only |
+| includes/class-sb-tweaks-push.php | signed pushed updates and installs to sites, hub only |
+| includes/class-sb-tweaks-hub-publish.php | Publish from the Installs page, hub only |
+| includes/class-socialbump-reporter.php | the reporter, identical in every SocialBUMP plugin |
 | includes/framework/ | the seven classes the modules run on |
 | assets/js/framework.js | swatches, hide-when fields, switches, select all and none |
 | assets/js/progress.js | the progress popup, SBTweaksProgress (see Popups) |
+| assets/js/confirm.js | the confirm popup, SBTweaksConfirm (see Popups) |
 | assets/js/module-cards.js | the cards that drag to reorder and collapse |
 | modules/ | one folder per module, each with module.php and its own docs |
 | assets/css/admin.css | everything the admin pages look like |
@@ -239,9 +265,8 @@ classes in snake_case; CSS classes hyphenated; Bricks element setting keys in
 camelCase, because that is what Bricks itself uses; element names hyphenated,
 because the name becomes the brxe- class; condition keys in snake_case.
 
-The version badge in the banner is plain text rather than a link, because there
-is no Updates page yet. That page arrives with the first module, because the
-settings export and import live on it.
+The version badge in this plugin's own banner links to the Updates page, where
+the settings export and import live. Module banners carry no badge.
 
 ## Where to be careful
 
@@ -252,11 +277,16 @@ settings export and import live on it.
   concatenation with chr( 34 ), which is why the code here reads that way.
 - A shared file that drifted took two client sites down. Nothing here is shared
   with anything, and that is worth keeping.
+- Never name a variable $start in code run through Novamira's execute-php. Its
+  wrapper times the run with a $start of its own, so a string left in $start
+  throws "Unsupported operand types: float - string" after the code has run,
+  outside any try, and whatever the code wrote is already on disk.
 
 ## Hub reporter
 
 includes/class-socialbump-reporter.php is shared by every SocialBUMP plugin (Site
-Kit, Bricks Tweaks, SEO for AI, SocialBUMP Tweaks): the same file in each, kept
+Kit, SEO for AI and SocialBUMP Tweaks, and standalone Bricks Tweaks before it
+was retired): the same file in each, kept
 identical like the shared admin bar, and guarded by class_exists so whichever
 loads first runs. It is required from the plugin's main file at the top level,
 not on plugins_loaded, so it is already listening when a plugin is activated.
@@ -265,7 +295,8 @@ It reports every tracked plugin on the site at once, active or not, since a
 deactivated plugin cannot speak for itself: site URL and name, each plugin's
 version and active state, WordPress and PHP versions. Nothing else. It posts to
 https://plugins.socialbump.com.au/wp-json/sb-tweaks/v1/checkin with the shared
-X-SB-Key header, non-blocking with a 3 second timeout, so it never slows a page.
+X-SB-Key header, and since reporter 1.2.1 waits up to 8 seconds for the hub to
+confirm (the Reporter 1.2.1 note further down).
 It sends on activated_plugin and deactivated_plugin for one of ours, on an admin
 page load when the plugin list changed or a day has passed (option
 socialbump_reporter_last holds the time and a hash), and from the daily cron
@@ -275,6 +306,8 @@ On the hub it calls sb_tweaks_installs_record() directly instead of over HTTP.
 
 To track another plugin, add its folder to SocialBUMP_Reporter::PLUGINS in every
 copy and a label to SB_Tweaks_Installs::LABELS, and bump the reporter VERSION.
+PLUGINS still lists socialbump-bricks-tweaks. That is harmless, and changing
+the file means releasing every plugin, so it waits for the next reporter change.
 
 Reporter 1.0.1: WordPress fires deactivated_plugin before it saves the new
 active_plugins list, so reading the list then still showed the plugin as active.
@@ -391,8 +424,8 @@ the next patch number, <prefix>_notes from changes_text(), and a fresh
 <prefix>_publish nonce), calls that plugin's release class publish(), and
 catches its closing redirect with a wp_redirect filter that throws
 SB_Tweaks_Hub_Publish_Done. The outcome is the plugin's own notice transient
-(NOTICE_PREFIX + user id), read and cleared. Prefixes: sbsk, sbbt, sbaike,
-sb_tweaks. Tested by asking Site Kit's handler for its current version, which it
+(NOTICE_PREFIX + user id), read and cleared. Prefixes: sbsk, sbaike,
+sb_tweaks (sbbt went with standalone Bricks Tweaks). Tested by asking Site Kit's handler for its current version, which it
 refused before touching GitHub, with the redirect caught and the message read
 back.
 
@@ -456,6 +489,35 @@ How it looks and acts, and how every long action in these plugins should:
   worked, otherwise the counts, "2 published, 1 failed".
 - Keep the words short. No instructions, no explaining what the buttons do.
 
+### Confirm popup (assets/js/confirm.js, window.SBTweaksConfirm)
+
+Every question asked before acting uses this, never the browser's confirm().
+Loaded on every SocialBUMP Tweaks and module page next to progress.js, by
+SB_Tweaks_Settings::styles() and SB_Tweaks_Screen::styles(). Moved in from
+Site Kit (October 2026), where it was SBSKConfirm.
+
+In markup, a button or link that carries the question asks first:
+
+    <button data-sb-tweaks-confirm="Publish version %s to every site?"
+            data-sb-tweaks-confirm-field="sb_tweaks_version"
+            data-sb-tweaks-confirm-title="Publish release"
+            data-sb-tweaks-confirm-action="Publish">
+
+%s is the value of the form field named in -field; -title defaults to the
+button's text and so does -action. On the action the element is clicked
+again natively with a one shot pass, so a form submits (and its submit
+handlers run, the background publish included) and a link follows its
+address. From a script: SBTweaksConfirm.ask( element, options ),
+.confirmed( element ) to spend the pass, .tell( options ) for OK only, and
+.open( options, onAction ) for anything else, such as a summary. options:
+title, message, body, check (a tick box, or { label, list } with each line's
+first word bold), cancel, action, alert, before( checked ). Styles
+.sb-tweaks-modal and .sb-tweaks-dialog*, the same box as the Installs page's.
+Converted in October 2026: Publish release and Remove token on Publishing,
+Import settings on Updates, and the remove site cross on the Installs page.
+SEO for AI has its own copy, SBAIKEConfirm (data-sbaike-confirm), as it does
+of the progress popup.
+
 ### Confirm popup (the waiting changes on the Installs page)
 
 For looking at something before acting on it. The same overlay and box (10px
@@ -488,6 +550,55 @@ replaces names, and no SocialBUMP Tweaks, gets it once its reporter is 1.2.0
 or later. When the Site Kit module lands with replaces set, Site Kit only sites
 get it with no further change.
 
+## Buttons
+
+Every button on a SocialBUMP Tweaks or module page has a 2px border, filled
+or outline (Sam, October 2026), so two buttons of the same size are always
+the same size whatever their colour. The rule is the first thing in
+admin.css, so the page sizes further down still win. admin.css only loads on
+our own pages, so WordPress's screens (Media, posts) keep their 1px buttons.
+
+Sizes, measured against WordPress 7.1.3, which draws a 1px border. For each
+size the line height drops by 2px and the side padding by 1px, so the height
+stays WordPress's own:
+
+| Size | Height | Line height | Side padding |
+|---|---|---|---|
+| Standard and button-large | 40px | 36px | 15px |
+| button-compact | 32px | 28px | 11px |
+| button-small | 24px | 20px | 7px |
+| button-hero | 48px | 44px | 35px |
+| Any of those under 782px | 40px | 36px | 13px |
+| Popup buttons, Installs page | 28px | 24px | 11px |
+| Installs button-small | 24px | 20px | 8px |
+| Keep and Delete in the image report | unchanged | 1.8 | 9px, 1px top and bottom |
+
+- If WordPress changes its button sizes, redo these from
+  wp-includes/css/buttons.css. The 2px border is the fixed part.
+- sb-save--clean and sb-save--dirty set their border with !important, so
+  they say 2px themselves.
+- A page that needs its own button size: 2px border, line height = height
+  minus 4px, and a selector more specific than .wp-core-ui .button (or later
+  in admin.css). The image report's buttons use .button.sb-images-report__keep
+  because images.css can load before admin.css.
+
+Outline colours, for a plain .button (never alongside button-primary):
+
+| Class | Colour | For |
+|---|---|---|
+| sb-tweaks-button--go | green #457a03 | a change that builds or adds, such as Build Thumbnails |
+| sb-tweaks-button--danger | red #d63638 | anything that deletes or resets: Remove old sizes, Delete orphan images, Reset to default sizes, the robots.txt reset, Delete ticked content |
+| sb-tweaks-button--quiet | grey border #8c8f94, text #3c434a | starts a look, not a change: Find leftover thumbnails |
+
+- Go and danger fill with their colour on hover and focus. Quiet darkens its
+  border on hover and keeps WordPress's focus ring.
+- Disabled ones take WordPress's grey. Build Thumbnails relies on this: it
+  shows green only while there is something to build.
+- The filled primary button (Scan images, Save changes) is the page's main
+  action. One per row.
+- Modules do not keep their own copies. Site Kit's sb-images-button--* and
+  sb-site-kit-button--danger were moved onto these in October 2026, and the
+  framework's old, unused sb-tweaks-button--deep became --quiet.
 ## Publish posts in the background (October 2026)
 
 The spinner Site Kit's Publish release shows sat still, because a normal form
@@ -523,8 +634,7 @@ the progress popup too, where before it had none.
   over HTTP with a session: the Publishing page loads with progress.js; a
   background post with the current version comes back as JSON ok false "has
   to be higher than the current version" with the main file untouched; the
-  same post without the field still redirects (302). Not yet seen in a
-  browser, and no real publish has been run through it yet.
+  same post without the field still redirects (302).
 - Fix, same day: the first real publish failed at once with No clear answer. The
   script fetched form.action, and in a browser that is the hidden input named
   action, not the form's address, so the post went to a junk URL and never
@@ -532,6 +642,13 @@ the progress popup too, where before it had none.
   form.getAttribute( 'action' ). jsdom does not do that lookup, which is why
   the simulation passed; the test now fakes it, failed the old code, and
   passes the fix.
+- Fix, a day later: on this page the popup never opened and Publish posted the
+  old way. The inline script checked for the progress popup when the page
+  loaded, but the popup script loads in the footer, after it, so the check
+  always failed. It now checks when Publish is pressed. The jsdom test had
+  loaded the popup script first; it now loads it last, as the page does.
+  0.1.11 went out the old way, before this fix. Not yet seen working in a
+  browser on this page.
 
 ## Faster publish (October 2026)
 
@@ -542,5 +659,96 @@ only changed files go inline or as blobs. It used to send everything each
 time, including 37 non-text files (the update checker's .mo translations and
 the icons) as a request each. If the listing fails or comes back truncated it
 sends everything as before. Proven first in Site Kit: its publish went from
-32 to 11 seconds, and afterwards every file on GitHub matched the hub. A dry
-run here showed most files would be reused. Hub only, no release note.
+32 to 11 seconds, and afterwards every file on GitHub matched the hub. Here 0.1.11
+was the first publish with it, and afterwards all 178 files on GitHub matched
+the hub, README.md and LICENSE kept. Hub only, no release note.
+
+## Bricks Tweaks retired (October 2026)
+
+On 16 October 2026, once Cosmetic Studio and Driving Events had moved over and
+no site on the Installs page reported standalone Bricks Tweaks, it was removed
+from the hub.
+
+Removed:
+- The socialbump-bricks-tweaks folder (it had no uninstall routine, so nothing
+  else went with it; a zip of it was kept in the hub's /tmp at the time).
+- Its hub options sbbt_github_token, sbbt_modules, sbbt_module_settings and
+  sbbt_groups. The module's own sb_tweaks_bricks_* options stay.
+- Its entries in SB_Tweaks_Installs::LABELS, PAGES and RELEASES, so it has no
+  column or hub table row, and in SB_Tweaks_Hub_Publish::PLUGINS.
+- Site Kit's docs drift check (SBSK_Docs::drifted()) now compares with nothing:
+  Bricks Tweaks is gone and SEO for AI no longer carries the shared block,
+  which had made it warn falsely since September.
+
+Kept on purpose:
+- The module's replaces line, so a site that installs the old plugin again
+  still has it switched off and blocked.
+- socialbump-bricks-tweaks in the reporter's PLUGINS (see Hub reporter).
+- The module's docs/standalone-notes.md and docs/changes.md, the archive.
+- The GitHub repo frysteen/socialbump-bricks-tweaks, for Sam to archive.
+
+A side effect: with the label gone, the Installs page no longer records or
+shows the standalone plugin, so a site that somehow still ran it would not
+show it there. The module's block still protects such a site.
+
+Cosmetic Studio and Driving Events still hold the standalone plugin's old
+sbbt_modules and sbbt_module_settings options, which nothing reads.
+
+## Modules under another menu, migrate and waits_for (October 2026)
+
+Added for Image Management, which moves out of Site Kit:
+
+- menu parent (e.g. 'upload.php'): the module's pages sit in that menu, one
+  per group, with no top level menu and no Features page. The Modules page
+  switch turns the whole module on or off. SB_Tweaks_Screen::parent(),
+  page_url( $slug ) (upload.php?page=... under a parent, admin.php?page=...
+  otherwise) and front_door() (the Features page, or the first group page).
+  Every link the Screen draws (banner home, tabs, admin bar rows, card
+  Settings links) and the Modules page Open link go through page_url(). The
+  hub's Documentation page of such a module is registered under options.php,
+  which is in no menu (with no parent at all WordPress gave it no title): it opens at admin.php?page=<slug>-documentation and shows in the
+  tabs and the admin bar flyout, but not in the Media menu.
+- migrate: a callable run for every module at the start of
+  SB_Tweaks_Modules::boot(), before any is asked whether it is on, so a module
+  that takes over settings from elsewhere has its options by the time 'auto'
+  looks for them. It checks for itself whether there is anything to do.
+  A throw is caught and shown as a failed load on the Modules page.
+- waits_for: a plugin basename the module must not run beside without
+  replacing it. replaced_running() now checks it as well as replaces, so the
+  module sits out a request in which that plugin had loaded.
+- Under a parent menu, ordered_groups() returns the groups in the order
+  module.php declares them: there is no Features page to drag them on, and
+  alphabetical put SB Image Cleaner ahead of SB Image Settings. The Media menu,
+  the tabs, the bar flyout and front_door() all follow it.
+
+## Site Kit and Image Management (October 2026)
+
+Standalone Site Kit split in two on the way in. modules/site-kit is everything
+but the image pages, on its old options and page addresses (sb-site-kit,
+sb-site-kit-<group>), with replaces set to the plugin. modules/images is the
+Images and Image Cleaner pages as SB Image Settings and SB Image Cleaner in the
+Media menu, on options of its own (sb_tweaks_images_*), copied once from Site
+Kit's by its migrate, and waits_for the plugin. Each module's docs/context.md
+has the detail, the names that moved and the ones that could not;
+standalone-notes.md and changes.md hold what Site Kit had.
+
+Both were ported by script from Site Kit 1.2.6 and checked name by name: every
+sbsk name moved (classes, hooks, actions, nonces, options the image module took
+over, CSS, script globals, text domain) apart from what posts have saved, the
+FAQ fields' ACF keys and the zoom block attributes. Shared screen parts use the
+framework's classes and popups; each module has its own stylesheet for its own
+pages (site-kit.css, images.css, media-grid.css, gallery-zoom.css). No browser
+confirm is left in either.
+
+Before a site moves over: check its snippets for any sbsk/ hook, which needs
+the new name; check it has sb_tweaks_site_kit_scheme (SBSK_Convert ran); and
+afterwards clear the page cache if it uses Gutenberg image zoom.
+
+Once the Installs page shows no site left on standalone Site Kit, the move-over
+code can go: SB_Images_Module::migrate() and its old_addresses() redirect, and
+the module's waits_for. The Site Kit module's replaces stays as long as any site
+might still have the plugin on disk, as with Bricks Tweaks.
+
+admin.css here still carries older copies of Site Kit's image and FAQ styles
+under sb-tweaks- names (Images page, Rebuild panel, sizes, report, orphans,
+FAQ sources), from before the framework was split out. Nothing uses them now.

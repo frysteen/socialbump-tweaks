@@ -49,6 +49,43 @@ class SB_Tweaks_Screen {
 		return $this->slug() . '-' . sanitize_key( $id );
 	}
 
+	/** The menu file this module's pages sit under instead of a menu of their own, or ''. */
+	public function parent() {
+		return isset( $this->def['menu']['parent'] ) ? (string) $this->def['menu']['parent'] : '';
+	}
+
+	/**
+	 * The address of one of this module's pages, wherever it sits. The hub's
+	 * Documentation page of a module under a parent menu is registered with no
+	 * parent, so it is reached through admin.php like any other.
+	 */
+	public function page_url( $slug ) {
+		$parent = $this->parent();
+
+		if ( $parent === '' || $slug === $this->slug() . '-documentation' ) {
+			return admin_url( 'admin.php?page=' . $slug );
+		}
+
+		return admin_url( $parent . '?page=' . $slug );
+	}
+
+	/** The page the module opens on: its Features page, or under a parent menu its first page. */
+	public function front_door() {
+		if ( $this->parent() === '' ) {
+			return $this->slug();
+		}
+
+		$items = $this->bar_items();
+
+		if ( ! $items ) {
+			return $this->slug();
+		}
+
+		reset( $items );
+
+		return (string) key( $items );
+	}
+
 	public function boot() {
 		add_action( 'admin_menu', [ $this, 'add_menu' ], 20 );
 		add_action( 'admin_enqueue_scripts', [ $this, 'styles' ] );
@@ -69,9 +106,18 @@ class SB_Tweaks_Screen {
 	 * The groups in the order this user arranged them on the Features page,
 	 * or by name until they have. Feeds the menu, the tab bar and the admin
 	 * bar, so the order is the same everywhere.
+	 *
+	 * A module under another menu has no Features page to arrange them on, so
+	 * its groups keep the order module.php declares them in: Image Management
+	 * lists SB Image Settings before SB Image Cleaner, and opens on Settings.
 	 */
 	public function ordered_groups() {
-		$states   = $this->features->group_states();
+		$states = $this->features->group_states();
+
+		if ( $this->parent() !== '' ) {
+			return $states;
+		}
+
 		$sections = $this->features->groups();
 		$titles   = [];
 
@@ -90,6 +136,12 @@ class SB_Tweaks_Screen {
 	}
 
 	public function add_menu() {
+		if ( $this->parent() !== '' ) {
+			$this->add_parent_menu();
+
+			return;
+		}
+
 		$sections = $this->features->groups();
 
 		add_menu_page(
@@ -174,6 +226,48 @@ class SB_Tweaks_Screen {
 		}
 	}
 
+	/**
+	 * Under another menu (Media, say) a module has no menu of its own and no
+	 * Features page: its switch on the Modules page turns all of it on, and
+	 * each group is a page in that menu. On the hub the Documentation page is
+	 * registered under options.php, which is in no menu, so it opens but is
+	 * not listed anywhere. With no parent at all WordPress found no title for
+	 * it, and the browser tab read only the site name.
+	 */
+	private function add_parent_menu() {
+		$sections = $this->features->groups();
+
+		foreach ( $this->ordered_groups() as $group => $on ) {
+			if ( ! $on || ! $this->features->in_group( $group ) ) {
+				continue;
+			}
+
+			$title = isset( $sections[ $group ]['title'] ) ? $sections[ $group ]['title'] : $group;
+
+			add_submenu_page(
+				$this->parent(),
+				esc_html( $title ),
+				esc_html( $title ),
+				'manage_options',
+				$this->group_page_slug( $group ),
+				function () use ( $group ) {
+					$this->render_group( $group );
+				}
+			);
+		}
+
+		if ( function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub() ) {
+			add_submenu_page(
+				'options.php',
+				esc_html__( 'Documentation', 'sb-tweaks' ),
+				esc_html__( 'Documentation', 'sb-tweaks' ),
+				'manage_options',
+				$this->slug() . '-documentation',
+				[ $this, 'render_documentation' ]
+			);
+		}
+	}
+
 	/** Just below the menu named in the declaration, when it is there. */
 	private function menu_position() {
 		if ( $this->def['menu']['after'] === '' ) {
@@ -194,7 +288,7 @@ class SB_Tweaks_Screen {
 	/** The pages the tab bar and the admin bar shortcut list, in menu order. */
 	public function bar_items() {
 		$sections = $this->features->groups();
-		$items    = [ $this->slug() => __( 'Features', 'sb-tweaks' ) ];
+		$items    = $this->parent() === '' ? [ $this->slug() => __( 'Features', 'sb-tweaks' ) ] : [];
 
 		foreach ( $this->ordered_groups() as $group => $on ) {
 			if ( ! $on || ! $this->features->in_group( $group ) ) {
@@ -237,7 +331,7 @@ class SB_Tweaks_Screen {
 		foreach ( $items as $slug => $title ) {
 			$pages[] = [
 				'title'   => $title,
-				'href'    => admin_url( 'admin.php?page=' . $slug ),
+				'href'    => $this->page_url( $slug ),
 				'current' => $slug === $current,
 			];
 		}
@@ -247,7 +341,7 @@ class SB_Tweaks_Screen {
 				'id'      => $this->def['bar']['id'],
 				'module'  => $this->def['id'],
 				'label'   => $this->def['bar']['label'],
-				'href'    => admin_url( 'admin.php?page=' . $this->slug() ),
+				'href'    => $this->page_url( $this->front_door() ),
 				'items'   => $pages,
 				'current' => $current !== '',
 			]
@@ -271,7 +365,7 @@ class SB_Tweaks_Screen {
 		echo '<nav class="sb-tweaks-header__nav">';
 
 		foreach ( $items as $slug => $title ) {
-			echo '<a class="sb-tweaks-header__link' . ( $slug === $page ? ' is-current' : '' ) . '" href="' . esc_url( admin_url( 'admin.php?page=' . $slug ) ) . '">' . esc_html( $title ) . '</a>';
+			echo '<a class="sb-tweaks-header__link' . ( $slug === $page ? ' is-current' : '' ) . '" href="' . esc_url( $this->page_url( $slug ) ) . '">' . esc_html( $title ) . '</a>';
 		}
 
 		echo '</nav>';
@@ -288,7 +382,7 @@ class SB_Tweaks_Screen {
 		$heading = $this->def['heading'];
 
 		echo '<div class="sb-tweaks-header"><div class="sb-tweaks-header__brand">';
-		echo '<a class="sb-tweaks-header__home" href="' . esc_url( admin_url( 'admin.php?page=' . $this->slug() ) ) . '">';
+		echo '<a class="sb-tweaks-header__home" href="' . esc_url( $this->page_url( $this->front_door() ) ) . '">';
 		echo '<img class="sb-tweaks-header__logo" src="' . esc_url( SB_TWEAKS_URL . 'assets/img/socialbump-logo-light.svg' ) . '" alt="SocialBUMP" width="203" height="28">';
 		echo '</a>';
 		echo '<h1 class="sb-tweaks-header__title">' . esc_html( $heading );
@@ -404,7 +498,7 @@ class SB_Tweaks_Screen {
 			$card .= '</ul>';
 
 			if ( $on ) {
-				$card .= '<p class="sb-tweaks-card__link"><a href="' . esc_url( admin_url( 'admin.php?page=' . $this->group_page_slug( $group ) ) ) . '">' . esc_html__( 'Settings', 'sb-tweaks' ) . '</a></p>';
+				$card .= '<p class="sb-tweaks-card__link"><a href="' . esc_url( $this->page_url( $this->group_page_slug( $group ) ) ) . '">' . esc_html__( 'Settings', 'sb-tweaks' ) . '</a></p>';
 			}
 
 			echo $card . '</div>';
@@ -537,7 +631,7 @@ class SB_Tweaks_Screen {
 		}
 
 		if ( $on && ! empty( $feature['admin_page']['title'] ) && count( $this->features->in_group( $feature['section'] ) ) > 1 ) {
-			echo '<p class="sb-tweaks-card__link"><a href="' . esc_url( admin_url( 'admin.php?page=' . $this->feature_page_slug( $id ) ) ) . '">' . esc_html__( 'Settings', 'sb-tweaks' ) . '</a></p>';
+			echo '<p class="sb-tweaks-card__link"><a href="' . esc_url( $this->page_url( $this->feature_page_slug( $id ) ) ) . '">' . esc_html__( 'Settings', 'sb-tweaks' ) . '</a></p>';
 		}
 
 		echo '</div>';
@@ -691,6 +785,11 @@ class SB_Tweaks_Screen {
 			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/progress.js' ) ) {
 				wp_enqueue_script( 'sb-tweaks-progress', SB_TWEAKS_URL . 'assets/js/progress.js', [], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/progress.js' ), true );
 			}
+
+			// The confirm popup, for anything that asks before it acts.
+			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/confirm.js' ) ) {
+				wp_enqueue_script( 'sb-tweaks-confirm', SB_TWEAKS_URL . 'assets/js/confirm.js', [ 'jquery' ], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/confirm.js' ), true );
+			}
 		}
 
 		// Shared cards that drag and collapse.
@@ -703,6 +802,11 @@ class SB_Tweaks_Screen {
 
 	/** Make the mark dim and brighten like the Dashicons around it. */
 	public function icon_styles() {
+		// Under a parent menu there is no menu item of ours to dim.
+		if ( $this->parent() !== '' ) {
+			return;
+		}
+
 		$item = '#adminmenu #toplevel_page_' . $this->slug();
 
 		echo '<style>' . $item . ' div.wp-menu-image.svg{opacity:0.6;transition:opacity .1s ease-in-out;}';

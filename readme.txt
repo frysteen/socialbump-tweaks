@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.11
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,16 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.2.0 =
+* Import settings on the Updates page now asks in the SocialBUMP style popup instead of the browser's own box.
+* New Site Kit module: everything from the standalone SocialBUMP Site Kit plugin apart from its image pages, with the same settings and page addresses. On a site with standalone Site Kit, the plugin is switched off and the module takes over on the first load, with nothing to set up again.
+* New Image Management module: Site Kit's Images and Image Cleaner pages, now SB Image Settings and SB Image Cleaner in the Media menu, with an Image Management row in the SocialBUMP admin bar. Its settings are copied across from Site Kit automatically, and the old page addresses open the new pages.
+* Every question and run summary on the Site Kit and Image Management pages now uses the SocialBUMP style popup. Delete FAQ content no longer falls back to the browser's own confirm box.
+* SB Image Cleaner: a figure that needs attention, such as Sizes to build or Missing images, now keeps its yellow edge when it also has Show images. It used to turn grey.
+* SB Image Cleaner: a size added on SB Image Settings, or a WordPress size switched back on, now starts ticked in the Sizes list. It used to start unticked, so the scan left it out until someone noticed.
+* SB Image Cleaner: Build Thumbnails now has a green outline while there is something to build, to match the red outline on the delete buttons.
+* Every button on the SocialBUMP Tweaks pages now has a 2px border, filled or outlined, so buttons of the same size match exactly.
 
 = 0.1.11 =
 * Bricks Tweaks: new Hide Unpublished ACF Posts switch under Extras. Drafts, scheduled, private and binned posts are left out of ACF relationship and post object fields on the front end, so related posts can be picked ahead of time and only appear once published.

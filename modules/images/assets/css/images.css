@@ -1,0 +1,1298 @@
+/* Image Management: SB Image Settings, SB Image Cleaner and the sizes panel in the media library. The framework's admin.css draws the banner, cards, sections, switches and popups. */
+
+/* Images page */
+
+.sb-images-settings {
+	display: grid;
+	grid-template-columns: minmax(320px, 1fr) minmax(320px, 1.2fr);
+	gap: 20px;
+	align-items: start;
+}
+
+@media (max-width: 1100px) {
+	.sb-images-settings {
+			grid-template-columns: 1fr;
+		}
+}
+
+.sb-images-settings .sb-tweaks-section {
+	margin: 0;
+}
+
+/* On upload and Image extras stack in the right-hand column. */
+
+.sb-images-settings__side {
+	display: grid;
+	gap: 20px;
+	align-content: start;
+}
+
+.sb-images-widths {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 16px;
+	max-width: 320px;
+}
+
+.sb-images-width {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.sb-images-width input[type="number"] {\n\twidth: 90px;\n}
+
+.sb-images-width__name {
+	flex: 1 1 auto;
+	padding: 6px 10px;
+	background: #f0f0f1;
+	border-radius: 4px;
+	color: #50575e;
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+.sb-images-width__remove {
+	color: #b32d2e;
+	font-size: 15px;
+	line-height: 1;
+	text-decoration: none;
+	opacity: 0.6;
+}
+
+.sb-images-width__remove:hover,
+.sb-images-width__remove:focus {
+	opacity: 1;
+}
+
+.sb-images-settings .sb-tweaks-grid {
+	grid-template-columns: 1fr;
+}
+
+.sb-tweaks-wrap form > .sb-images-settings:first-child,
+.sb-tweaks-wrap > .sb-images-settings:first-child {
+	margin-top: 20px;
+}
+
+.sb-images-settings .sb-tweaks-section {
+	margin-top: 0;
+}
+
+/* Wider width inputs */
+
+.sb-images-width input[type="number"] {
+	width: 120px;
+}
+
+.sb-images-widths {
+	max-width: 380px;
+}
+
+.sb-images-rebuild__bar {
+	height: 8px;
+	margin-bottom: 10px;
+	background: #f0f0f1;
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.sb-images-rebuild__bar span {
+	display: block;
+	width: 0;
+	height: 100%;
+	background: #85df07;
+	transition: width 0.25s ease;
+}
+
+.sb-images-rebuild__status {
+	min-height: 20px;
+	margin: 0 0 12px;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.sb-images-rebuild__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 14px;
+}
+
+.sb-images-rebuild__force {
+	color: #50575e;
+	font-size: 13px;
+}
+
+/* Size list, on the page and in the media modal */
+
+.sb-images-sizes {
+	margin: 0 0 10px;
+	font-size: 12px;
+}
+
+.sb-images-sizes li {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 0;
+	padding: 3px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sb-images-sizes li.is-present span:last-child {
+	color: #00681f;
+}
+
+.sb-images-sizes li.is-missing span:last-child {
+	color: #d63638;
+	font-weight: 600;
+}
+
+.sb-images-sizes li.is-skipped span:last-child {
+	color: #8c8f94;
+}
+
+/* A section heading with its own switch */
+
+.sb-images-section__head--switch {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.sb-images-section__head--switch p {
+	margin-bottom: 0;
+}
+
+/* Add and reset, at either end of the row */
+
+.sb-images-width-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-top: 14px;
+}
+
+/* Image report */
+
+.sb-images-report__panel {
+	margin-top: 4px;
+}
+
+.sb-images-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 12px;
+}
+
+.sb-images-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+	border-left: 3px solid #c3c4c7;
+}
+
+.sb-images-stat.is-good {
+	border-left-color: #85df07;
+}
+
+.sb-images-stat.is-warn {
+	border-left-color: #dba617;
+	background: #fdf8e8;
+}
+
+.sb-images-stat__value {
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.1;
+	color: #1d2327;
+}
+
+.sb-images-stat__label {
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.sb-images-stat__note {
+	font-size: 12px;
+	color: #646970;
+}
+
+.sb-images-report__title {
+	margin: 20px 0 4px;
+	font-size: 14px;
+}
+
+.sb-images-report__note {
+	margin: 0 0 10px;
+	color: #646970;
+	font-size: 12px;
+}
+
+table.sb-images-report {
+	width: 100%;
+	max-width: 700px;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+table.sb-images-report td {
+	padding: 6px 10px 6px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+table.sb-images-report td:last-child {
+	width: 90px;
+	color: #646970;
+	text-align: right;
+}
+
+/* Orphan list */
+
+table.sb-images-report td:last-child {
+	width: auto;
+}
+
+.sb-images-report__size {
+	color: #646970;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.wp-core-ui .sb-images-report__delete {
+	min-height: 0;
+	padding: 1px 9px;
+	height: auto;
+	line-height: 1.7;
+	font-size: 11px;
+	color: #d63638;
+	border-color: #d63638;
+}
+
+.wp-core-ui .sb-images-report__delete:hover,
+.wp-core-ui .sb-images-report__delete:focus,
+.wp-core-ui .sb-images-report__delete:active {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+	box-shadow: none;
+}
+
+.wp-core-ui .sb-images-report__delete:focus {
+	outline: 2px solid transparent;
+	box-shadow: 0 0 0 1px #fff, 0 0 0 3px #d63638;
+}
+
+/* Progress, shown only while something is running */
+
+.sb-images-progress {
+	position: relative;
+	margin: 18px 0;
+	padding: 14px 40px 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sb-images-progress .sb-images-rebuild__status {
+	margin: 8px 0 0;
+}
+
+.sb-images-progress__close {
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	padding: 0 6px;
+	background: none;
+	border: 0;
+	color: #646970;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sb-images-progress__close:hover {
+	color: #1d2327;
+}
+
+/* Orphan list in a box of its own */
+
+.sb-images-report__orphans {
+	margin-top: 20px;
+	padding: 16px 18px;
+	background: #fbfbfc;
+	border: 1px solid #e6e7e8;
+	border-radius: 6px;
+}
+
+.sb-images-report__orphans .sb-images-report__title {
+	margin-top: 0;
+}
+
+.sb-images-report__orphans table.sb-images-report tr:last-child td {
+	border-bottom: 0;
+}
+
+/* Room between the results, the progress panel and the buttons */
+
+.sb-images-report__orphans {
+	margin-bottom: 20px;
+}
+
+.sb-images-rebuild .sb-images-stats {
+	margin-bottom: 20px;
+}
+
+.sb-images-progress {
+	margin: 0 0 20px;
+}
+
+.sb-images-rebuild__actions {
+	margin-top: 0;
+}
+
+/* Notes on a width row */
+
+.sb-images-width__clash,
+.sb-images-width__dupe {
+	font-size: 11px;
+	color: #8a6116;
+	white-space: nowrap;
+}
+
+.sb-images-width__dupe {
+	color: #d63638;
+	font-weight: 600;
+}
+
+.sb-images-width.is-duplicate input[type="number"] {
+	border-color: #d63638;
+}
+
+/* The image being worked on */
+
+.sb-images-progress__line {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 14px;
+}
+
+.sb-images-progress__timer {
+	flex: none;
+	margin: 0 0 12px;
+	color: #787c82;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+/* Sits exactly where the close cross does, and they swap. */
+
+.sb-images-progress__cancel {
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	padding: 0 6px;
+	background: none;
+	border: 0;
+	color: #b32d2e;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.sb-images-progress__cancel:hover {
+	color: #8a2424;
+}
+
+.sb-images-progress__cancel:disabled {
+	color: #a7aaad;
+	cursor: default;
+}
+
+/* Orphan rows: in use, or kept on purpose */
+
+.sb-images-report__used,
+.sb-images-report__keptflag {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+}
+
+.sb-images-report__used {
+	color: #8a6116;
+}
+
+.wp-core-ui .sb-images-report__keep {
+	min-height: 0;
+	margin-right: 6px;
+	padding: 1px 9px;
+	height: auto;
+	line-height: 1.7;
+	font-size: 11px;
+}
+
+/* A file being kept on purpose */
+
+/* Orphan table */
+
+table.sb-images-report {
+	width: 100%;
+	max-width: none;
+	border-collapse: separate;
+	border-spacing: 0;
+}
+
+table.sb-images-report td {
+	padding: 8px 10px;
+	vertical-align: middle;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+table.sb-images-report tr:last-child td {
+	border-bottom: 0;
+}
+
+table.sb-images-report td:first-child {
+	padding-left: 12px;
+	border-left: 3px solid transparent;
+}
+
+table.sb-images-report td.sb-images-report__size {
+	width: 90px;
+	color: #646970;
+	text-align: right;
+	white-space: nowrap;
+}
+
+table.sb-images-report td.sb-images-report__action {
+	width: 1%;
+	white-space: nowrap;
+	text-align: right;
+}
+
+/* Kept on purpose */
+
+table.sb-images-report tr.is-kept td {
+	background: #fdf8e8;
+}
+
+table.sb-images-report tr.is-kept td:first-child {
+	border-left-color: #dba617;
+}
+
+/* Row buttons, matched so the columns line up */
+
+.wp-core-ui .button.sb-images-report__keep,
+.wp-core-ui .button.sb-images-report__delete {
+	min-width: 96px;
+	min-height: 0;
+	padding: 1px 9px;
+	height: auto;
+	line-height: 1.8;
+	font-size: 12px;
+	text-align: center;
+}
+
+.wp-core-ui .sb-images-report__keep {
+	margin-right: 8px;
+}
+
+/* Files beyond the first 25, until they are asked for */
+
+table.sb-images-report tr.is-extra {
+	display: none;
+}
+
+table.sb-images-report tr.sb-images-report__morerow td {
+	padding-top: 10px;
+}
+
+/* Sizes made by WordPress and other plugins */
+
+.sb-images-othersizes {
+	margin-top: 18px;
+	padding-top: 16px;
+	border-top: 1px solid #e6e7e8;
+}
+
+.sb-images-othersizes h3 {
+	margin: 0 0 4px;
+	font-size: 13px;
+}
+
+.sb-images-othersizes__list {
+	margin: 10px 0 0;
+	max-width: 520px;
+	font-size: 12px;
+}
+
+.sb-images-othersizes__list li {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 0;
+	padding: 3px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sb-images-othersizes__list code {
+	background: none;
+	padding: 0;
+	font-size: 12px;
+}
+
+.sb-images-othersizes__list span {
+	color: #646970;
+	white-space: nowrap;
+}
+
+/* What each image gained, as it happens */
+
+.sb-images-progress__log {
+	margin: 10px 0 0;
+	max-height: 420px;
+	overflow-y: auto;
+	font-size: 12px;
+}
+
+.sb-images-log__dims {
+	display: block;
+	margin: 1px 0 4px;
+	color: #787c82;
+	font-size: 11px;
+}
+
+.sb-images-progress__log li.is-skipped {
+	color: #787c82;
+}
+
+.sb-images-progress__log li.is-skipped em {
+	font-style: normal;
+	font-size: 11px;
+}
+
+.sb-images-progress__log > li {
+	margin: 0 0 8px;
+}
+
+.sb-images-progress__log ul {
+	margin: 2px 0 0 4px;
+}
+
+.sb-images-progress__log ul li {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	color: #50575e;
+}
+
+.sb-images-tick {
+	color: #00681f;
+	font-weight: 600;
+}
+
+/* Editable and fixed sizes, one per line */
+
+.sb-images-othersizes__list li {
+	gap: 14px;
+	padding: 6px 0;
+}
+
+.sb-images-othersizes__list code {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.sb-images-othersizes__edit {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 0 0 auto;
+}
+
+.sb-images-othersizes__edit input[type="number"] {
+	width: 84px;
+}
+
+.sb-images-othersizes__edit span {
+	color: #646970;
+	white-space: nowrap;
+}
+
+.sb-images-othersizes__list em {
+	flex: 0 0 auto;
+	color: #8c8f94;
+	font-size: 11px;
+	font-style: normal;
+}
+
+.sb-images-othersizes__fixed {
+	flex: 0 0 auto;
+	color: #646970;
+	white-space: nowrap;
+}
+
+.sb-images-othersizes__save {
+	margin: 14px 0 0;
+}
+
+.sb-images-othersizes__save {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.sb-images-othersizes__save a {
+	font-size: 12px;
+}
+
+/* The orphan list: a thumbnail, the name, and the attachment it came from. */
+
+.sb-images-report__file {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sb-images-report__thumb {
+	flex: 0 0 auto;
+	display: block;
+	width: 40px;
+	height: 40px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+	overflow: hidden;
+}
+
+.sb-images-report__thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.sb-images-report__name {
+	min-width: 0;
+}
+
+.sb-images-report__id {
+	display: inline-block;
+	margin-left: 6px;
+	padding: 1px 7px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	color: #50575e;
+	font-size: 11px;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.sb-images-report__id:hover {
+	background: #e0e0e1;
+	color: #1d2327;
+}
+
+/* The rebuild log: one image to a row, with its own thumbnail. */
+
+.sb-images-log__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 8px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sb-images-log__thumb {
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+	object-fit: cover;
+}
+
+.sb-images-log__detail {
+	min-width: 0;
+}
+
+.sb-images-log__detail ul {
+	margin: 2px 0 0;
+}
+
+.sb-images-attachment-box {
+	margin: 12px 0 0;
+}
+
+.sb-images-attachment-box .hndle {
+	padding: 0 12px;
+	font-size: 13px;
+}
+
+.sb-images-attachment-box .inside {
+	margin: 0;
+	padding: 8px 12px 12px;
+}
+
+.sb-images-width__name {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 40px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 2px;
+	line-height: 1.2em;
+	white-space: normal;
+}
+
+.sb-images-width__name > .sb-images-width__value {
+	display: contents;
+}
+
+.sb-images-width__clash {
+	display: block;
+	margin: 0;
+	padding: 0;
+	color: #b32d2e;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	font-size: 11px;
+}
+
+.sb-images-width {
+	padding: 10px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sb-images-width:last-child {
+	border-bottom: 0;
+}
+
+.sb-images-othersizes__list {
+	max-width: none;
+}
+
+.sb-images-widths {
+	max-width: none;
+	gap: 0;
+}
+
+.wp-core-ui .button-link.sb-images-width__remove {
+	flex: none;
+	color: #d63638;
+	font-weight: 700;
+	font-size: 15px;
+	text-decoration: none;
+	opacity: 1;
+}
+
+.wp-core-ui .button-link.sb-images-width__remove:hover {
+	color: #a00;
+}
+
+.sb-images-cleaner {
+	display: grid;
+	grid-template-columns: minmax(260px, 400px) minmax(0, 1fr);
+	gap: 20px;
+	align-items: start;
+}
+
+.sb-images-sizegroup {
+	margin: 0 0 14px;
+}
+
+.sb-images-sizegroup__head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin: 0 0 4px;
+	padding: 0 0 4px;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 12px;
+}
+
+.sb-images-sizegroup__head .button-link {
+	font-size: 11px;
+}
+
+.sb-images-sizegroup__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px 8px;
+	padding: 5px 6px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+.sb-images-sizegroup__item:nth-child(odd) {
+	background: #f6f7f7;
+}
+
+.sb-images-sizegroup__item input {
+	margin: 0;
+}
+
+.sb-images-sizegroup__item code {
+	flex: 1 1 auto;
+	min-width: 0;
+	background: none;
+	padding: 0;
+	overflow-wrap: anywhere;
+}
+
+/* The pixels drop to their own line, right aligned, when the name is long. */
+
+.sb-images-sizegroup__item span {
+	margin-left: auto;
+	color: #787c82;
+	white-space: nowrap;
+}
+
+.sb-images-cleaner__sizes-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+	font-size: 12px;
+}
+
+.sb-images-section__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+/* Amber, not red: a skipped size is a decision, not a failure. Last in the
+   file so it beats the green .sb-images-tick above it. */
+
+.sb-images-progress__log li.is-skipped .sb-images-tick--skip {
+	color: #b26200;
+}
+
+.sb-images-sizes li.is-skipped span:last-child em {
+	font-style: normal;
+	font-size: 11px;
+}
+
+/* A button, but it has to look exactly like the plain stat beside it: the
+   default button chrome is what gave it a dark border. */
+
+.wp-core-ui .sb-images-stat.is-openable {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border: 0;
+	border-left: 3px solid #c3c4c7;
+	border-radius: 6px;
+	box-shadow: none;
+	text-align: left;
+	cursor: pointer;
+	font: inherit;
+	line-height: inherit;
+	height: auto;
+}
+
+.wp-core-ui .sb-images-stat.is-openable:hover,
+.wp-core-ui .sb-images-stat.is-openable:focus {
+	background: #f0f0f1;
+	box-shadow: none;
+}
+
+/* An openable stat keeps its tone: the button reset above put every one back
+   to grey, so Sizes to build lost its yellow as soon as it had Show images. */
+.wp-core-ui .sb-images-stat.is-openable.is-good {
+	border-left-color: #85df07;
+}
+
+.wp-core-ui .sb-images-stat.is-openable.is-warn {
+	border-left-color: #dba617;
+	background: #fdf8e8;
+}
+
+.wp-core-ui .sb-images-stat.is-openable.is-warn:hover,
+.wp-core-ui .sb-images-stat.is-openable.is-warn:focus {
+	background: #fbf0d4;
+}
+
+.sb-images-stat__more {
+	margin-top: 6px;
+	color: #2271b1;
+	font-size: 11px;
+	text-decoration: underline;
+}
+
+/* The same grey panel the progress log sits in, so the two read as one thing. */
+
+.sb-images-missing {
+	margin: 18px 0 0;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sb-images-missing .sb-images-progress__log {
+	margin: 0;
+}
+
+.sb-images-missing__log {
+	max-height: 460px;
+}
+
+.sb-images-missing__row .button-link {
+	font-size: 11px;
+}
+
+.sb-images-missing__note {
+	margin: 8px 0 0;
+	color: #787c82;
+	font-size: 12px;
+}
+
+.sb-images-deep {
+	position: relative;
+	margin: 18px 0 0;
+	padding: 14px 16px;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.sb-images-deep__head p {
+	margin: 0 0 6px;
+}
+
+.sb-images-deep__warn {
+	color: #8a6400;
+	font-size: 12px;
+}
+
+.sb-images-deep__working,
+.sb-images-deep__none {
+	margin: 0;
+}
+
+.sb-images-deep__list {
+	margin: 10px 0;
+	max-height: 320px;
+	overflow-y: auto;
+	font-size: 12px;
+}
+
+.sb-images-deep__list li {
+	margin: 0;
+	padding: 4px 6px;
+	border-radius: 3px;
+}
+
+.sb-images-deep__list li:nth-child(odd) {
+	background: #fff;
+}
+
+.sb-images-deep__list code {
+	background: none;
+	padding: 0;
+}
+
+.sb-images-deep__list span {
+	color: #787c82;
+}
+
+.sb-images-deep__foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+	font-size: 12px;
+}
+
+.sb-images-deep__foot .button {
+	margin-left: auto;
+}
+
+.sb-images-deep__row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sb-images-deep__row label {
+	flex: 1 1 auto;
+}
+
+.sb-images-deep__files {
+	margin: 4px 0 8px 26px;
+}
+
+.sb-images-deep__files li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 6px;
+	background: none;
+}
+
+.sb-images-deep__files img {
+	flex: none;
+	width: 32px;
+	height: 32px;
+	object-fit: cover;
+	border-radius: 3px;
+	background: #fff;
+}
+
+.sb-images-deep__files a {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.sb-images-deep__more {
+	color: #787c82;
+	font-style: italic;
+}
+
+.sb-images-rebuild__help {
+	margin: 10px 0 0;
+	color: #787c82;
+	font-size: 12px;
+}
+
+.sb-images-deep__head h3 {
+	margin: 0 0 6px;
+	color: #b32d2e;
+	font-size: 14px;
+}
+
+.sb-images-deep__close {
+	position: absolute;
+	top: 8px;
+	right: 10px;
+	padding: 0 4px;
+	background: none;
+	border: 0;
+	color: #787c82;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.sb-images-deep__close:hover {
+	color: #1d2327;
+}
+
+.sb-images-deep__skipped {
+	margin: 0 0 12px;
+	padding: 10px 12px;
+	background: #fcf9e8;
+	border-left: 3px solid #dba617;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+.sb-images-deep__skipped p {
+	margin: 0 0 4px;
+}
+
+.sb-images-deep__skipped ul {
+	margin: 0;
+}
+
+.sb-images-deep__skipped li {
+	margin: 2px 0;
+}
+
+.sb-images-deep__skipped code {
+	background: none;
+	padding: 0;
+}
+
+.sb-images-deep__skipped span {
+	color: #787c82;
+}
+
+.sb-images-deep__skipped a,
+.sb-images-report__used a {
+	text-decoration: underline;
+}
+
+/* Missing images: long addresses wrap rather than push the panel wide. */
+
+.sb-images-gone__row .sb-images-log__dims a {
+	word-break: break-all;
+}
+
+.sb-images-gone__foot {
+	margin: 12px 0 0;
+}
+
+/* WordPress sizes that can be switched off on the Images page. */
+
+/* Class on class, to beat WordPress's input[type=checkbox] margin. */
+
+.sb-images-othersizes__list .sb-images-othersizes__on {
+	flex: 0 0 16px;
+	width: 16px;
+	margin: 0;
+}
+
+.sb-images-othersizes__list li.is-off code,
+.sb-images-othersizes__list li.is-off .sb-images-othersizes__edit,
+.sb-images-othersizes__list li.is-off .sb-images-othersizes__fixed {
+	opacity: 0.5;
+}
+
+/* A missing image has nothing to show, so its box carries a question mark. */
+
+.sb-images-log__thumb.sb-images-gone__thumb {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #a7aaad;
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+/* Add a width and Add default sizes sit together on the left */
+
+.sb-images-width-actions__add {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* A width that is one of the standard sizes */
+
+.sb-images-width__default {
+	display: block;
+	color: #646970;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	font-size: 11px;
+}
+
+/* Standard widths get a green edge, any other width an orange one */
+
+.sb-images-width__name {
+	border-left: 3px solid #dba617;
+	border-radius: 0 4px 4px 0;
+}
+
+.sb-images-width.is-default .sb-images-width__name {
+	border-left-color: #85df07;
+}
+
+/* Image Cleaner's per image log, inside the popup. */
+
+.sb-tweaks-job .sb-images-progress__log {
+	max-height: 260px;
+	margin: 14px 0 0;
+	text-align: left;
+}
+
+.sb-tweaks-job .sb-images-progress__log:empty {
+	display: none;
+}
+
+/* The summary that pops up when an Image Cleaner run ends. */
+
+.sb-images-summary__head {
+	margin: 0 0 10px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+/* A run that failed turns its bar red in the progress box. */
+
+.sb-images-progress.is-failed .sb-images-rebuild__bar span {
+	background: #b32d2e;
+}
+
+/* Image Cleaner's size groups: Edit Sizes beside Image Sizes, and the note under Other Image Sizes. */
+
+.sb-images-sizegroup__title {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 10px;
+}
+
+.sb-images-sizegroup__edit {
+	font-size: 11px;
+}
+
+.sb-images-sizegroup__note {
+	margin: 2px 0 6px;
+	color: #787c82;
+	font-size: 11px;
+}
+
+/* An image's sizes panel, in the Image Cleaner's groups. */
+
+.sb-images-sizes__group {
+	margin: 10px 0 2px;
+	color: #646970;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.sb-images-sizes__group:first-child {
+	margin-top: 0;
+}
+
+.sb-images-sizes .sb-images-sizes__list {
+	margin: 0;
+}
+
+/* The files a delete left alone, in its summary popup. A long list scrolls. */
+
+.sb-images-summary__skipped {
+	margin: 10px 0 0;
+	padding: 10px 0 0;
+	border-top: 1px solid #dcdcde;
+	font-size: 12px;
+}
+
+.sb-images-summary__skipped p {
+	margin: 0 0 4px;
+	font-weight: 600;
+}
+
+.sb-images-summary__skipped ul {
+	max-height: 220px;
+	margin: 0;
+	overflow-y: auto;
+}
+
+.sb-images-summary__skipped li {
+	margin: 2px 0;
+}
+
+.sb-images-summary__skipped code {
+	padding: 0;
+	background: none;
+	font-size: 12px;
+}
+
+.sb-images-summary__skipped li > span {
+	color: #787c82;
+}

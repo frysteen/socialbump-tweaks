@@ -18,7 +18,6 @@ class SB_Tweaks_Hub_Publish {
 	/** Plugin folder => [ release class, option and field prefix ]. */
 	const PLUGINS = [
 		'socialbump-site-kit'              => [ 'SBSK_Release', 'sbsk' ],
-		'socialbump-bricks-tweaks'         => [ 'SBBT_Release', 'sbbt' ],
 		'socialbump-ai-knowledge-exporter' => [ 'SBAIKE_Release', 'sbaike' ],
 		'socialbump-tweaks'                => [ 'SB_Tweaks_Release', 'sb_tweaks' ],
 	];
