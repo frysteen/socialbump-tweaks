@@ -139,3 +139,111 @@ Ticking a size here only adds it to Old thumbnails to clear. Remove old sizes
 still keeps any file another size of the image, ticked or not, still names
 (SB_Images_Rebuild::file_has_other_owner()), so a leftover size that shares
 its file with a kept one only loses its entry.
+
+## Switching a site to the standard sizes
+
+How bricks.socialbump.com.au, doogood.com.au and epoxyflooringco.com.au were
+moved onto 450, 665, 890, 1330 and 1920 (October 2026), written as the order to
+do it in. Villa Real Estate was sorted the same way earlier, under standalone
+Site Kit. It is mostly finding where the old sizes are used and changing those
+first, because Remove old sizes deletes the files and anything still asking
+for them shows a broken image.
+
+Do not do this on drivingevents.com.au: newsletters already sent link to its
+old size files, so it keeps its old widths and nothing is ever removed there.
+Ask before doing it on any site that sends image links out in email.
+
+### 1. Look before touching anything
+
+- Which sizes the site registers now, and from where: SB Image Settings (or
+  Site Kit's Images page), a snippet (Epoxy had WPCodeBox snippet 3, "Image
+  Sizes"), the theme (Total's dynamic resizing makes wpex_ sizes on the fly),
+  or another plugin. Note anything cropped: the old -square and -4x3 sizes
+  were cropped, the new ones are not.
+- Which builders hold content: Bricks, Elementor, WPBakery (and Templatera
+  templates), Gutenberg, plus theme options, widgets and snippets.
+- Back up before any edit: the _elementor_data, _bricks_page_content_2 and
+  post_content of everything you change, to /tmp as sbx-<stamp>-*.json.
+
+### 2. Add the standard sizes and build them
+
+On SB Image Settings, Add default sizes, Save, then Build Thumbnails on SB
+Image Cleaner. Old sizes stay registered for now, so nothing breaks yet.
+
+### 3. Find every use of an old size
+
+| Where | What to look for |
+| --- | --- |
+| Elementor (_elementor_data) | image_size, thumbnail_size, size_size, imgsize_size and any other *_size key holding an old name; "custom" with a *_custom_dimension, which only becomes elementor_custom_WxH once its file is made |
+| Bricks (_bricks_page_content_2, _header_, _footer_, templates) | the size setting on images, galleries and the carousel |
+| Gutenberg (post_content) | sizeSlug, the size-<name> class, a file URL ending -WxH, and block attributes such as sbskZoomSize |
+| WPBakery (post_content, templatera) | img_size in shortcodes, custom width x height values, Total wpex_ sizes |
+| Elsewhere | theme options, widgets, snippets, and the CSS in them (background images) |
+
+### 4. Pick the new size
+
+The nearest standard size, going up one when the nearest is more than 10%
+narrower than the old one (thumbnail 150 cropped, medium 300 and large 1024
+count as standard too):
+
+| Old | New |
+| --- | --- |
+| image-240 | medium |
+| image-480 | image-450 |
+| image-640, image-720 | image-665 |
+| medium_large (768) | image-890 |
+| image-960 | image-890 |
+| image-1200 | image-1330 |
+| 1536x1536, 2048x2048, image-2000 | image-1920 |
+| image-<w>-square, image-<w>-4x3 | the width rule above, plus the shape (step 5) |
+
+### 5. Keep the shape where the old size was cropped
+
+The new sizes keep each image's own shape, so anything that relied on a
+cropped size needs the shape set where it is shown:
+
+- Elementor: Image Aspect Ratio in the widget's SB Image section (Elementor
+  Tweaks module): 1:1 for -square, 4:3 for -4x3, cover, centre centre.
+  Before that module existed, Epoxy got Custom CSS on each widget, selector
+  img { aspect-ratio: 1; object-fit: cover; }, which the module's settings
+  replace.
+- Gutenberg image block: aspectRatio and scale cover in the block attributes
+  (the img gets style aspect-ratio and object-fit).
+- Bricks: aspect-ratio and object-fit on the element's image.
+- Widgets with a ratio of their own (Elementor Gallery and Posts) and
+  background images set to cover need nothing.
+
+### 6. Make the changes
+
+- Prefer the site's purpose built tool (novamira/elementor-edit-element and
+  friends, the Bricks abilities). Two Elementor catches from Epoxy:
+  elementor-edit-element drops widgets whose plugin is inactive (JetEngine's
+  listing grid) and says "not persisted", and it refuses post types without
+  Elementor support (jet-engine listings). For those, restore from the backup
+  and change only the size string in the stored JSON with PHP.
+- Clear Elementor's CSS (files_manager->clear_cache()) or Bricks' CSS files
+  afterwards, and any page cache.
+
+### 7. Check the front end
+
+Crawl every public page and template output (sitemap plus anything else
+found), map each uploads file on the page to its size names through
+_wp_attachment_metadata, and confirm no page shows a size that is about to go
+and no file is missing. Decode &#039; and friends in style attributes first,
+or background image files show as unknown.
+
+### 8. Clean up
+
+1. Switch off whatever registered the old sizes (the snippet, the theme
+   setting).
+2. Take a database backup.
+3. SB Image Cleaner: Scan.
+4. Leftover sizes from other sources: Select all, add them to Old thumbnails
+   to clear (elementor_custom_*, wpex_* and the like), after checking step 3
+   found none in use.
+5. Remove old sizes. Any file another kept size still names is kept, so only
+   its entry goes (SB_Images_Rebuild::file_has_other_owner()).
+6. Orphaned files, then clear the host cache.
+
+Form upload images (WS Form keeps them under uploads/ws-form) get no new sizes
+and are on no page; leave them.

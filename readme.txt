@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.1
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,10 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.3.0 =
+* New Woo Tweaks module: the seven WooCommerce features that were in Site Kit now have their own SB Woo Tweaks menu, with Shop and Checkout and Store Admin pages. It only appears where WooCommerce is active, and switches and settings carry across from Site Kit on update.
+* New Elementor Tweaks module: set alt text per widget (the image's own, your own words, a dynamic tag like the post title, or none) on every Elementor widget that shows images, and an aspect ratio, fit and position for widget images. It replaces the Custom Alt Text for Elementor Images plugin, and that plugin's settings carry over.
 
 = 0.2.1 =
 * Image Cleaner: Leftover sizes from other sources now has Select all and Select none links, so a long list can be ticked in one go.

@@ -10,9 +10,10 @@ is worse than no note, so fix anything you find that has gone stale.
 ## What it is
 
 One plugin holding what used to be separate SocialBUMP plugins, each now a
-module that can be switched on and off. Bricks Tweaks moved in first and is
-done (October 2026); Site Kit is next, and an Elementor Tweaks module is
-planned. SEO for AI is not part of this: it is standalone and shares nothing with it.
+module that can be switched on and off. Bricks Tweaks and Site Kit moved in
+(Site Kit split into Site Kit and Image Management on the way), and Woo
+Tweaks and Elementor Tweaks were added after. SEO for AI is not part of this:
+it is standalone and shares nothing with it.
 
 Naming, because the old plugins used these words differently and it matters:
 
@@ -24,22 +25,26 @@ Naming, because the old plugins used these words differently and it matters:
 
 ## Where it is up to
 
-As of 16 October 2026, version 0.1.11:
+As of 17 October 2026, version 0.2.1 published; Woo Tweaks and Elementor
+Tweaks are built on the hub for 0.2.2 and not yet published:
 
-- One module, Bricks Tweaks (modules/bricks), with its own notes in
-  modules/bricks/docs/context.md. This plugin runs on bricks.socialbump.com.au,
-  hintercoasttransport.com.au, thecosmeticstudionoosa.com.au and
-  drivingevents.com.au, plus the hub. The last two moved over from standalone
-  Bricks Tweaks on 16 October, after which no site reported the standalone
-  plugin and it was deleted from the hub (see Bricks Tweaks retired, below).
-- Site Kit is still standalone on the sites: 1.2.6, active on 11 sites
-  including the hub. Its modules are built on the hub, not yet released: Site
-  Kit (modules/site-kit) and Image Management (modules/images), each with its
-  own notes. Both wait while standalone Site Kit is active. Standalone Site Kit
-  was switched off on the hub on 16 October and both modules were tested there:
-  every page, the settings copy, the registered sizes against the backup, a
-  cleaner scan, the sizes panel, robots.txt, FAQ schema and the old addresses.
-  See Site Kit and Image Management, below.
+- Five modules, each with its own notes in its docs/context.md: Bricks Tweaks
+  (modules/bricks), Site Kit (modules/site-kit), Image Management
+  (modules/images), Woo Tweaks (modules/woo-tweaks) and Elementor Tweaks
+  (modules/elementor-tweaks).
+- Elementor Tweaks was tested on epoxyflooringco.com.au through a test copy
+  plugin (sb-elementor-tweaks-test) and a draft page (13644). Both go before
+  SocialBUMP Tweaks is installed there. See the module's notes.
+- Moving a site onto SocialBUMP Tweaks, below, is the checklist for the sites
+  still to come: Epoxy, Terrace Marina and Noosa's Elite Car Spa.
+- Site Kit and Image Management went out in 0.2.0 on 16 October. Moved over
+  and checked against a snapshot taken before each update: bricks.socialbump.com.au,
+  drivingevents.com.au and thecosmeticstudionoosa.com.au. doogood.com.au had
+  the plugin installed from the hub on 0.2.0, was updated to 0.2.1, and was
+  moved onto the new standard image sizes and cleaned. Driving Events keeps
+  its old image widths on purpose, as newsletters link to those files: never
+  Remove old sizes there. hintercoasttransport.com.au has not been checked.
+  See Site Kit and Image Management, and Woo Tweaks, below.
 - SEO for AI stays standalone for good.
 
 Built so far:
@@ -106,8 +111,10 @@ configuration and bookmarks hold them.
   through admin_post_sb_tweaks_save_module_docs. Every module ships its own
   notes. Screen also owns brand_icon() and accent_colour(), which the
   Settings class now delegates to.
-- Dependencies: acf (satisfied by Bricks Advanced Themer's bundle), bricks
-  (BRICKS_VERSION) and woocommerce, filterable through sb_tweaks/dependencies.
+- Dependencies: acf (a copy bundled inside Bricks Advanced Themer does not
+  count, since it hides the ACF menu), bricks (BRICKS_VERSION, or the active
+  theme), woocommerce, and elementor (ELEMENTOR_VERSION, added for Elementor
+  Tweaks), filterable through sb_tweaks/dependencies.
 - Lockout: see Turning the old plugins off below; the rules were tightened
   when the Bricks module arrived.
 - Dependencies are decided while plugins load, before the theme: bricks counts
@@ -225,6 +232,10 @@ are free. These are not:
   attachment's metadata and into Bricks element settings.
 - The shortcode tag social_bump_credit, which is a snippet rather than ours,
   but is placed by hand in templates.
+- Elementor Tweaks' widget settings, saved in Elementor data: sb_elementor_alt,
+  _alt_text, _alt_fill, _ratio, _ratio_custom, _fit, _position and
+  _position_custom (with their per device copies), and its section id
+  sb_elementor_image.
 
 One persisted identifier is worth deciding deliberately rather than by
 accident: the page slugs sb-site-kit and sb-bricks-tweaks appear in Admin and
@@ -273,6 +284,14 @@ the settings export and import live. Module banners carry no badge.
 - Everything is developed on the hub, plugins.socialbump.com.au, through its
   Novamira MCP connector. Lint every PHP file before writing it, and verify a
   change in a fresh request rather than the one that wrote the file.
+- Upload a new module in an order that never leaves module.php pointing at a
+  file that is not there yet. The framework includes every modules/*/module.php
+  on every request, so a module.php whose require_once fails is a fatal error
+  on every page, the MCP connector included, and the hub can then only be
+  fixed by hand. On 17 October 2026 Elementor Tweaks' module.php went up
+  before its class file, the next upload failed on the fatal, and Sam had to
+  rename module.php in File Manager. Write the includes and features first,
+  test load module.php under another name, and rename it into place last.
 - Building PHP through a JSON tool call mangles double quotes. Build markup by
   concatenation with chr( 34 ), which is why the code here reads that way.
 - A shared file that drifted took two client sites down. Nothing here is shared
@@ -752,3 +771,73 @@ might still have the plugin on disk, as with Bricks Tweaks.
 admin.css here still carries older copies of Site Kit's image and FAQ styles
 under sb-tweaks- names (Images page, Rebuild panel, sizes, report, orphans,
 FAQ sources), from before the framework was split out. Nothing uses them now.
+
+## Woo Tweaks (October 2026)
+
+Sam's call: WooCommerce features get a module of their own, unless a feature
+only exists for another module (Bricks keeps its WooCommerce Archive Display
+condition, Site Kit's Block Admin Access keeps its My Account choice). Site
+Kit's seven woo-* features moved to modules/woo-tweaks: its own SB Woo Tweaks
+menu (not under WooCommerce, which has enough in it), after SB Site Kit, with
+two pages, Shop and Checkout, and Store Admin. Module id woo, so its options
+are sb_tweaks_woo_*. It requires woocommerce, so on a site without it the card
+says so and nothing loads, the hub included. Site Kit lost its WooCommerce
+group and page; the old address redirects. SB_Woo_Tweaks::migrate() copies the
+switches and From Price's settings once. Driving Events is the only site known
+to need it. The module's docs/context.md has the names that moved.
+
+Tested on the hub by pretending WooCommerce was active for a few requests (a
+temporary mu-plugin filtering sb_tweaks/dependencies and the features option,
+removed straight after): the Features page, both group pages with the right
+cards, the Documentation page, the Modules card, and the old Site Kit address
+redirecting. On the hub, Admin Site Enhancements' menu order puts SB Woo
+Tweaks near the bottom of the menu rather than after SB Site Kit; the module's
+'after' only applies where nothing else reorders the menu.
+
+## Moving a site onto SocialBUMP Tweaks
+
+The checklist for a client site, whatever it ran before. Each module's notes
+have the detail behind each line.
+
+Before installing:
+
+- Snapshot the options and the pages that matter (to /tmp as sbx-<stamp>-*),
+  so the result can be checked against them afterwards.
+- Standalone Bricks Tweaks: search saved Bricks data for the old names (the
+  Bricks module's Moving a site over). None were left on the known sites.
+- Standalone Site Kit: the site must have sb_tweaks_site_kit_scheme (its
+  options already renamed). Search snippets, the child theme and mu-plugins
+  for sbsk/ hooks and rename them (Site Kit and Image Management notes).
+- WooCommerce sites: Woo Tweaks copies Site Kit's woo-* switches itself.
+- Elementor sites with Custom Alt Text for Elementor Images: nothing to do by
+  hand. Elementor Tweaks renames its settings and switches it off. Delete any
+  test copy (sb-elementor-tweaks-test) first.
+- Snippets doing what a module now does (hiding unpublished ACF posts, image
+  sizes, alt text): note them, to switch off once the module is on.
+
+Installing: the Install button in the site's Tweaks column on the hub's
+Installs page (reporter 1.2.0 or later), or upload the zip. The first request
+runs every module's migrate and retires the standalone plugins and the old alt
+text plugin. The modules take over on the next request.
+
+Afterwards:
+
+- Compare with the snapshot: the same features on, the same pages.
+- Switch off the snippets noted above.
+- Clear the page cache (the Gutenberg image zoom markup changed names).
+- Image sizes, if the site is moving onto the standard sizes: Switching a site
+  to the standard sizes in modules/images/docs/context.md. Never on Driving
+  Events.
+
+## Elementor Tweaks (October 2026)
+
+Sam's first two Elementor wants, as a module: alt text set per widget,
+replacing the Custom Alt Text for Elementor Images plugin, and an aspect ratio,
+fit and position for widget images with no ratio of their own.
+modules/elementor-tweaks, id elementor, its own SB Elementor Tweaks menu after
+SB Site Kit with one page, Images. It requires elementor, a dependency added to
+the framework for it. Both features add to an SB Image section in the widgets
+instead of having settings pages. The old plugin's settings are renamed to
+sb_elementor_* once by the module's migrate, and the plugin is retired through
+replaces. The module's notes cover how widgets are picked, the Rank Math catch
+with decorative images, and the test on Epoxy.

@@ -333,6 +333,13 @@ class SB_Tweaks_Modules {
 						return class_exists( 'WooCommerce' );
 					},
 				],
+				// Defined as soon as Elementor's main file loads, before plugins_loaded.
+				'elementor'   => [
+					'label'  => 'Elementor',
+					'active' => function () {
+						return defined( 'ELEMENTOR_VERSION' );
+					},
+				],
 			]
 		);
 	}

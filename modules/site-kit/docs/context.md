@@ -20,7 +20,7 @@ Eighteen features in five groups. A group switched on gets its own page.
 | --- | --- |
 | Content | Excerpt Character Counter, Excerpts For Pages, Shortcodes In Excerpts, Force Gutenberg Page Refresh on Save |
 | FAQ Settings (off until switched on) | FAQ fields on posts, FAQ post types as a library, FAQPage schema |
-| WooCommerce | Download Analytics as CSV, Fix Default Category Title Bug, From Price on Variable Products, Hide Empty Decimals on Prices, Require Login to Check Out, Show Both Prices in the Cart, Turn Off Product Image Zoom |
+| WooCommerce | moved to the Woo Tweaks module (modules/woo-tweaks) in October 2026; Site Kit's saved woo-* switches and settings are left in its options |
 | SEO | Robots.txt |
 | Admin Settings | Block Admin Access, Hide Toolbar On The Front End, SocialBUMP Admin Colour Scheme, Fix ACF CPT SVG Icons, Post Types for Add-ons (always on, a wide card) |
 

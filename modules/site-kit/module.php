@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Site Kit: what was the standalone SocialBUMP Site Kit plugin, less its image
  * code, which is the Image Management module now.
  *
- * Content, FAQ, WooCommerce, SEO and admin tweaks for any site, whatever it is
+ * Content, FAQ, SEO and admin tweaks for any site, whatever it is
  * built with. Its settings are the sb_tweaks_site_kit_features, _settings and
  * _groups options every site already holds from the standalone plugin, so
  * nothing is converted, and the page addresses stay sb-site-kit and
@@ -25,7 +25,7 @@ require_once SB_SITE_KIT_PATH . 'includes/class-sb-site-kit.php';
 return [
 	'id'          => 'site_kit',
 	'title'       => 'Site Kit',
-	'description' => __( 'Content, FAQ, WooCommerce, SEO and admin tweaks for any site, whatever it is built with. Replaces the standalone SocialBUMP Site Kit plugin, apart from its image pages, which are the Image Management module.', 'sb-tweaks' ),
+	'description' => __( 'Content, FAQ, SEO and admin tweaks for any site, whatever it is built with. Replaces the standalone SocialBUMP Site Kit plugin, apart from its image pages (the Image Management module) and its WooCommerce features (the Woo Tweaks module).', 'sb-tweaks' ),
 	'heading'     => 'Site Kit',
 	'replaces'    => 'socialbump-site-kit/socialbump-site-kit.php',
 
@@ -38,10 +38,6 @@ return [
 			'title'       => __( 'FAQ Settings', 'sb-tweaks' ),
 			'description' => __( 'Fields for questions and answers, and the FAQPage schema that goes with them.', 'sb-tweaks' ),
 			'default'     => false,
-		],
-		'woocommerce' => [
-			'title'       => __( 'WooCommerce', 'sb-tweaks' ),
-			'description' => __( 'Corrections and tweaks for the WooCommerce admin.', 'sb-tweaks' ),
 		],
 		'seo'         => [
 			'title'       => __( 'SEO', 'sb-tweaks' ),
