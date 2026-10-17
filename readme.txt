@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.3.1 =
+* Each image size on SB Image Settings now has a padlock. A locked size cannot be changed, removed or reset, and SB Image Cleaner never deletes its files, so emails that link straight to those files keep working. Everything else can still be reset and cleaned.
 
 = 0.3.0 =
 * New Woo Tweaks module: the seven WooCommerce features that were in Site Kit now have their own SB Woo Tweaks menu, with Shop and Checkout and Store Admin pages. It only appears where WooCommerce is active, and switches and settings carry across from Site Kit on update.

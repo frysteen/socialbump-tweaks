@@ -87,11 +87,65 @@ class SB_Images {
 		return $value === null ? $fallback : $value;
 	}
 
+	/**
+	 * Locked sizes, for files that emails or other sites link to straight
+	 * (Driving Events' newsletters use image-480). A locked size stays
+	 * registered and on the page, cannot be changed, switched off, removed or
+	 * reset, and SB Image Cleaner never deletes its files:
+	 * SB_Images_Rebuild::stale() leaves it out, and
+	 * SB_Images_Orphans::is_protected() keeps any leftover file of its
+	 * dimensions. Saved as locked_sizes, a list of size names.
+	 */
+	public static function locked_sizes() {
+		$saved = self::setting( 'locked_sizes', [] );
+
+		return is_array( $saved ) ? array_values( array_unique( array_filter( array_map( 'sanitize_key', $saved ) ) ) ) : [];
+	}
+
+	public static function is_locked( $name ) {
+		return in_array( (string) $name, self::locked_sizes(), true );
+	}
+
+	/** The widths of our own sizes that are locked: image-480 gives 480. */
+	public static function locked_widths() {
+		$out = [];
+
+		foreach ( self::locked_sizes() as $name ) {
+			if ( preg_match( '/^image-(\d+)$/', $name, $m ) ) {
+				$out[] = (int) $m[1];
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Each locked size's width, height and crop, for spotting its files by
+	 * name. Ours are uncropped widths; the rest come from what is registered,
+	 * or from their options when switched off.
+	 */
+	public static function locked_dimensions() {
+		$subs = wp_get_registered_image_subsizes();
+		$out  = [];
+
+		foreach ( self::locked_sizes() as $name ) {
+			if ( preg_match( '/^image-(\d+)$/', $name, $m ) ) {
+				$out[] = [ 'width' => (int) $m[1], 'height' => 0, 'crop' => false ];
+			} elseif ( isset( $subs[ $name ] ) ) {
+				$out[] = [ 'width' => (int) $subs[ $name ]['width'], 'height' => (int) $subs[ $name ]['height'], 'crop' => ! empty( $subs[ $name ]['crop'] ) ];
+			} elseif ( get_option( $name . '_size_w' ) ) {
+				$out[] = [ 'width' => (int) get_option( $name . '_size_w' ), 'height' => (int) get_option( $name . '_size_h' ), 'crop' => (bool) get_option( $name . '_crop' ) ];
+			}
+		}
+
+		return $out;
+	}
+
 	public static function widths() {
 		$saved = self::setting( 'sizes' );
 
 		$widths = ( is_array( $saved ) && $saved ) ? $saved : self::DEFAULT_WIDTHS;
-		$widths = array_values( array_unique( array_map( 'intval', $widths ) ) );
+		$widths = array_values( array_unique( array_map( 'intval', array_merge( $widths, self::locked_widths() ) ) ) );
 		sort( $widths );
 
 		return $widths;
@@ -100,12 +154,15 @@ class SB_Images {
 	public static function register_sizes() {
 		add_theme_support( 'post-thumbnails' );
 
-		if ( ! self::setting( 'sizes_on', 1 ) ) {
-			return;
+		// Switched off, only the locked sizes are still made: something links to them.
+		$on = (bool) self::setting( 'sizes_on', 1 );
+
+		foreach ( $on ? self::widths() : self::locked_widths() as $width ) {
+			add_image_size( 'image-' . (int) $width, (int) $width, 9999 );
 		}
 
-		foreach ( self::widths() as $width ) {
-			add_image_size( 'image-' . (int) $width, (int) $width, 9999 );
+		if ( ! $on ) {
+			return;
 		}
 
 		// Remember what we registered, so cleanup knows what is ours to delete.
@@ -234,17 +291,28 @@ class SB_Images {
 
 		check_admin_referer( 'sb_images_save' );
 
+		// The sizes ticked as locked, as the padlocks on the page left them.
+		$locked = self::posted_locks();
+
 		// Reset puts the standard set back, whatever is in the boxes.
+		// Locked sizes stay as they are.
 		if ( ! empty( $_POST['sb_images_reset_sizes'] ) ) {
-			$settings                    = (array) get_option( SB_Images_Module::SETTINGS_OPTION, [] );
-			$settings['images']['sizes']  = self::DEFAULT_WIDTHS;
-			$settings['images']['wp_off'] = SB_Images_Rebuild::DEFAULT_OFF;
+			$widths = array_values( array_unique( array_merge( self::DEFAULT_WIDTHS, self::locked_widths() ) ) );
+			sort( $widths );
+
+			$settings                     = (array) get_option( SB_Images_Module::SETTINGS_OPTION, [] );
+			$settings['images']['sizes']  = $widths;
+			$settings['images']['wp_off'] = array_values( array_diff( SB_Images_Rebuild::DEFAULT_OFF, self::locked_sizes() ) );
 
 			update_option( SB_Images_Module::SETTINGS_OPTION, $settings );
 
 			// Ticked in the Reset popup: WordPress's own sizes back to its defaults too.
 			if ( ! empty( $_POST['sb_images_reset_wp'] ) ) {
 				foreach ( self::WP_DEFAULTS as $option => $value ) {
+					if ( self::is_locked( preg_replace( '/_(size_w|size_h|crop)$/', '', $option ) ) ) {
+						continue;
+					}
+
 					update_option( $option, $value );
 				}
 			}
@@ -253,6 +321,56 @@ class SB_Images {
 			exit;
 		}
 
+		list( $clean, $sizes_on, $wp_off ) = self::posted_sizes( $locked );
+
+		$settings           = (array) get_option( SB_Images_Module::SETTINGS_OPTION, [] );
+		$settings['images'] = [
+			'sizes_on'     => $sizes_on,
+			'sizes'        => $clean ? $clean : self::DEFAULT_WIDTHS,
+			'clean_titles' => empty( $_POST['sb_images_clean_titles'] ) ? 0 : 1,
+			'auto_alt'     => empty( $_POST['sb_images_auto_alt'] ) ? 0 : 1,
+			'gallery_zoom' => empty( $_POST['sb_images_gallery_zoom'] ) ? 0 : 1,
+			'media_grid'   => empty( $_POST['sb_images_media_grid'] ) ? 0 : 1,
+			'media_search' => empty( $_POST['sb_images_media_search'] ) ? 0 : 1,
+			'wp_off'       => $wp_off,
+			'locked_sizes' => $locked,
+		];
+
+		update_option( SB_Images_Module::SETTINGS_OPTION, $settings );
+
+		wp_safe_redirect( SB_Images_Module::page_url( 'settings', [ 'updated' => 'true' ] ) );
+		exit;
+	}
+
+	/**
+	 * The locked sizes from the posted padlocks: our image- names (whose width
+	 * is kept in the list whatever else was posted) and any other size the
+	 * page lists. Anything else is dropped.
+	 */
+	private static function posted_locks() {
+		$posted = isset( $_POST['sb_images_locked'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['sb_images_locked'] ) ) : [];
+		$known  = array_keys( self::other_sizes() );
+		$out    = [];
+
+		foreach ( $posted as $name ) {
+			if ( preg_match( '/^image-(\d+)$/', $name, $m ) ? ( (int) $m[1] >= 16 && (int) $m[1] <= 5000 ) : in_array( $name, $known, true ) ) {
+				$out[] = $name;
+			}
+		}
+
+		return array_values( array_unique( $out ) );
+	}
+
+	/**
+	 * The size settings from the posted form: our widths, sizes on or off, and
+	 * the WordPress sizes switched off. WordPress's and WooCommerce's own
+	 * widths are saved straight to their options on the way. A locked size
+	 * keeps its width and stays on, whatever was posted.
+	 *
+	 * @param array $locked Size names locked by this save.
+	 * @return array [ widths, sizes_on, wp_off ]
+	 */
+	private static function posted_sizes( array $locked ) {
 		$widths = isset( $_POST['sb_images_widths'] ) ? (array) wp_unslash( $_POST['sb_images_widths'] ) : [];
 		$clean  = [];
 
@@ -261,6 +379,12 @@ class SB_Images {
 
 			if ( $width >= 16 && $width <= 5000 ) {
 				$clean[] = $width;
+			}
+		}
+
+		foreach ( $locked as $name ) {
+			if ( preg_match( '/^image-(\d+)$/', $name, $m ) ) {
+				$clean[] = (int) $m[1];
 			}
 		}
 
@@ -292,7 +416,7 @@ class SB_Images {
 		foreach ( self::editable_sizes() as $name => $size ) {
 			$field = 'sb_images_size_' . $name;
 
-			if ( ! isset( $_POST[ $field ] ) ) {
+			if ( ! isset( $_POST[ $field ] ) || in_array( $name, $locked, true ) ) {
 				continue;
 			}
 
@@ -316,27 +440,12 @@ class SB_Images {
 		// did not carry the list keeps what was there.
 		if ( isset( $_POST['sb_images_wp_list'] ) ) {
 			$wp_on  = isset( $_POST['sb_images_wp_on'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['sb_images_wp_on'] ) ) : [];
-			$wp_off = array_values( array_diff( SB_Images_Rebuild::OFFABLE, $wp_on ) );
+			$wp_off = array_values( array_diff( SB_Images_Rebuild::OFFABLE, $wp_on, $locked ) );
 		} else {
-			$wp_off = SB_Images_Rebuild::wp_off();
+			$wp_off = array_values( array_diff( SB_Images_Rebuild::wp_off(), $locked ) );
 		}
 
-		$settings           = (array) get_option( SB_Images_Module::SETTINGS_OPTION, [] );
-		$settings['images'] = [
-			'sizes_on'     => empty( $_POST['sb_images_sizes_on'] ) ? 0 : 1,
-			'sizes'        => $clean ? $clean : self::DEFAULT_WIDTHS,
-			'clean_titles' => empty( $_POST['sb_images_clean_titles'] ) ? 0 : 1,
-			'auto_alt'     => empty( $_POST['sb_images_auto_alt'] ) ? 0 : 1,
-			'gallery_zoom' => empty( $_POST['sb_images_gallery_zoom'] ) ? 0 : 1,
-			'media_grid'   => empty( $_POST['sb_images_media_grid'] ) ? 0 : 1,
-			'media_search' => empty( $_POST['sb_images_media_search'] ) ? 0 : 1,
-			'wp_off'       => $wp_off,
-		];
-
-		update_option( SB_Images_Module::SETTINGS_OPTION, $settings );
-
-		wp_safe_redirect( SB_Images_Module::page_url( 'settings', [ 'updated' => 'true' ] ) );
-		exit;
+		return [ $clean, empty( $_POST['sb_images_sizes_on'] ) ? 0 : 1, $wp_off ];
 	}
 	/**
 	 * The Images settings page.
@@ -373,6 +482,7 @@ class SB_Images {
 		echo '<span class="sb-tweaks-switch__track"><span class="sb-tweaks-switch__dot"></span></span>';
 		echo '<span class="screen-reader-text">' . esc_html__( 'Add these image sizes', 'sb-tweaks' ) . '</span></label>';
 		echo '</div>';
+
 		echo '<div class="sb-images-sizes-body" id="sb-images-sizes-body"' . ( $sizes_on ? '' : ' hidden' ) . '>';
 		echo '<div class="sb-images-widths" id="sb-images-widths" data-defaults="' . esc_attr( wp_json_encode( self::DEFAULT_WIDTHS ) ) . '">';
 
@@ -540,13 +650,15 @@ class SB_Images {
 		foreach ( $sizes as $name => $size ) {
 			$offable = in_array( $name, SB_Images_Rebuild::OFFABLE, true );
 			$is_off  = in_array( $name, SB_Images_Rebuild::wp_off(), true );
+			$locked  = self::is_locked( $name );
+			$classes = trim( ( $is_off ? 'is-off' : '' ) . ( $locked ? ' is-locked' : '' ) );
 
-			echo '<li' . ( $is_off ? ' class="is-off"' : '' ) . '>';
+			echo '<li' . ( $classes !== '' ? ' class="' . esc_attr( $classes ) . '"' : '' ) . '>';
 
 			// WordPress's larger sizes can be switched off. Thumbnail and medium
 			// stay on, because the media library and the editor show them.
 			if ( $offable ) {
-				echo '<input type="checkbox" class="sb-images-othersizes__on" name="sb_images_wp_on[]" value="' . esc_attr( $name ) . '" title="' . esc_attr__( 'Make this size', 'sb-tweaks' ) . '"' . checked( ! $is_off, true, false ) . '>';
+				echo '<input type="checkbox" class="sb-images-othersizes__on" name="sb_images_wp_on[]" value="' . esc_attr( $name ) . '" title="' . esc_attr__( 'Make this size', 'sb-tweaks' ) . '"' . checked( ! $is_off, true, false ) . disabled( $locked, true, false ) . '>';
 			} else {
 				echo '<span class="sb-images-othersizes__on"></span>';
 			}
@@ -557,9 +669,10 @@ class SB_Images {
 				$field = 'sb_images_size_' . $name;
 
 				printf(
-					'<span class="sb-images-othersizes__edit"><input type="number" name="%1$s" value="%2$s" min="0" max="5000" step="1" class="small-text"> <span>px</span></span>',
+					'<span class="sb-images-othersizes__edit"><input type="number" name="%1$s" value="%2$s" min="0" max="5000" step="1" class="small-text"%3$s> <span>px</span></span>',
 					esc_attr( $field ),
-					esc_attr( (int) $size['width'] )
+					esc_attr( (int) $size['width'] ),
+					$locked ? ' readonly' : ''
 				);
 
 				// A size can carry a note, and most do not. Reading the key blind
@@ -573,6 +686,7 @@ class SB_Images {
 				echo '<span class="sb-images-othersizes__fixed">' . esc_html( $label ) . '</span>';
 			}
 
+			echo self::lock_toggle( $name, $locked );
 			echo '</li>';
 		}
 
@@ -584,7 +698,8 @@ class SB_Images {
 	}
 	/** One row in the width list. */
 	private static function width_row( $width ) {
-		$clash = self::clashing_size( $width );
+		$clash  = self::clashing_size( $width );
+		$locked = self::is_locked( 'image-' . (int) $width );
 
 		// One of the standard widths, as Add default sizes and Reset would put it.
 		$default = in_array( (int) $width, self::DEFAULT_WIDTHS, true ) ? '<span class="sb-images-width__default">' . esc_html__( 'default size', 'sb-tweaks' ) . '</span>' : '';
@@ -597,12 +712,30 @@ class SB_Images {
 
 		// The note sits inside the grey box under the name, so it never squeezes the row.
 		return sprintf(
-			'<div class="sb-images-width%5$s"><input type="number" name="sb_images_widths[]" value="%1$s" min="16" max="5000" step="1" class="small-text"><code class="sb-images-width__name">image-<span class="sb-images-width__value">%1$s</span>%4$s%3$s</code><button type="button" class="button-link sb-images-width__remove" aria-label="%2$s">&#10005;</button></div>',
+			'<div class="sb-images-width%5$s"><input type="number" name="sb_images_widths[]" value="%1$s" min="16" max="5000" step="1" class="small-text"%6$s><code class="sb-images-width__name">image-<span class="sb-images-width__value">%1$s</span>%4$s%3$s</code>%7$s<button type="button" class="button-link sb-images-width__remove" aria-label="%2$s"%8$s>&#10005;</button></div>',
 			esc_attr( $width ),
 			esc_attr__( 'Remove', 'sb-tweaks' ),
 			$note,
 			$default,
-			$default === '' ? '' : ' is-default'
+			( $default === '' ? '' : ' is-default' ) . ( $locked ? ' is-locked' : '' ),
+			$locked ? ' readonly' : '',
+			self::lock_toggle( 'image-' . (int) $width, $locked ),
+			$locked ? ' disabled' : ''
+		);
+	}
+
+	/**
+	 * The padlock beside a size. Ticked, the size is locked (see
+	 * locked_sizes()); images.js asks before unlocking, and keeps an image-
+	 * row's value in step with its width.
+	 */
+	private static function lock_toggle( $name, $locked ) {
+		return sprintf(
+			'<label class="sb-images-lock" title="%3$s"><input type="checkbox" name="sb_images_locked[]" value="%1$s"%2$s><span class="dashicons dashicons-%4$s" aria-hidden="true"></span><span class="screen-reader-text">%3$s</span></label>',
+			esc_attr( $name ),
+			checked( $locked, true, false ),
+			esc_attr__( 'Lock this size, so it cannot be changed or removed and its files are never deleted', 'sb-tweaks' ),
+			$locked ? 'lock' : 'unlock'
 		);
 	}
 

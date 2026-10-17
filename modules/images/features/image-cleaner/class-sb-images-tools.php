@@ -467,6 +467,7 @@ class SB_Images_Tools {
 
 	public static function ajax_batch() {
 		self::guard();
+
 		self::job_gate();
 		self::job_beat( self::job_kind() );
 

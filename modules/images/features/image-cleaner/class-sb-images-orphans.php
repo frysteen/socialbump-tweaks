@@ -243,7 +243,40 @@ class SB_Images_Orphans {
 			[ 'index.php', 'index.html', 'web.config', 'error_log', 'debug.log' ]
 		);
 
-		return in_array( strtolower( $name ), array_map( 'strtolower', $keep ), true );
+		if ( in_array( strtolower( $name ), array_map( 'strtolower', $keep ), true ) ) {
+			return true;
+		}
+
+		return self::is_locked_size_file( $name );
+	}
+
+	/**
+	 * A file named like one of a locked size's files (SB_Images::locked_sizes()),
+	 * such as photo-480x320.jpg for image-480. Emails link to these, so they
+	 * are never removed as leftovers or orphans. Uncropped sizes fit a box, so
+	 * matching either side is enough; cropped ones must match both.
+	 */
+	private static function is_locked_size_file( $name ) {
+		static $dims = null;
+
+		if ( $dims === null ) {
+			$dims = class_exists( 'SB_Images' ) ? SB_Images::locked_dimensions() : [];
+		}
+
+		if ( ! $dims || ! preg_match( '/-(\d+)x(\d+)\.[a-z0-9]+(\.(webp|avif))?$/i', $name, $m ) ) {
+			return false;
+		}
+
+		$w = (int) $m[1];
+		$h = (int) $m[2];
+
+		foreach ( $dims as $d ) {
+			if ( $d['crop'] ? ( $w === $d['width'] && $h === $d['height'] ) : ( ( $d['width'] && $w === $d['width'] ) || ( $d['height'] && $h === $d['height'] ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 	/** The folders we look inside: the uploads root and the dated folders. */
 	public static function folders() {
@@ -821,6 +854,12 @@ class SB_Images_Orphans {
 
 			if ( self::is_kept( $path ) ) {
 				$skipped[] = [ 'name' => basename( $path ), 'why' => __( 'marked as kept', 'sb-tweaks' ) ];
+
+				continue;
+			}
+
+			if ( self::is_protected( $path ) ) {
+				$skipped[] = [ 'name' => basename( $path ), 'why' => __( 'a locked size', 'sb-tweaks' ) ];
 
 				continue;
 			}

@@ -254,6 +254,19 @@ class SB_Images_Cleaner {
 			echo '<div class="notice notice-success inline"><p>' . esc_html__( 'That size will no longer be cleared.', 'sb-tweaks' ) . '</p></div>';
 		}
 
+		// Locked sizes (padlocks on SB Image Settings) are never removed: say which.
+		$locked = SB_Images::locked_sizes();
+
+		if ( $locked ) {
+			echo '<div class="notice notice-info inline"><p>' . esc_html(
+				sprintf(
+					/* translators: %s: size names */
+					_n( 'Locked size, never removed: %s.', 'Locked sizes, never removed: %s.', count( $locked ), 'sb-tweaks' ),
+					implode( ', ', $locked )
+				)
+			) . ' <a href="' . esc_url( SB_Images_Module::page_url( 'settings' ) ) . '">' . esc_html__( 'SB Image Settings', 'sb-tweaks' ) . '</a></p></div>';
+		}
+
 		// Notices go above the grid. Inside it a notice takes a grid cell and pushes
 		// the Sizes and Rebuild panels out of place.
 		echo '<div class="sb-images-cleaner">';

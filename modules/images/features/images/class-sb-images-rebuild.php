@@ -87,7 +87,7 @@ class SB_Images_Rebuild {
 	 */
 	public static function adopt( array $names ) {
 		$names = array_unique( array_filter( array_map( 'strval', $names ) ) );
-		$names = array_values( array_diff( $names, array_keys( self::all_wanted() ), self::owned() ) );
+		$names = array_values( array_diff( $names, array_keys( self::all_wanted() ), self::owned(), class_exists( 'SB_Images' ) ? SB_Images::locked_sizes() : [] ) );
 
 		if ( $names ) {
 			update_option( self::ADOPTED_OPTION, array_values( array_unique( array_merge( self::adopted(), $names ) ) ), false );
@@ -324,7 +324,12 @@ class SB_Images_Rebuild {
 		// someone chose on SB Image Cleaner (adopted). Checked against what
 		// is registered at the moment of asking, so a chosen size that is
 		// registered again is never stale, and clean() asks again per image.
-		return array_values( array_intersect( array_diff( $have, array_keys( self::all_wanted() ) ), array_merge( self::owned(), self::adopted(), self::wp_off() ) ) );
+		//
+		// A locked size (SB_Images::locked_sizes()) is never stale, so neither
+		// Remove old sizes nor a single image rebuild deletes its files.
+		$stale = array_intersect( array_diff( $have, array_keys( self::all_wanted() ) ), array_merge( self::owned(), self::adopted(), self::wp_off() ) );
+
+		return array_values( class_exists( 'SB_Images' ) ? array_diff( $stale, SB_Images::locked_sizes() ) : $stale );
 	}
 
 	/** Remove a generated file and any WebP or AVIF written beside it. */

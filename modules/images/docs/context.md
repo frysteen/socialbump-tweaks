@@ -247,3 +247,36 @@ or background image files show as unknown.
 
 Form upload images (WS Form keeps them under uploads/ws-form) get no new sizes
 and are on no page; leave them.
+
+## Locked sizes (October 2026)
+
+For files that emails or other sites link to straight, such as Driving Events,
+whose newsletters use image-480. Each size on SB Image Settings has a padlock
+beside it (our widths, beside the remove cross; WordPress, WooCommerce and
+theme sizes under Additional thumbnail sizes). Saved as locked_sizes, a list of
+size names, in sb_tweaks_images_settings (images). SB_Images::locked_sizes(),
+is_locked(), locked_widths() and locked_dimensions() read it.
+
+A locked size:
+
+- Cannot be changed, removed or switched off. images.js makes the row read
+  only, disables its cross or on box and asks before unlocking. The save
+  enforces it anyway: SB_Images::posted_sizes() keeps a locked width in the
+  list, ignores a posted width for a locked WordPress or WooCommerce size and
+  never puts a locked size in wp_off.
+- Survives Reset to default sizes: the reset list is the defaults plus the
+  locked widths, wp_off leaves it out, and Also put the WordPress sizes back
+  skips its options.
+- Is still registered when Image sizes is switched off (register_sizes()).
+- Is never stale (SB_Images_Rebuild::stale() leaves it out), so Remove old
+  sizes and a single image rebuild never delete its files, and it cannot be
+  chosen as a leftover size to clear (adopt()).
+- Keeps its leftover files. SB_Images_Orphans::is_protected() matches file
+  names by dimensions (photo-480x320.jpg for image-480; an uncropped size
+  matches on either side, a cropped one on both), so Find leftover thumbnails,
+  the deep remove and Delete orphan images all skip them.
+
+Everything else can still be reset and cleaned. SB Image Cleaner lists the
+locked sizes in a notice at the top.
+
+Replaced a whole-site lock switch that was never released.

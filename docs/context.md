@@ -25,15 +25,15 @@ Naming, because the old plugins used these words differently and it matters:
 
 ## Where it is up to
 
-As of 17 October 2026, version 0.2.1 published; Woo Tweaks and Elementor
-Tweaks are built on the hub for 0.2.2 and not yet published:
+As of 17 October 2026, version 0.3.0 published, the first with Woo Tweaks and
+Elementor Tweaks:
 
 - Five modules, each with its own notes in its docs/context.md: Bricks Tweaks
   (modules/bricks), Site Kit (modules/site-kit), Image Management
   (modules/images), Woo Tweaks (modules/woo-tweaks) and Elementor Tweaks
   (modules/elementor-tweaks).
 - Elementor Tweaks was tested on epoxyflooringco.com.au through a test copy
-  plugin (sb-elementor-tweaks-test) and a draft page (13644). Both go before
+  plugin (sb-elementor-tweaks-test) and a draft page (13644). Both go once
   SocialBUMP Tweaks is installed there. See the module's notes.
 - Moving a site onto SocialBUMP Tweaks, below, is the checklist for the sites
   still to come: Epoxy, Terrace Marina and Noosa's Elite Car Spa.
@@ -810,8 +810,10 @@ Before installing:
   for sbsk/ hooks and rename them (Site Kit and Image Management notes).
 - WooCommerce sites: Woo Tweaks copies Site Kit's woo-* switches itself.
 - Elementor sites with Custom Alt Text for Elementor Images: nothing to do by
-  hand. Elementor Tweaks renames its settings and switches it off. Delete any
-  test copy (sb-elementor-tweaks-test) first.
+  hand. Elementor Tweaks renames its settings and switches it off. A test copy
+  (sb-elementor-tweaks-test) steps aside by itself while SocialBUMP Tweaks is
+  active, so delete it after installing; deleting it first leaves anything
+  already set with the module's settings unrendered in between.
 - Snippets doing what a module now does (hiding unpublished ACF posts, image
   sizes, alt text): note them, to switch off once the module is on.
 

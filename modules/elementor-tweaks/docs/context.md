@@ -216,8 +216,8 @@ Tested through a test copy, not the real plugin, since Epoxy had no SocialBUMP
 Tweaks yet: wp-content/plugins/sb-elementor-tweaks-test, "SB Elementor Tweaks
 (test copy)", the module folder copied from the hub (md5 checked) plus a loader
 that boots both features without the framework and without migrate(). It sits
-out if SocialBUMP Tweaks is present. Delete it before SocialBUMP Tweaks is
-installed there. A draft page, "SB Elementor Tweaks test (delete me)" (13644),
+out if SocialBUMP Tweaks is present. Delete it once SocialBUMP Tweaks is
+installed there, not before. A draft page, "SB Elementor Tweaks test (delete me)" (13644),
 held the test widgets.
 
 Rendered as a logged in admin over HTTP:

@@ -44,7 +44,8 @@
 					return;
 				}
 
-				$row.find( 'input' ).val( '' );
+				unlockRow( $row );
+				$row.find( 'input[type="number"]' ).val( '' );
 				$row.find( '.sb-images-width__value' ).text( '' );
 				$row.removeClass( 'is-default is-duplicate' ).find( '.sb-images-width__default, .sb-images-width__clash, .sb-images-width__dupe' ).remove();
 				$widths.append( $row );
@@ -60,6 +61,7 @@
 			var $addDefaults = $( '#sb-images-add-defaults' );
 			var $blank     = $widths.find( '.sb-images-width' ).first().clone();
 
+			unlockRow( $blank );
 			$blank.removeClass( 'is-duplicate is-default' ).find( '.sb-images-width__clash, .sb-images-width__dupe, .sb-images-width__default' ).remove();
 
 			function listed() {
@@ -135,6 +137,7 @@
 				var value = this.value;
 
 				$row.find( '.sb-images-width__value' ).text( value );
+				$row.find( '.sb-images-lock input' ).val( 'image-' + value );
 
 				// Flag a width that is already in the list rather than silently merging it.
 				var seen = 0;
@@ -1277,6 +1280,54 @@
 					}
 				}
 			} );
+		} );
+	} );
+
+	// Padlocks beside each size on SB Image Settings. A locked row cannot be
+	// edited, removed or switched off; unlocking asks first. Saving does the rest.
+	function setLocked( $row, locked ) {
+		$row.toggleClass( 'is-locked', locked );
+		$row.find( '.sb-images-lock input' ).prop( 'checked', locked );
+		$row.find( '.sb-images-lock .dashicons' ).toggleClass( 'dashicons-lock', locked ).toggleClass( 'dashicons-unlock', ! locked );
+		$row.find( 'input[type="number"]' ).prop( 'readOnly', locked );
+		$row.find( '.sb-images-width__remove, .sb-images-othersizes__on' ).prop( 'disabled', locked );
+
+		if ( locked ) {
+			$row.removeClass( 'is-off' ).find( '.sb-images-othersizes__on' ).prop( 'checked', true );
+		}
+	}
+
+	function unlockRow( $row ) {
+		setLocked( $row, false );
+	}
+
+	$( document ).on( 'change', '.sb-images-lock input', function () {
+		var box  = this;
+		var $row = $( box ).closest( '.sb-images-width, li' );
+
+		if ( box.checked ) {
+			setLocked( $row, true );
+
+			return;
+		}
+
+		if ( $( box ).data( 'sbUnlocking' ) ) {
+			$( box ).removeData( 'sbUnlocking' );
+			setLocked( $row, false );
+
+			return;
+		}
+
+		box.checked = true;
+
+		popup.open( {
+			title: 'Unlock ' + box.value,
+			message: 'This size can then be changed or removed, and SB Image Cleaner can delete its files. Anything linking straight to those files, like a sent email, would break.',
+			action: 'Unlock'
+		}, function () {
+			$( box ).data( 'sbUnlocking', true );
+			box.checked = false;
+			$( box ).trigger( 'change' );
 		} );
 	} );
 } )( jQuery );

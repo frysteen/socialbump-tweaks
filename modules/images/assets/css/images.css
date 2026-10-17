@@ -1301,3 +1301,73 @@ table.sb-images-report tr.sb-images-report__morerow td {
 .sb-images-summary__skipped li > span {
 	color: #787c82;
 }
+
+/* Padlocks beside each size (SB_Images::lock_toggle()). The checkbox is
+   hidden behind the icon; a locked row is tinted and its fields read only. */
+
+.sb-images-lock {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	cursor: pointer;
+	color: #8c8f94;
+	border-radius: 4px;
+}
+
+.sb-images-lock input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.sb-images-lock .dashicons {
+	font-size: 17px;
+	width: 17px;
+	height: 17px;
+}
+
+.sb-images-lock:hover,
+.sb-images-lock input:focus-visible + .dashicons {
+	color: #1d2327;
+}
+
+.sb-images-lock input:focus-visible + .dashicons {
+	outline: 2px solid #2271b1;
+	outline-offset: 3px;
+	border-radius: 2px;
+}
+
+.is-locked > .sb-images-lock {
+	color: #d63638;
+}
+
+.sb-images-width.is-locked .sb-images-width__name,
+.sb-images-othersizes__list li.is-locked {
+	background: #fcf0f1;
+}
+
+.sb-images-width.is-locked .sb-images-width__name {
+	border-left-color: #d63638;
+}
+
+.sb-images-width.is-locked input[type="number"],
+.sb-images-othersizes__list li.is-locked input[type="number"] {
+	background: #f6f7f7;
+	color: #646970;
+}
+
+.wp-core-ui .sb-images-width.is-locked .button-link.sb-images-width__remove,
+.wp-core-ui .sb-images-width.is-locked .button-link.sb-images-width__remove:hover,
+.wp-core-ui .button-link.sb-images-width__remove:disabled {
+	color: #a7aaad;
+	opacity: 0.5;
+	cursor: not-allowed;
+}
