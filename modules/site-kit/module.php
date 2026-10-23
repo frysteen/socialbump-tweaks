@@ -25,27 +25,27 @@ require_once SB_SITE_KIT_PATH . 'includes/class-sb-site-kit.php';
 return [
 	'id'          => 'site_kit',
 	'title'       => 'Site Kit',
-	'description' => __( 'Content, FAQ, SEO and admin tweaks for any site, whatever it is built with. Replaces the standalone SocialBUMP Site Kit plugin, apart from its image pages (the Image Management module) and its WooCommerce features (the Woo Tweaks module).', 'sb-tweaks' ),
+	'description' => 'Content, FAQ, SEO and admin tweaks for any site, whatever it is built with. Replaces the standalone SocialBUMP Site Kit plugin, apart from its image pages (the Image Management module) and its WooCommerce features (the Woo Tweaks module).',
 	'heading'     => 'Site Kit',
 	'replaces'    => 'socialbump-site-kit/socialbump-site-kit.php',
 
 	'groups'      => [
 		'content'     => [
-			'title'       => __( 'Content', 'sb-tweaks' ),
-			'description' => __( 'Shortcodes, fields and editor tools.', 'sb-tweaks' ),
+			'title'       => 'Content',
+			'description' => 'Shortcodes, fields and editor tools.',
 		],
 		'faq'         => [
-			'title'       => __( 'FAQ Settings', 'sb-tweaks' ),
-			'description' => __( 'Fields for questions and answers, and the FAQPage schema that goes with them.', 'sb-tweaks' ),
+			'title'       => 'FAQ Settings',
+			'description' => 'Fields for questions and answers, and the FAQPage schema that goes with them.',
 			'default'     => false,
 		],
 		'seo'         => [
-			'title'       => __( 'SEO', 'sb-tweaks' ),
-			'description' => __( 'The robots.txt search engines and other crawlers read.', 'sb-tweaks' ),
+			'title'       => 'SEO',
+			'description' => 'The robots.txt search engines and other crawlers read.',
 		],
 		'admin'       => [
-			'title'       => __( 'Admin Settings', 'sb-tweaks' ),
-			'description' => __( 'How the WordPress admin looks and who gets to use it.', 'sb-tweaks' ),
+			'title'       => 'Admin Settings',
+			'description' => 'How the WordPress admin looks and who gets to use it.',
 		],
 	],
 

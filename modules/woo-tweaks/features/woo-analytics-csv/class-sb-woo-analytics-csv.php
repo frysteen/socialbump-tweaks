@@ -53,7 +53,7 @@ class SB_Woo_Analytics_CSV {
 				[
 					'nonce'        => wp_create_nonce( self::NONCE ),
 					'adminUrl'     => admin_url( 'admin.php' ),
-					'defaultRange' => html_entity_decode( (string) get_option( 'woocommerce_default_date_range', 'period=month&compare=previous_year' ) ),
+					'defaultRange' => html_entity_decode( (string) get_option( 'woocommerce_default_date_range', 'period=month&compare=previous_year' ), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401 ),
 					'canZip'       => class_exists( 'ZipArchive' ),
 				]
 			) . ';',

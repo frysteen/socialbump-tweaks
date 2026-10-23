@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'fix-acf-cpt-svg-icons',
-	'title'       => __( 'Fix ACF CPT SVG Icons', 'sb-tweaks' ),
-	'description' => __( 'Makes SVG menu icons on post types created in ACF behave like the other admin menu icons: the same size, and they change colour on hover and when active. Menu icons from other plugins are left alone.', 'sb-tweaks' ),
+	'title'       => 'Fix ACF CPT SVG Icons',
+	'description' => 'Makes SVG menu icons on post types created in ACF behave like the other admin menu icons: the same size, and they change colour on hover and when active. Menu icons from other plugins are left alone.',
 	'type'        => 'tweak',
 	'section'     => 'admin',
 	'default'     => false,
@@ -15,7 +15,7 @@ return [
 	'settings'    => [
 		'colour' => [
 			'type'        => 'color',
-			'label'       => __( 'Icon colour', 'sb-tweaks' ),
+			'label'       => 'Icon colour',
 			'default'     => '',
 			'placeholder' => '#fff or var(--primary)',
 		],

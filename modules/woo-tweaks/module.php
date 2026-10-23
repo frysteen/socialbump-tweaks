@@ -29,19 +29,19 @@ require_once SB_WOO_TWEAKS_PATH . 'includes/class-sb-woo-tweaks.php';
 return [
 	'id'          => 'woo',
 	'title'       => 'Woo Tweaks',
-	'description' => __( 'Fixes and extras for WooCommerce stores: prices, the cart, product image zoom, logging in to check out, the default category and CSV downloads from Analytics.', 'sb-tweaks' ),
+	'description' => 'Fixes and extras for WooCommerce stores: prices, the cart, product image zoom, logging in to check out, the default category and CSV downloads from Analytics.',
 	'heading'     => 'Woo Tweaks',
 	'requires'    => [ 'woocommerce' ],
 	'migrate'     => [ 'SB_Woo_Tweaks', 'migrate' ],
 
 	'groups'      => [
 		'shop'  => [
-			'title'       => __( 'Shop and Checkout', 'sb-tweaks' ),
-			'description' => __( 'Prices, the cart, product images and the checkout.', 'sb-tweaks' ),
+			'title'       => 'Shop and Checkout',
+			'description' => 'Prices, the cart, product images and the checkout.',
 		],
 		'admin' => [
-			'title'       => __( 'Store Admin', 'sb-tweaks' ),
-			'description' => __( 'Fixes and extras in the WooCommerce admin.', 'sb-tweaks' ),
+			'title'       => 'Store Admin',
+			'description' => 'Fixes and extras in the WooCommerce admin.',
 		],
 	],
 

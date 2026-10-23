@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'condition-acf-repeater',
-	'title'       => __( 'ACF Repeater', 'sb-tweaks' ),
-	'description' => __( 'Show or hide an element depending on whether an ACF repeater has rows. Pick the repeater from a list.', 'sb-tweaks' ),
+	'title'       => 'ACF Repeater',
+	'description' => 'Show or hide an element depending on whether an ACF repeater has rows. Pick the repeater from a list.',
 	'type'        => 'condition',
 	'section'     => 'conditions',
 	'default'     => false,

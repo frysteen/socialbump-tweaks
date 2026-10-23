@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'elementor-image-ratio',
-	'title'       => __( 'Image Aspect Ratio', 'sb-tweaks' ),
-	'description' => __( 'An aspect ratio, fit (cover by default) and position for the images in widgets that have no ratio setting of their own, set per device.', 'sb-tweaks' ),
+	'title'       => 'Image Aspect Ratio',
+	'description' => 'An aspect ratio, fit (cover by default) and position for the images in widgets that have no ratio setting of their own, set per device.',
 	'section'     => 'images',
 	'default'     => true,
 	'requires'    => [ 'elementor' ],

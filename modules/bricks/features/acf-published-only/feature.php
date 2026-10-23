@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'acf-published-only',
-	'title'       => __( 'Hide Unpublished ACF Posts', 'sb-tweaks' ),
-	'description' => __( 'Leaves drafts, scheduled, private and binned posts out of ACF relationship and post object fields on the front end, so related posts can be picked ahead of time and only appear once they are published. The edit screens still show them.', 'sb-tweaks' ),
+	'title'       => 'Hide Unpublished ACF Posts',
+	'description' => 'Leaves drafts, scheduled, private and binned posts out of ACF relationship and post object fields on the front end, so related posts can be picked ahead of time and only appear once they are published. The edit screens still show them.',
 	'type'        => 'tweak',
 	'section'     => 'extras',
 	'default'     => false,

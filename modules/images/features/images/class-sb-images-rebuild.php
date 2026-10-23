@@ -125,7 +125,7 @@ class SB_Images_Rebuild {
 	 * owned and nobody has chosen to clear: leftovers from a snippet, theme or
 	 * plugin. Listed on SB Image Cleaner, never cleared until chosen.
 	 */
-	public static function foreign( $id, array $meta = null ) {
+	public static function foreign( $id, ?array $meta = null ) {
 		$meta = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 		$have = array_keys( (array) ( $meta['sizes'] ?? [] ) );
 
@@ -233,7 +233,7 @@ class SB_Images_Rebuild {
 	 * the recorded dimensions with what the size would produce now makes a
 	 * changed size show up as work, which is what a person expects.
 	 */
-	public static function present( $id, array $meta = null ) {
+	public static function present( $id, ?array $meta = null ) {
 		$meta   = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 		$file   = get_attached_file( $id );
 		$sizes  = self::all_wanted();
@@ -268,7 +268,7 @@ class SB_Images_Rebuild {
 
 		return $have;
 	}
-	public static function missing( $id, array $meta = null ) {
+	public static function missing( $id, ?array $meta = null ) {
 		$meta = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 
 		if ( empty( $meta['width'] ) ) {
@@ -310,7 +310,7 @@ class SB_Images_Rebuild {
 	 * never appear in that list, and filtering by it meant a removed size could
 	 * never be found or cleared at all.
 	 */
-	public static function stale( $id, array $meta = null ) {
+	public static function stale( $id, ?array $meta = null ) {
 		$meta = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 		$have = array_keys( (array) ( $meta['sizes'] ?? [] ) );
 
@@ -595,7 +595,7 @@ class SB_Images_Rebuild {
 		return $made;
 	}
 
-	public static function build( $id, $all = false, array $only = null ) {
+	public static function build( $id, $all = false, ?array $only = null ) {
 		$built = [];
 
 		if ( ! wp_attachment_is_image( $id ) ) {
@@ -684,7 +684,7 @@ class SB_Images_Rebuild {
 	 * The files that clearing would actually delete for one attachment:
 	 * each old thumbnail, plus any WebP copy sitting beside it.
 	 */
-	public static function stale_files( $id, array $meta = null ) {
+	public static function stale_files( $id, ?array $meta = null ) {
 		return self::stale_usage( $id, $meta )['files'];
 	}
 
@@ -693,7 +693,7 @@ class SB_Images_Rebuild {
 	 * they take, for the Old thumbnails to clear figure. The scan checks each
 	 * file is there anyway, so its size costs one more look at the same file.
 	 */
-	public static function stale_usage( $id, array $meta = null ) {
+	public static function stale_usage( $id, ?array $meta = null ) {
 		$meta  = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 		$file  = get_attached_file( $id );
 		$count = 0;
@@ -828,7 +828,7 @@ class SB_Images_Rebuild {
 	 * is impossible. Reading the header costs about a tenth of a millisecond and
 	 * it is the only number that can be acted on.
 	 */
-	public static function dimensions( $id, array $meta = null ) {
+	public static function dimensions( $id, ?array $meta = null ) {
 		static $seen = [];
 
 		$id = (int) $id;
@@ -865,7 +865,7 @@ class SB_Images_Rebuild {
 		return (bool) image_resize_dimensions( $width, $height, (int) $size['width'], (int) $size['height'], ! empty( $size['crop'] ) );
 	}
 
-	public static function missing_all( $id, array $meta = null, array $only = null ) {
+	public static function missing_all( $id, ?array $meta = null, ?array $only = null ) {
 		$meta = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 
 		if ( empty( $meta['width'] ) ) {

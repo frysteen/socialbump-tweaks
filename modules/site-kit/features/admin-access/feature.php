@@ -33,7 +33,7 @@ endif;
 $sb_site_kit_admin_access_settings = [
 	'roles' => [
 		'type'    => 'multicheck',
-		'label'   => __( 'Block the admin for these roles', 'sb-tweaks' ),
+		'label'   => 'Block the admin for these roles',
 		'options' => 'sb_site_kit_admin_access_roles',
 		'default' => [],
 	],
@@ -43,14 +43,14 @@ $sb_site_kit_admin_access_settings = [
 if ( class_exists( 'WooCommerce' ) ) {
 	$sb_site_kit_admin_access_settings['woo_account'] = [
 		'type'    => 'checkbox',
-		'label'   => __( 'Send them to the WooCommerce My Account page', 'sb-tweaks' ),
+		'label'   => 'Send them to the WooCommerce My Account page',
 		'default' => 0,
 	];
 }
 return [
 	'id'          => 'admin-access',
-	'title'       => __( 'Block Admin Access', 'sb-tweaks' ),
-	'description' => __( 'Sends the roles you tick back to the front end if they try to open the WordPress admin. Administrators are never affected.', 'sb-tweaks' ),
+	'title'       => 'Block Admin Access',
+	'description' => 'Sends the roles you tick back to the front end if they try to open the WordPress admin. Administrators are never affected.',
 	'section'     => 'admin',
 	'default'     => false,
 
@@ -64,10 +64,10 @@ return [
 		[
 			'redirect' => [
 				'type'        => 'text',
-				'label'       => __( 'Send them to', 'sb-tweaks' ),
+				'label'       => 'Send them to',
 				'default'     => '',
 				'placeholder' => '/my-account/',
-				'description' => __( 'A path or a full URL. Empty sends them to the home page.', 'sb-tweaks' ),
+				'description' => 'A path or a full URL. Empty sends them to the home page.',
 				'hide_when'   => 'woo_account',
 			],
 		]

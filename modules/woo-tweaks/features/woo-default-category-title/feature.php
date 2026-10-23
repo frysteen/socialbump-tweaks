@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'woo-default-category-title',
-	'title'       => __( 'Fix Default Category Title Bug', 'sb-tweaks' ),
-	'description' => __( 'WooCommerce blanks out the name, edit link and row actions of the default category on Products, Categories. This puts them back and moves the tooltip after the name.', 'sb-tweaks' ),
+	'title'       => 'Fix Default Category Title Bug',
+	'description' => 'WooCommerce blanks out the name, edit link and row actions of the default category on Products, Categories. This puts them back and moves the tooltip after the name.',
 	'section'     => 'admin',
 	'default'     => true,
 	'requires'    => [ 'woocommerce' ],

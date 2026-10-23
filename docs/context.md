@@ -25,25 +25,31 @@ Naming, because the old plugins used these words differently and it matters:
 
 ## Where it is up to
 
-As of 17 October 2026, version 0.3.0 published, the first with Woo Tweaks and
-Elementor Tweaks:
+As of 23 October 2026, version 0.3.1 is the published version (17 October:
+per-size padlocks on SB Image Settings), and the fix in Translations wait for
+init, below, is on the hub, queued for 0.3.2. 0.3.0 was the first with Woo
+Tweaks and Elementor Tweaks.
 
 - Five modules, each with its own notes in its docs/context.md: Bricks Tweaks
   (modules/bricks), Site Kit (modules/site-kit), Image Management
   (modules/images), Woo Tweaks (modules/woo-tweaks) and Elementor Tweaks
   (modules/elementor-tweaks).
 - Elementor Tweaks was tested on epoxyflooringco.com.au through a test copy
-  plugin (sb-elementor-tweaks-test) and a draft page (13644). Both go once
-  SocialBUMP Tweaks is installed there. See the module's notes.
+  plugin (sb-elementor-tweaks-test) and a test page (13644). Epoxy has run
+  SocialBUMP Tweaks since 0.3.0 (17 October), when the test copy was deleted;
+  page 13644 was still there that day, for Sam to remove. See the module's
+  notes.
 - Moving a site onto SocialBUMP Tweaks, below, is the checklist for the sites
-  still to come: Epoxy, Terrace Marina and Noosa's Elite Car Spa.
+  still to come: Terrace Marina and Noosa's Elite Car Spa.
 - Site Kit and Image Management went out in 0.2.0 on 16 October. Moved over
   and checked against a snapshot taken before each update: bricks.socialbump.com.au,
   drivingevents.com.au and thecosmeticstudionoosa.com.au. doogood.com.au had
   the plugin installed from the hub on 0.2.0, was updated to 0.2.1, and was
-  moved onto the new standard image sizes and cleaned. Driving Events keeps
-  its old image widths on purpose, as newsletters link to those files: never
-  Remove old sizes there. hintercoasttransport.com.au has not been checked.
+  moved onto the new standard image sizes and cleaned. Driving Events moved
+  onto the standard sizes in October 2026 with image-480 and image-720 locked,
+  because its sent newsletters link to those files; the locks keep them
+  through Remove old sizes and the cleaner. hintercoasttransport.com.au has
+  not been checked.
   See Site Kit and Image Management, and Woo Tweaks, below.
 - SEO for AI stays standalone for good.
 
@@ -86,7 +92,9 @@ Built so far:
 
 A module is a folder in modules/ holding a module.php that returns its
 declaration: id, title, description, requires, replaces, menu (slug, label,
-page_title, after), bar (id, label), heading, prompt and boot. Folder names
+page_title, after), bar (id, label), heading, prompt and boot. Its words are
+plain strings, never __(), and so are a feature.php's: see Translations wait
+for init. Folder names
 are hyphenated (modules/site-kit/), ids are the option infix (site_kit), and
 the page slugs stay sb-bricks-tweaks and sb-site-kit because ASE menu
 configuration and bookmarks hold them.
@@ -296,6 +304,11 @@ the settings export and import live. Module banners carry no badge.
   concatenation with chr( 34 ), which is why the code here reads that way.
 - A shared file that drifted took two client sites down. Nothing here is shared
   with anything, and that is worth keeping.
+- Nothing may be translated before init. module.php and feature.php are read
+  while plugins load, so their words are plain strings, and nothing that runs
+  then (a module's migrate or boot, a feature's boot, an unavailable callable)
+  may call __() or its relatives. WordPress 6.7 and later log a notice on
+  every request otherwise. See Translations wait for init.
 - Never name a variable $start in code run through Novamira's execute-php. Its
   wrapper times the run with a $start of its own, so a string left in $start
   throws "Unsupported operand types: float - string" after the code has run,
@@ -828,8 +841,9 @@ Afterwards:
 - Switch off the snippets noted above.
 - Clear the page cache (the Gutenberg image zoom markup changed names).
 - Image sizes, if the site is moving onto the standard sizes: Switching a site
-  to the standard sizes in modules/images/docs/context.md. Never on Driving
-  Events.
+  to the standard sizes in modules/images/docs/context.md. Lock any size that
+  emails or other sites link to first, as was done for image-480 and
+  image-720 on Driving Events.
 
 ## Elementor Tweaks (October 2026)
 
@@ -843,3 +857,127 @@ instead of having settings pages. The old plugin's settings are renamed to
 sb_elementor_* once by the module's migrate, and the plugin is retired through
 replaces. The module's notes cover how widgets are picked, the Rank Math catch
 with decorative images, and the test on Epoxy.
+
+## Translations wait for init (October 2026)
+
+Found on epoxyflooringco.com.au (PHP 8.4, WordPress 7.1.3) with WP_DEBUG on:
+every request logged "Function _load_textdomain_just_in_time was called
+incorrectly. Translation loading for the sb-tweaks domain was triggered too
+early." WordPress 6.7 and later raise it when anything in a domain that has a
+translation path is translated before after_setup_theme has finished. It is
+logged once per domain per request, so one stray call is as loud as a hundred.
+
+The cause: SB_Tweaks_Modules::discover() includes every module.php, and each
+booted module's SB_Tweaks_Features::discover() every feature.php, on
+plugins_loaded, and those files called __() at file level: 115 strings in 38
+files. Two unavailable callables translated at boot as well: Excerpts For
+Pages (only when pages already had excerpts at that point) and Require Login
+to Check Out (whenever WooCommerce allows guest checkout, so every request on
+Driving Events). Every other translation in the plugin sits in code that runs
+on init or later. A temporary mu-plugin on the hub recording gettext calls
+before init, with backtraces, found 91 on a request, all in those files.
+
+Why sb_tweaks_boot stays on plugins_loaded: migrate has to run before 'auto'
+decides which modules are on; retire_old_plugins() switches the standalone
+plugins off, front end included, and the running list has to be read while
+they load; Image Management registers its sizes on after_setup_theme; Bricks
+Tweaks hooks init 0 (ACF sorting) and init 11 (elements). Booting later would
+move all of that.
+
+What changed (0.3.2, on the hub until it is published):
+
+- The words in module.php (description, each group's title and description)
+  and feature.php (title, description, each setting's label and description,
+  the admin page's title and description) are plain English strings. The
+  __( '...', 'sb-tweaks' ) wrappers were taken off by a tokenizer script that
+  only touched file level calls of exactly that shape.
+- SB_Tweaks_Modules::translate_words(), hooked on init at priority 0 at the
+  end of boot(), translates exactly those keys with translate( $text,
+  'sb-tweaks' ) in every copy the framework keeps: the module list, each
+  Features loader (its declaration, every feature, the switched on copies) and
+  each Screen. translate_module() and translate_feature() hold the key lists.
+- An unavailable callable may hand back a function that writes the sentence.
+  SB_Tweaks_Features::unavailable() calls it from init on; before init it
+  answers 'unavailable', since boot only asks whether there is a reason. The
+  two callables above do this now.
+- Callables that run later (features, an admin page's render) still translate
+  as usual.
+
+Why plain strings rather than functions for the words: features are sorted by
+title in discover(), and that order is also the order they boot in, so the
+titles have to exist before init. As plain strings they sort exactly as
+before (the plugin ships no translations, so the translated title always was
+the English), and nothing that reads a declaration ever meets anything but a
+string. The cost: wp i18n make-pot no longer finds these strings, as they are
+not literal __() calls. Nothing builds a .pot for this plugin today; if that
+is ever wanted, list them in a file of __() calls that never runs.
+
+The rule from now on: no __(), _e(), esc_html__() or the rest in module.php or
+feature.php, or in anything that runs before init. Write the words as plain
+strings, or hand back a function.
+
+The acf domain: Epoxy logged the same notice for acf the same number of
+times. SB Tweaks does not cause it. Every ACF call in the plugin
+(acf_get_field_groups, acf_get_fields, get_field, acf_add_local_field_group
+and the rest) is in a callback that runs on init or later: acf/init, wp_head,
+admin_head, Bricks' control options (built on init), Bricks condition lists
+and render filters. The hub probe recorded no acf translations before init.
+The counts match because the notice is logged once per domain per request.
+What triggers it on Epoxy was not looked into.
+
+Checked:
+
+- php -l on every changed file, locally (PHP 8.3) and on the hub (8.3.35).
+  PHPCompatibility (develop branch, PHPCS 4.0.4) with testVersion 8.2-8.4:
+  nothing on the changed files.
+- A harness loading all 38 declaration files, the old ones with __() marking
+  each string and the new ones through translate_module() and
+  translate_feature(): identical arrays, the same strings translated (113, or
+  115 with WooCommerce and Rank Math present).
+- On the hub, fresh requests before and after: 91 sb-tweaks translations
+  before init and one notice before, none after, front end and admin-ajax. A
+  snapshot of every hook SB Tweaks registers in order, module and feature
+  state and order, unavailable reasons, every module and group page drawn as
+  an administrator, the menus and the admin bar: identical, apart from the
+  new init hook and the version badge while the file briefly said 0.3.2.
+- Require Login's callable through the new unavailable() with guest checkout
+  on: nothing translated before init, the same sentence after.
+- WP_DEBUG and WP_DEBUG_LOG switched on in the hub's wp-config for a few
+  seconds (wp-config put back byte for byte, a copy kept in /tmp). A keyed
+  canary request translating in sb-tweaks on plugins_loaded logged the notice
+  once, proving the log catches it; the front end, admin-ajax, REST, the
+  Modules, Site Kit, Bricks Tweaks, SB Image Settings, SB Image Cleaner,
+  Plugins and Dashboard pages then logged none.
+
+The version: the main file stays at 0.3.1 until publishing, which bumps it to
+0.3.2 (the Publishing page and the Installs page both do). Bumping it by hand
+first makes the Publishing page refuse 0.3.2, the Installs page publish
+0.3.3, and every site look behind on a version GitHub does not have.
+
+## PHP 8.0 or later (October 2026)
+
+Sam's call, in the same release as the fix above: SocialBUMP Tweaks is for PHP
+8.0 and later only, and must not install or activate on anything older. Every
+site reporting to the Installs page was on 8.2 or later at the time (Epoxy on
+8.4).
+
+- Requires PHP is 8.0 in the main file's header and in readme.txt. WordPress
+  itself then refuses to install, update or activate the plugin on older PHP,
+  the update checker's details included.
+- A guard at the top of socialbump-tweaks.php, before the reporter and
+  everything else: below PHP 8.0 it shows an admin notice and returns, so a
+  site already running the plugin that is moved onto older PHP never loads
+  the rest. Everything above that return has to stay parseable by old PHP
+  (PHPCompatibility 7.0-8.4 is clean on the main file).
+- class-sb-images-rebuild.php (10) and class-sb-images-orphans.php (1) had
+  parameters like array $meta = null, which PHP 8.4 deprecates as implicitly
+  nullable, so a PHP 8.4 site with WP_DEBUG on (Epoxy) logged a notice for
+  each once the files loaded. They are ?array $meta = null now, the same
+  meaning on every version.
+- woo-analytics-csv passes html_entity_decode() its flags (ENT_QUOTES |
+  ENT_SUBSTITUTE | ENT_HTML401), the default since PHP 8.1, so PHP 8.0 decodes
+  the default date range exactly as every live site does.
+- PHPCompatibility on the whole plugin (vendor aside) with testVersion
+  8.0-8.4: clean. Checked on the hub: WordPress reads Requires PHP 8.0, the
+  Modules, SB Image Settings, SB Image Cleaner and Plugins pages and the front
+  end load, and the rebuild calls work with the meta left out.

@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'default-wp-editor',
-	'title'       => __( 'Default To WP Editor', 'sb-tweaks' ),
-	'description' => __( 'Opens the WordPress editor instead of the Bricks tab on posts with no Bricks content of their own. The Bricks tab is still one click away.', 'sb-tweaks' ),
+	'title'       => 'Default To WP Editor',
+	'description' => 'Opens the WordPress editor instead of the Bricks tab on posts with no Bricks content of their own. The Bricks tab is still one click away.',
 	'type'        => 'tweak',
 	'section'     => 'extras',
 	'default'     => false,

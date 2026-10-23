@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'            => 'image-carousel',
-	'title'         => __( 'Image Carousel', 'sb-tweaks' ),
-	'description'   => __( 'An SEO friendly image carousel. Real img tags with alt text, drag ordering, ACF gallery support, breakpoint controls, lightbox and continuous scroll.', 'sb-tweaks' ),
+	'title'         => 'Image Carousel',
+	'description'   => 'An SEO friendly image carousel. Real img tags with alt text, drag ordering, ACF gallery support, breakpoint controls, lightbox and continuous scroll.',
 	'type'          => 'element',
 	'default'       => true,
 	'element_file'  => 'class-element-image-carousel.php',

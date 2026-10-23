@@ -57,6 +57,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                 the whole module on or off.
  *   'boot'        Optional callable( $context ), where $context holds def,
  *                 features (SB_Tweaks_Features) and screen (SB_Tweaks_Screen).
+ *
+ * Words for people, the description and each group's title and description,
+ * are written as plain English strings, never through __(). module.php is
+ * read while plugins load, and WordPress 6.7 and later log a notice on every
+ * request that translates anything before init. translate_words() translates
+ * them on init instead. The same goes for feature.php (SB_Tweaks_Features).
  */
 class SB_Tweaks_Modules {
 
@@ -82,6 +88,9 @@ class SB_Tweaks_Modules {
 
 	/** Cached result of each dependency check. */
 	private static $dependency_state = [];
+
+	/** Whether translate_words() has run. */
+	private $translated = false;
 
 	public static function instance() {
 		if ( self::$instance === null ) {
@@ -167,6 +176,9 @@ class SB_Tweaks_Modules {
 				}
 			}
 		}
+
+		// The declarations' words are translated on init, not here: see translate_words().
+		add_action( 'init', [ $this, 'translate_words' ], 0 );
 	}
 
 	private function discover() {
@@ -239,6 +251,86 @@ class SB_Tweaks_Modules {
 
 	public function failed() {
 		return $this->failed;
+	}
+
+	/**
+	 * Translate the words in every declaration, first thing on init.
+	 *
+	 * module.php and feature.php are read while plugins load, and WordPress 6.7
+	 * and later log a notice on every request that translates anything before
+	 * init, so their words are plain English until now. Every copy the
+	 * framework keeps is translated: the list here, and each booted module's
+	 * Features loader and Screen. Anything that reads them before init (the
+	 * sort by title, a module's or feature's boot) gets the English, which is
+	 * what the plugin has always shown, since it ships no translations.
+	 */
+	public function translate_words() {
+		if ( $this->translated ) {
+			return;
+		}
+
+		$this->translated = true;
+
+		foreach ( $this->modules as $id => $def ) {
+			$this->modules[ $id ] = self::translate_module( $def );
+		}
+
+		foreach ( $this->features as $features ) {
+			$features->translate_words();
+		}
+
+		foreach ( $this->screens as $screen ) {
+			$screen->translate_words();
+		}
+	}
+
+	/** A module declaration with its words translated: its description, and each group's title and description. */
+	public static function translate_module( array $def ) {
+		$def = self::words( $def, [ 'description' ] );
+
+		if ( isset( $def['groups'] ) && is_array( $def['groups'] ) ) {
+			foreach ( $def['groups'] as $group => $section ) {
+				if ( is_array( $section ) ) {
+					$def['groups'][ $group ] = self::words( $section, [ 'title', 'description' ] );
+				}
+			}
+		}
+
+		return $def;
+	}
+
+	/**
+	 * A feature declaration with its words translated: its title and
+	 * description, each setting's label and description, and its admin page's
+	 * title and description.
+	 */
+	public static function translate_feature( array $feature ) {
+		$feature = self::words( $feature, [ 'title', 'description' ] );
+
+		if ( isset( $feature['settings'] ) && is_array( $feature['settings'] ) ) {
+			foreach ( $feature['settings'] as $key => $field ) {
+				if ( is_array( $field ) ) {
+					$feature['settings'][ $key ] = self::words( $field, [ 'label', 'description' ] );
+				}
+			}
+		}
+
+		if ( isset( $feature['admin_page'] ) && is_array( $feature['admin_page'] ) ) {
+			$feature['admin_page'] = self::words( $feature['admin_page'], [ 'title', 'description' ] );
+		}
+
+		return $feature;
+	}
+
+	/** The named keys of $array translated, where they hold a string with something in it. */
+	private static function words( array $array, array $keys ) {
+		foreach ( $keys as $key ) {
+			if ( isset( $array[ $key ] ) && is_string( $array[ $key ] ) && $array[ $key ] !== '' ) {
+				$array[ $key ] = translate( $array[ $key ], 'sb-tweaks' );
+			}
+		}
+
+		return $array;
 	}
 
 	/** The booted Features loader for one module, or null. */

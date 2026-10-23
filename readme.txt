@@ -3,8 +3,8 @@ Contributors: socialbump
 Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
-Requires PHP: 7.4
-Stable tag: 0.3.1
+Requires PHP: 8.0
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,10 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.3.2 =
+* Fixed the notice WordPress 6.7 and later logged on every request with WP_DEBUG on, "Translation loading for the sb-tweaks domain was triggered too early". Module and feature names and descriptions are now translated on init instead of while plugins load. Nothing else changes.
+* SocialBUMP Tweaks now needs PHP 8.0 or later. WordPress will not install, update or activate it on older PHP, and a site moved onto older PHP gets a notice instead of the plugin loading. Also stops the PHP 8.4 deprecation notices from the Image Management module.
 
 = 0.3.1 =
 * Each image size on SB Image Settings now has a padlock. A locked size cannot be changed, removed or reset, and SB Image Cleaner never deletes its files, so emails that link straight to those files keep working. Everything else can still be reset and cleaned.

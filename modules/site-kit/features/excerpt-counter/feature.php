@@ -5,15 +5,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'excerpt-counter',
-	'title'       => __( 'Excerpt Character Counter', 'sb-tweaks' ),
-	'description' => __( 'Counts characters as you write an excerpt, in both the block editor and the classic excerpt box, and warns when it runs long.', 'sb-tweaks' ),
+	'title'       => 'Excerpt Character Counter',
+	'description' => 'Counts characters as you write an excerpt, in both the block editor and the classic excerpt box, and warns when it runs long.',
 	'section'     => 'content',
 	'default'     => true,
 
 	'settings'    => [
 		'max' => [
 			'type'    => 'number',
-			'label'   => __( 'Ideal length', 'sb-tweaks' ),
+			'label'   => 'Ideal length',
 			'default' => 160,
 			'min'     => 20,
 			'max'     => 500,

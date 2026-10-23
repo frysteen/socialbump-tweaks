@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'condition-bricks-content',
-	'title'       => __( 'Bricks Content', 'sb-tweaks' ),
-	'description' => __( 'Show or hide an element depending on whether the post was built with Bricks. Handy for falling back to normal WordPress content.', 'sb-tweaks' ),
+	'title'       => 'Bricks Content',
+	'description' => 'Show or hide an element depending on whether the post was built with Bricks. Handy for falling back to normal WordPress content.',
 	'type'        => 'condition',
 	'section'     => 'conditions',
 	'default'     => false,

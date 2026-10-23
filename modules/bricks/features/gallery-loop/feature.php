@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'gallery-loop',
-	'title'       => __( 'ACF Gallery Loop', 'sb-tweaks' ),
-	'description' => __( 'Adds each ACF gallery field to the query loop Type list, so you can loop over its images and build the markup yourself. Works with any return format, and comes with ordering options.', 'sb-tweaks' ),
+	'title'       => 'ACF Gallery Loop',
+	'description' => 'Adds each ACF gallery field to the query loop Type list, so you can loop over its images and build the markup yourself. Works with any return format, and comes with ordering options.',
 	'type'        => 'tweak',
 	'section'     => 'extras',
 	'default'     => false,

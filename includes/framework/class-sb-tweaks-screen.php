@@ -36,6 +36,11 @@ class SB_Tweaks_Screen {
 		$this->features = $features;
 	}
 
+	/** This module's words translated, on init (SB_Tweaks_Modules::translate_words()). */
+	public function translate_words() {
+		$this->def = SB_Tweaks_Modules::translate_module( $this->def );
+	}
+
 	/** The module's menu slug: the front door of all its pages. */
 	public function slug() {
 		return $this->def['menu']['slug'];

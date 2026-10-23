@@ -5,15 +5,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'admin-colour-scheme',
-	'title'       => __( 'SocialBUMP Admin Colour Scheme', 'sb-tweaks' ),
-	'description' => __( 'Adds a SocialBUMP admin colour scheme, picked under Users then Profile. Based on Midnight with the SocialBUMP palette in place of the red.', 'sb-tweaks' ),
+	'title'       => 'SocialBUMP Admin Colour Scheme',
+	'description' => 'Adds a SocialBUMP admin colour scheme, picked under Users then Profile. Based on Midnight with the SocialBUMP palette in place of the red.',
 	'section'     => 'admin',
 	'default'     => true,
 
 	'settings'    => [
 		'force' => [
 			'type'        => 'checkbox',
-			'label'       => __( 'Use it for everyone', 'sb-tweaks' ),
+			'label'       => 'Use it for everyone',
 			'default'     => 0,
 		],
 	],

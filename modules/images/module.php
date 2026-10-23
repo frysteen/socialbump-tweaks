@@ -32,7 +32,7 @@ require_once SB_IMAGES_PATH . 'includes/class-sb-images-module.php';
 return [
 	'id'          => 'images',
 	'title'       => 'Image Management',
-	'description' => __( 'Image sizes, tidy titles and alt text on upload, media library extras and the Image Cleaner. Adds SB Image Settings and SB Image Cleaner to the Media menu.', 'sb-tweaks' ),
+	'description' => 'Image sizes, tidy titles and alt text on upload, media library extras and the Image Cleaner. Adds SB Image Settings and SB Image Cleaner to the Media menu.',
 	'heading'     => 'Image Management',
 	'waits_for'   => SB_Images_Module::SITE_KIT,
 	'migrate'     => [ 'SB_Images_Module', 'migrate' ],
@@ -40,12 +40,12 @@ return [
 	// Settings first: the order of the Media menu and the admin bar flyout.
 	'groups'      => [
 		'settings' => [
-			'title'       => __( 'SB Image Settings', 'sb-tweaks' ),
-			'description' => __( 'Image sizes, tidy titles and alt text on upload, and the media library extras.', 'sb-tweaks' ),
+			'title'       => 'SB Image Settings',
+			'description' => 'Image sizes, tidy titles and alt text on upload, and the media library extras.',
 		],
 		'cleaner'  => [
-			'title'       => __( 'SB Image Cleaner', 'sb-tweaks' ),
-			'description' => __( 'Missing thumbnails, old sizes and orphaned files.', 'sb-tweaks' ),
+			'title'       => 'SB Image Cleaner',
+			'description' => 'Missing thumbnails, old sizes and orphaned files.',
 		],
 	],
 

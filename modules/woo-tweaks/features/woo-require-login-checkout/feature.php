@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'woo-require-login-checkout',
-	'title'       => __( 'Require Login to Check Out', 'sb-tweaks' ),
-	'description' => __( 'Sends a logged out customer to My Account before the checkout, and straight back to the checkout once they have logged in or registered.', 'sb-tweaks' ),
+	'title'       => 'Require Login to Check Out',
+	'description' => 'Sends a logged out customer to My Account before the checkout, and straight back to the checkout once they have logged in or registered.',
 	'section'     => 'shop',
 	'default'     => false,
 	'requires'    => [ 'woocommerce' ],
@@ -22,13 +22,17 @@ return [
 			return '';
 		}
 
-		$link = '<a href=' . chr( 34 ) . esc_url( admin_url( 'admin.php?page=wc-settings&tab=account' ) ) . chr( 34 ) . '>' . esc_html__( 'Accounts and Privacy', 'sb-tweaks' ) . '</a>';
+		// Asked while the plugin boots, before init, when nothing may be
+		// translated yet, so the sentence is handed back as a function.
+		return function () {
+			$link = '<a href=' . chr( 34 ) . esc_url( admin_url( 'admin.php?page=wc-settings&tab=account' ) ) . chr( 34 ) . '>' . esc_html__( 'Accounts and Privacy', 'sb-tweaks' ) . '</a>';
 
-		return sprintf(
-			/* translators: %s: link to the WooCommerce account settings */
-			__( 'Guest checkout is switched on in WooCommerce, so this would only get in the way. Turn it off under %s to use this.', 'sb-tweaks' ),
-			$link
-		);
+			return sprintf(
+				/* translators: %s: link to the WooCommerce account settings */
+				__( 'Guest checkout is switched on in WooCommerce, so this would only get in the way. Turn it off under %s to use this.', 'sb-tweaks' ),
+				$link
+			);
+		};
 	},
 
 	'boot' => function ( $module ) {

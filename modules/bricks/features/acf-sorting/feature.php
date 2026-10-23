@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'acf-sorting',
-	'title'       => __( 'ACF Loop Sorting', 'sb-tweaks' ),
-	'description' => __( 'Adds an Order setting to ACF query loops, so rows can be shown reversed, sorted or at random. The order saved in ACF never changes.', 'sb-tweaks' ),
+	'title'       => 'ACF Loop Sorting',
+	'description' => 'Adds an Order setting to ACF query loops, so rows can be shown reversed, sorted or at random. The order saved in ACF never changes.',
 	'type'        => 'tweak',
 	'section'     => 'extras',
 	'default'     => false,
@@ -15,12 +15,12 @@ return [
 	'settings'    => [
 		'repeater'     => [
 			'type'    => 'switch',
-			'label'   => __( 'Repeater loops', 'sb-tweaks' ),
+			'label'   => 'Repeater loops',
 			'default' => 1,
 		],
 		'relationship' => [
 			'type'    => 'switch',
-			'label'   => __( 'Relationship loops', 'sb-tweaks' ),
+			'label'   => 'Relationship loops',
 			'default' => 1,
 		],
 	],

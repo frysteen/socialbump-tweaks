@@ -27,7 +27,7 @@ require_once SB_ELEMENTOR_TWEAKS_PATH . 'includes/class-sb-elementor-tweaks.php'
 return [
 	'id'          => 'elementor',
 	'title'       => 'Elementor Tweaks',
-	'description' => __( 'Extras for Elementor widgets: alt text you set per widget, and an aspect ratio, fit and position for widget images.', 'sb-tweaks' ),
+	'description' => 'Extras for Elementor widgets: alt text you set per widget, and an aspect ratio, fit and position for widget images.',
 	'heading'     => 'Elementor Tweaks',
 	'requires'    => [ 'elementor' ],
 	'replaces'    => SB_Elementor_Tweaks::OLD_ALT_PLUGIN,
@@ -35,8 +35,8 @@ return [
 
 	'groups'      => [
 		'images' => [
-			'title'       => __( 'Images', 'sb-tweaks' ),
-			'description' => __( 'Settings added to every Elementor widget that shows an image, in its SB Image section.', 'sb-tweaks' ),
+			'title'       => 'Images',
+			'description' => 'Settings added to every Elementor widget that shows an image, in its SB Image section.',
 		],
 	],
 

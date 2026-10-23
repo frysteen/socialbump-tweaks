@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'faq-schema',
-	'title'       => __( 'FAQ Settings', 'sb-tweaks' ),
-	'description' => __( 'Adds the fields that hold your questions and answers, and prints FAQPage schema on the pages that have them. Questions can live on the page itself, or in a post type used as a library.', 'sb-tweaks' ),
+	'title'       => 'FAQ Settings',
+	'description' => 'Adds the fields that hold your questions and answers, and prints FAQPage schema on the pages that have them. Questions can live on the page itself, or in a post type used as a library.',
 	'section'     => 'faq',
 	'default'     => true,
 	'requires'    => [ 'acf' ],
@@ -27,7 +27,7 @@ return [
 	},
 
 	'admin_page'  => [
-		'title'  => __( 'FAQ Settings', 'sb-tweaks' ),
+		'title'  => 'FAQ Settings',
 		'render' => function ( $module ) {
 			require_once $module['path'] . 'class-sb-site-kit-faq.php';
 			require_once $module['path'] . 'class-sb-site-kit-faq-admin.php';

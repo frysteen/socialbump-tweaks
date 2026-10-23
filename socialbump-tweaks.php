@@ -3,9 +3,9 @@
  * Plugin Name: SocialBUMP Tweaks
  * Plugin URI:  https://socialbump.com.au
  * Description: SocialBUMP site tweaks in switchable modules. Turn on only the parts a site needs.
- * Version:     0.3.1
+ * Version:     0.3.2
  * Requires at least: 6.0
- * Requires PHP: 7.4
+ * Requires PHP: 8.0
  * Author:      SocialBUMP
  * Author URI:  https://socialbump.com.au
  * License:     GPL-2.0-or-later
@@ -16,10 +16,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * PHP 8.0 or later only. WordPress will not install, update or activate the
+ * plugin on older PHP (Requires PHP above). This covers a site already running
+ * it that is moved onto older PHP: nothing else loads, and the admin says why.
+ * Everything above the return has to stay parseable by old PHP.
+ */
+if ( PHP_VERSION_ID < 80000 ) {
+	if ( ! function_exists( 'sb_tweaks_php_too_old' ) ) {
+		function sb_tweaks_php_too_old() {
+			echo '<div class="notice notice-error"><p>' . esc_html( sprintf( 'SocialBUMP Tweaks needs PHP 8.0 or later. This site runs PHP %s, so it has not loaded.', PHP_VERSION ) ) . '</p></div>';
+		}
+	}
+
+	add_action( 'admin_notices', 'sb_tweaks_php_too_old' );
+
+	return;
+}
+
 // Tells the SocialBUMP hub this site has the plugin, its version and whether it is active.
 require_once __DIR__ . '/includes/class-socialbump-reporter.php';
 
-define( 'SB_TWEAKS_VERSION', '0.3.1' );
+define( 'SB_TWEAKS_VERSION', '0.3.2' );
 define( 'SB_TWEAKS_FILE', __FILE__ );
 define( 'SB_TWEAKS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SB_TWEAKS_URL', plugin_dir_url( __FILE__ ) );

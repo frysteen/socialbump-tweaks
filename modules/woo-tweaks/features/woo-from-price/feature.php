@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'woo-from-price',
-	'title'       => __( 'From Price on Variable Products', 'sb-tweaks' ),
-	'description' => __( 'Shows the lowest price with a label in front of it, instead of a price range.', 'sb-tweaks' ),
+	'title'       => 'From Price on Variable Products',
+	'description' => 'Shows the lowest price with a label in front of it, instead of a price range.',
 	'section'     => 'shop',
 	'default'     => false,
 	'requires'    => [ 'woocommerce' ],
@@ -14,19 +14,19 @@ return [
 	'settings'    => [
 		'on_loops'  => [
 			'type'    => 'checkbox',
-			'label'   => __( 'Use in product loops', 'sb-tweaks' ),
+			'label'   => 'Use in product loops',
 			'default' => 1,
 		],
 		'on_single' => [
 			'type'        => 'checkbox',
-			'label'       => __( 'Use on the single product page', 'sb-tweaks' ),
+			'label'       => 'Use on the single product page',
 			'default'     => 0,
 		],
 		'label'     => [
 			'type'        => 'text',
-			'label'       => __( 'Label', 'sb-tweaks' ),
+			'label'       => 'Label',
 			'default'     => 'From:',
-			'description' => __( 'Leave empty to show the price on its own.', 'sb-tweaks' ),
+			'description' => 'Leave empty to show the price on its own.',
 		],
 	],
 

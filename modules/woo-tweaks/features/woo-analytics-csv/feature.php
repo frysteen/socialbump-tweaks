@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'woo-analytics-csv',
-	'title'       => __( 'Download Analytics as CSV', 'sb-tweaks' ),
-	'description' => __( 'Puts a Download CSV button on the Analytics reports, covering the date range on screen. WooCommerce normally builds the file in the background and emails a link instead.', 'sb-tweaks' ),
+	'title'       => 'Download Analytics as CSV',
+	'description' => 'Puts a Download CSV button on the Analytics reports, covering the date range on screen. WooCommerce normally builds the file in the background and emails a link instead.',
 	'section'     => 'admin',
 	'default'     => false,
 	'requires'    => [ 'woocommerce' ],

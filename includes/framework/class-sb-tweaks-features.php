@@ -33,7 +33,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   'unavailable' Optional callable returning a sentence when the feature
  *                 cannot be used on this site. Never call is_enabled() inside
  *                 one: is_enabled() asks unavailable(), so that goes round in
- *                 a circle. Read get_states() instead.
+ *                 a circle. Read get_states() instead. It is asked while the
+ *                 plugin boots, before init, so it must not translate: hand
+ *                 back a function that returns the sentence (see
+ *                 unavailable()).
  *   'boot'        callable( $feature ). Runs when the feature loads.
  *   'assets'      Optional callable( $feature ), called on both enqueue hooks.
  *   'settings'    Optional small options shown on the feature's card.
@@ -41,6 +44,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   'features'    Optional callable listing the feature's own switches for
  *                 the dots on the Features page.
  *   'wide'        Full width card, drawn after the others in its group.
+ *
+ * The title, description, each setting's label and description, and the
+ * admin page's title and description are plain English strings, never
+ * through __(): feature.php is read while plugins load, before init.
+ * SB_Tweaks_Modules::translate_words() translates them on init, through
+ * translate_words() here. Callables such as features and the admin page's
+ * render run later and translate as usual.
  */
 class SB_Tweaks_Features {
 
@@ -187,6 +197,23 @@ class SB_Tweaks_Features {
 		return $this->failed;
 	}
 
+	/**
+	 * Translate this module's words, on init (SB_Tweaks_Modules::
+	 * translate_words()): the declaration's groups, and every feature, the
+	 * copies kept for the switched on ones included.
+	 */
+	public function translate_words() {
+		$this->def = SB_Tweaks_Modules::translate_module( $this->def );
+
+		foreach ( $this->modules as $id => $feature ) {
+			$this->modules[ $id ] = SB_Tweaks_Modules::translate_feature( $feature );
+		}
+
+		foreach ( $this->active as $id => $feature ) {
+			$this->active[ $id ] = SB_Tweaks_Modules::translate_feature( $feature );
+		}
+	}
+
 	public function get_states() {
 		$saved  = (array) get_option( $this->features_option(), [] );
 		$states = [];
@@ -300,13 +327,26 @@ class SB_Tweaks_Features {
 		return SB_Tweaks_Modules::dependency_missing( (array) $this->modules[ $id ]['requires'] );
 	}
 
-	/** Why this feature cannot be used here, or '' when it can. */
+	/**
+	 * Why this feature cannot be used here, or '' when it can.
+	 *
+	 * The callable may hand back a function that writes the sentence. This is
+	 * asked while the plugin boots, before init, when only whether there is a
+	 * reason matters and nothing may be translated, so until init that comes
+	 * back as 'unavailable'. From init on it is the sentence.
+	 */
 	public function unavailable( $id ) {
 		if ( empty( $this->modules[ $id ]['unavailable'] ) || ! is_callable( $this->modules[ $id ]['unavailable'] ) ) {
 			return '';
 		}
 
-		return (string) call_user_func( $this->modules[ $id ]['unavailable'] );
+		$reason = call_user_func( $this->modules[ $id ]['unavailable'] );
+
+		if ( $reason instanceof \Closure ) {
+			return did_action( 'init' ) ? (string) call_user_func( $reason ) : 'unavailable';
+		}
+
+		return (string) $reason;
 	}
 
 	/** A feature's card setting: the saved value, or its default. */

@@ -10,13 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 return [
 	'id'          => 'image-cleaner',
-	'title'       => __( 'SB Image Cleaner', 'sb-tweaks' ),
-	'description' => __( 'Find missing thumbnails, old sizes left behind, and files in the uploads folder nothing refers to. Also adds a sizes panel to each image in the media library.', 'sb-tweaks' ),
+	'title'       => 'SB Image Cleaner',
+	'description' => 'Find missing thumbnails, old sizes left behind, and files in the uploads folder nothing refers to. Also adds a sizes panel to each image in the media library.',
 	'section'     => 'cleaner',
 	'always'      => true,
 
 	'admin_page'  => [
-		'title'  => __( 'SB Image Cleaner', 'sb-tweaks' ),
+		'title'  => 'SB Image Cleaner',
 		'render' => function ( $feature ) {
 			require_once $feature['path'] . 'class-sb-images-cleaner.php';
 

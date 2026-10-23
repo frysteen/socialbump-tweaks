@@ -30,8 +30,8 @@ function sb_site_kit_front_toolbar_roles() {
 endif;
 return [
 	'id'          => 'front-toolbar',
-	'title'       => __( 'Hide Toolbar On The Front End', 'sb-tweaks' ),
-	'description' => __( 'Tick the roles that have the admin toolbar hidden on the front end. Administrators keep whatever their own profile says.', 'sb-tweaks' ),
+	'title'       => 'Hide Toolbar On The Front End',
+	'description' => 'Tick the roles that have the admin toolbar hidden on the front end. Administrators keep whatever their own profile says.',
 	'section'     => 'admin',
 	'default'     => true,
 
@@ -42,7 +42,7 @@ return [
 		 */
 		'roles' => [
 			'type'    => 'multicheck',
-			'label'   => __( 'Hide the admin toolbar for these roles', 'sb-tweaks' ),
+			'label'   => 'Hide the admin toolbar for these roles',
 			'options' => 'sb_site_kit_front_toolbar_roles',
 			'default' => array_keys( sb_site_kit_front_toolbar_roles() ),
 		],

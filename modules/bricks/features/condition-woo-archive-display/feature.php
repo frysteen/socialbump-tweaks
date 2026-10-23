@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'condition-woo-archive-display',
-	'title'       => __( 'WooCommerce Archive Display', 'sb-tweaks' ),
-	'description' => __( 'Show or hide an element depending on whether the shop or category archive is set to list products, categories, or both.', 'sb-tweaks' ),
+	'title'       => 'WooCommerce Archive Display',
+	'description' => 'Show or hide an element depending on whether the shop or category archive is set to list products, categories, or both.',
 	'type'        => 'condition',
 	'section'     => 'conditions',
 	'default'     => false,

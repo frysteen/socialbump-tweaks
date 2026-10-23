@@ -827,7 +827,7 @@ class SB_Images_Orphans {
 	 * walk of the uploads folder. Anything left alone comes back with the
 	 * reason, so it can be shown rather than silently vanish from the count.
 	 */
-	public static function remove_unaccounted( array $paths, array $current = null ) {
+	public static function remove_unaccounted( array $paths, ?array $current = null ) {
 		if ( $current === null ) {
 			$current = self::unaccounted()['files'];
 		}

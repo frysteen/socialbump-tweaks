@@ -25,23 +25,23 @@ if ( ! defined( 'SB_BRICKS_PATH' ) ) {
 return [
 	'id'          => 'bricks',
 	'title'       => 'Bricks Tweaks',
-	'description' => __( 'Custom Bricks elements, extra conditions for the Bricks Conditions panel, and tweaks to how Bricks works. Replaces the standalone SocialBUMP Bricks Tweaks plugin.', 'sb-tweaks' ),
+	'description' => 'Custom Bricks elements, extra conditions for the Bricks Conditions panel, and tweaks to how Bricks works. Replaces the standalone SocialBUMP Bricks Tweaks plugin.',
 	'heading'     => 'Bricks Tweaks',
 	'requires'    => [ 'bricks' ],
 	'replaces'    => 'socialbump-bricks-tweaks/socialbump-bricks-tweaks.php',
 
 	'groups'      => [
 		'elements'   => [
-			'title'       => __( 'Bricks Elements', 'sb-tweaks' ),
-			'description' => __( 'Custom elements added to the Bricks element panel.', 'sb-tweaks' ),
+			'title'       => 'Bricks Elements',
+			'description' => 'Custom elements added to the Bricks element panel.',
 		],
 		'conditions' => [
-			'title'       => __( 'Conditional Logic', 'sb-tweaks' ),
-			'description' => __( 'Extra options in the Bricks element Conditions panel, listed under the SocialBUMP group.', 'sb-tweaks' ),
+			'title'       => 'Conditional Logic',
+			'description' => 'Extra options in the Bricks element Conditions panel, listed under the SocialBUMP group.',
 		],
 		'extras'     => [
-			'title'       => __( 'Extras', 'sb-tweaks' ),
-			'description' => __( 'Other tweaks to how Bricks works.', 'sb-tweaks' ),
+			'title'       => 'Extras',
+			'description' => 'Other tweaks to how Bricks works.',
 		],
 	],
 

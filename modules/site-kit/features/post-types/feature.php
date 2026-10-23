@@ -75,8 +75,8 @@ endif;
 
 return [
 	'id'          => 'post-types',
-	'title'       => __( 'Post Types for Add-ons', 'sb-tweaks' ),
-	'description' => __( 'Which post types the rest of Site Kit offers you. Untick anything you never want to see in a feature\'s list. Each feature still keeps its own choice from what is left here.', 'sb-tweaks' ),
+	'title'       => 'Post Types for Add-ons',
+	'description' => 'Which post types the rest of Site Kit offers you. Untick anything you never want to see in a feature\'s list. Each feature still keeps its own choice from what is left here.',
 	'section'     => 'admin',
 	'always'      => true,
 
@@ -94,7 +94,7 @@ return [
 		'hidden' => [
 			'type'    => 'multicheck',
 			'invert'  => true,
-			'label'   => __( 'Offer these post types', 'sb-tweaks' ),
+			'label'   => 'Offer these post types',
 			'options' => 'sb_site_kit_post_type_choices',
 			'select_all' => true,
 			'default' => [],

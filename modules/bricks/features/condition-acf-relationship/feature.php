@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'condition-acf-relationship',
-	'title'       => __( 'ACF Relationship', 'sb-tweaks' ),
-	'description' => __( 'Show or hide an element depending on whether an ACF relationship or post object field has anything in it.', 'sb-tweaks' ),
+	'title'       => 'ACF Relationship',
+	'description' => 'Show or hide an element depending on whether an ACF relationship or post object field has anything in it.',
 	'type'        => 'condition',
 	'section'     => 'conditions',
 	'default'     => false,

@@ -11,13 +11,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 return [
 	'id'          => 'images',
-	'title'       => __( 'SB Image Settings', 'sb-tweaks' ),
-	'description' => __( 'The standard image sizes, plus tidy titles and alt text when images are uploaded.', 'sb-tweaks' ),
+	'title'       => 'SB Image Settings',
+	'description' => 'The standard image sizes, plus tidy titles and alt text when images are uploaded.',
 	'section'     => 'settings',
 	'always'      => true,
 
 	'admin_page'  => [
-		'title'  => __( 'SB Image Settings', 'sb-tweaks' ),
+		'title'  => 'SB Image Settings',
 		'render' => function ( $feature ) {
 			SB_Images::render_page();
 		},

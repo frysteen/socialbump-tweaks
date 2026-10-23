@@ -19,13 +19,13 @@ if ( ! function_exists( 'sb_site_kit_robots_save' ) ) {
 
 return [
 	'id'          => 'robots-txt',
-	'title'       => __( 'Robots.txt', 'sb-tweaks' ),
-	'description' => __( 'Serves the SocialBUMP robots.txt: your allow and disallow rules, any extra lines, and the sitemap address filled in for this site. Takes over from the SEO plugin\'s robots.txt editor.', 'sb-tweaks' ),
+	'title'       => 'Robots.txt',
+	'description' => 'Serves the SocialBUMP robots.txt: your allow and disallow rules, any extra lines, and the sitemap address filled in for this site. Takes over from the SEO plugin\'s robots.txt editor.',
 	'section'     => 'seo',
 	'default'     => false,
 
 	'admin_page'  => [
-		'title'  => __( 'Robots.txt', 'sb-tweaks' ),
+		'title'  => 'Robots.txt',
 		'render' => function ( $module ) {
 			// The page shows even while the module is off, so load the class here too.
 			require_once $module['path'] . 'class-sb-site-kit-robots.php';

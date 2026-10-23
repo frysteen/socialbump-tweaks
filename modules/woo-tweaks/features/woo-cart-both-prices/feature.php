@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return [
 	'id'          => 'woo-cart-both-prices',
-	'title'       => __( 'Show Both Prices in the Cart', 'sb-tweaks' ),
-	'description' => __( 'On a product that is on sale, the cart shows the regular price struck through next to the sale price, so the saving is visible before checkout.', 'sb-tweaks' ),
+	'title'       => 'Show Both Prices in the Cart',
+	'description' => 'On a product that is on sale, the cart shows the regular price struck through next to the sale price, so the saving is visible before checkout.',
 	'section'     => 'shop',
 	'default'     => false,
 	'requires'    => [ 'woocommerce' ],
