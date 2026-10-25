@@ -1371,3 +1371,48 @@ table.sb-images-report tr.sb-images-report__morerow td {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+/* The first column of SB Image Cleaner: Sizes, and on the hub the size
+   migration prompt under it. */
+
+.sb-images-cleaner__side {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	min-width: 0;
+}
+
+.sb-images-cleaner__side .sb-tweaks-section {
+	margin: 0;
+}
+
+.sb-images-cleaner__prompt-text {
+	width: 100%;
+	min-height: 280px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.sb-images-cleaner__prompt-actions {
+	margin: 12px 0 0;
+}
+
+/* Rebuild Thumbnails: the buttons sit at the top, under the instructions, and
+   the report and progress open below them. */
+
+.sb-images-rebuild-body > .sb-images-report__panel,
+.sb-images-rebuild-body > .sb-images-progress {
+	margin: 20px 0 0;
+}
+
+.sb-images-rebuild-body > .sb-images-report__panel > :last-child {
+	margin-bottom: 0;
+}
+
+/* The second row of Rebuild Thumbnails buttons, under a long list. */
+.sb-images-rebuild__actions--foot {
+	margin: 20px 0 0;
+	padding-top: 16px;
+	border-top: 1px solid #dcdcde;
+}

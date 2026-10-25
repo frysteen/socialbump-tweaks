@@ -981,3 +981,35 @@ site reporting to the Installs page was on 8.2 or later at the time (Epoxy on
   8.0-8.4: clean. Checked on the hub: WordPress reads Requires PHP 8.0, the
   Modules, SB Image Settings, SB Image Cleaner and Plugins pages and the front
   end load, and the rebuild calls work with the meta left out.
+
+## Download plugin zip (hub only)
+
+The Publishing page's Download plugin zip card has two buttons.
+Download <version> fetches the zip attached to the latest GitHub release
+(SB_Tweaks_Release::published_zip()), so it is exactly what the sites update
+from. Download test build zips the hub's files as they are now, with the main
+file inside the zip renamed to the next patch version plus -beta (build_zip()
+with a version, test_version()); the hub's own files are not touched. It shows
+only while there are pending change notes. version_compare() puts 0.3.3-beta
+after 0.3.2 and before 0.3.3, so a site running a test build still takes the
+real release as an update. Never hand out a test build under a plain release
+number: a site would then think it is up to date.
+
+## Next version number (hub only)
+
+New version number on the Publishing page saves itself when the box loses
+focus (wp_ajax_sb_tweaks_save_next_version, option sb_tweaks_next_version), so
+a number such as 0.5.0 or 1.0.0 stays put between visits. It has to be higher
+than the hub's version. Reset, inside the box, shows only while the number
+differs from the automatic next patch, and clears the saved one. The test build
+takes its name from the same number (1.0.0-beta). Publishing clears it, and a
+saved number no longer ahead of the hub's version is ignored.
+
+## Modules a site cannot use are hidden
+
+On client sites the Modules page leaves out any module whose required plugin is
+missing (Bricks Tweaks without Bricks, Woo Tweaks without WooCommerce), without
+a word about it. The hub (sb_tweaks_is_hub()) shows every module, greyed out
+with what it needs. save_modules() already keeps a missing module's saved switch
+as it was, so hiding the card loses nothing, and the card returns once the
+plugin is active. A module that failed to load always shows, with its error.

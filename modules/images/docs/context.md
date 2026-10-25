@@ -149,9 +149,10 @@ Site Kit. It is mostly finding where the old sizes are used and changing those
 first, because Remove old sizes deletes the files and anything still asking
 for them shows a broken image.
 
-Do not do this on drivingevents.com.au: newsletters already sent link to its
-old size files, so it keeps its old widths and nothing is ever removed there.
-Ask before doing it on any site that sends image links out in email.
+Sites that send image links out in email need those sizes kept: lock them
+with the padlock on SB Image Settings before Remove old sizes (see Locked
+sizes). Driving Events was done that way in October 2026, with image-480 and
+image-720 locked because its sent newsletters link to them.
 
 ### 1. Look before touching anything
 
@@ -161,9 +162,12 @@ Ask before doing it on any site that sends image links out in email.
   or another plugin. Note anything cropped: the old -square and -4x3 sizes
   were cropped, the new ones are not.
 - Which builders hold content: Bricks, Elementor, WPBakery (and Templatera
-  templates), Gutenberg, plus theme options, widgets and snippets.
-- Back up before any edit: the _elementor_data, _bricks_page_content_2 and
-  post_content of everything you change, to /tmp as sbx-<stamp>-*.json.
+  templates), Divi, Beaver Builder, Oxygen, Breakdance, Gutenberg, plus theme
+  options, widgets and snippets. Old pages can sit in a builder that is no
+  longer switched on.
+- Back up before any edit: the post_content and builder data
+  (_elementor_data, _bricks_page_content_2, _fl_builder_data, ct_builder_json,
+  _breakdance_data) of everything you change, to /tmp as sbx-<stamp>-*.json.
 
 ### 2. Add the standard sizes and build them
 
@@ -178,6 +182,8 @@ Image Cleaner. Old sizes stay registered for now, so nothing breaks yet.
 | Bricks (_bricks_page_content_2, _header_, _footer_, templates) | the size setting on images, galleries and the carousel |
 | Gutenberg (post_content) | sizeSlug, the size-<name> class, a file URL ending -WxH, and block attributes such as sbskZoomSize |
 | WPBakery (post_content, templatera) | img_size in shortcodes, custom width x height values, Total wpex_ sizes |
+| Divi (post_content, et_pb_layout, Theme Builder layouts) | src URLs on et_pb_image and other modules, gallery and background images; the Theme Builder layouts are et_template, et_header_layout, et_body_layout and et_footer_layout; Divi 5 stores blocks in post_content |
+| Beaver Builder, Oxygen, Breakdance | _fl_builder_data and _fl_builder_draft, ct_builder_json or ct_builder_shortcodes, _breakdance_data |
 | Elsewhere | theme options, widgets, snippets, and the CSS in them (background images) |
 
 ### 4. Pick the new size
@@ -210,6 +216,8 @@ cropped size needs the shape set where it is shown:
 - Gutenberg image block: aspectRatio and scale cover in the block attributes
   (the img gets style aspect-ratio and object-fit).
 - Bricks: aspect-ratio and object-fit on the element's image.
+- Any builder without an aspect ratio setting: CSS on the image,
+  aspect-ratio plus object-fit: cover.
 - Widgets with a ratio of their own (Elementor Gallery and Posts) and
   background images set to cover need nothing.
 
@@ -221,6 +229,9 @@ cropped size needs the shape set where it is shown:
   listing grid) and says "not persisted", and it refuses post types without
   Elementor support (jet-engine listings). For those, restore from the backup
   and change only the size string in the stored JSON with PHP.
+- Builders with no abilities (WPBakery, Divi, Beaver Builder and the like):
+  back up, change only the size name or file URL in the stored data with PHP,
+  then clear that builder's cache.
 - Clear Elementor's CSS (files_manager->clear_cache()) or Bricks' CSS files
   afterwards, and any page cache.
 
@@ -280,3 +291,32 @@ Everything else can still be reset and cleaned. SB Image Cleaner lists the
 locked sizes in a notice at the top.
 
 Replaced a whole-site lock switch that was never released.
+
+## Size migration prompt (hub only)
+
+SB Image Cleaner on the hub shows a Size migration prompt box under Sizes: the
+text to start a new chat with when moving a site onto the standard sizes, with
+a Copy prompt button. It finds every use of the old sizes and reports, waits
+for Sam's OK, updates the pages and templates, and leaves building, locking
+and removing to Sam. The text is docs/size-migration-prompt.md, read as the
+page draws, so edit that file to change it.
+It covers every builder (Bricks, Elementor, WPBakery, Divi, Beaver Builder,
+Oxygen, Breakdance, Gutenberg) and names no site: the chat it is pasted into
+already knows which site it is working on.
+SB_Images_Cleaner::render_migration_prompt() draws it only where
+sb_tweaks_is_hub() is true; render_page() puts it in the first column with
+Sizes (sb-images-cleaner__side). The copy uses the clipboard API, falling back
+to selecting the text.
+
+## SB Image Cleaner buttons (October 2026)
+
+Rebuild Thumbnails keeps its buttons at the top, under the instructions; the
+report, the progress box and the lists open below them. Under a long list
+(orphaned images, leftover thumbnails, the images to build, the log a run
+leaves) a second row shows,
+#sb-images-actions-foot. Each of its buttons carries
+data-sb-images-mirror="<id of the top button>": images.js copies that
+button's class, wording, hidden and disabled through a MutationObserver on
+#sb-images-rebuild-body and passes clicks to it, so the confirmations and runs
+are the top button's own. The Force rebuild tickbox is only in the top row.
+When a run opens the progress box off screen, the page scrolls to it.

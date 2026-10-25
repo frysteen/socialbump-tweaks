@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,11 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.3.3 =
+* SB Image Cleaner: the Rebuild Thumbnails buttons now stay at the top, under the instructions, so scan results and lists open below them.
+* SB Image Cleaner: a second row of the Rebuild Thumbnails buttons now shows under long lists (orphaned images, leftover thumbnails, images to build, and the log a run leaves).
+* Modules page: modules a site can't use (Bricks Tweaks without Bricks, Woo Tweaks without WooCommerce and the like) are no longer shown.
 
 = 0.3.2 =
 * Fixed the notice WordPress 6.7 and later logged on every request with WP_DEBUG on, "Translation loading for the sb-tweaks domain was triggered too early". Module and feature names and descriptions are now translated on init instead of while plugins load. Nothing else changes.

@@ -181,6 +181,65 @@ class SB_Images_Cleaner {
 	}
 
 	/** The size list, with a tick per size, all or none per group, and Save. */
+	/**
+	 * Hub only: the prompt to start a new chat with when moving a site onto the
+	 * standard sizes, read from docs/size-migration-prompt.md, with a copy button.
+	 */
+	private static function render_migration_prompt() {
+		if ( ! function_exists( 'sb_tweaks_is_hub' ) || ! sb_tweaks_is_hub() ) {
+			return;
+		}
+
+		$file = SB_IMAGES_PATH . 'docs/size-migration-prompt.md';
+
+		if ( ! is_readable( $file ) ) {
+			return;
+		}
+
+		echo '<section class="sb-tweaks-section sb-images-cleaner__prompt" id="sb-images-migration-prompt">';
+		echo '<div class="sb-tweaks-section__head"><div><h2>' . esc_html__( 'Size migration prompt', 'sb-tweaks' ) . '</h2>';
+		echo '<p>' . esc_html__( 'For a new chat on a site moving onto the standard sizes. Hub only.', 'sb-tweaks' ) . '</p></div></div>';
+		echo '<textarea class="sb-images-cleaner__prompt-text" id="sb-images-migration-prompt-text" rows="14" readonly>' . esc_textarea( (string) file_get_contents( $file ) ) . '</textarea>';
+		echo '<p class="sb-images-cleaner__prompt-actions"><button type="button" class="button" id="sb-images-migration-prompt-copy">' . esc_html__( 'Copy prompt', 'sb-tweaks' ) . '</button></p>';
+		echo '</section>';
+		?>
+		<script>
+		( function () {
+			var button = document.getElementById( 'sb-images-migration-prompt-copy' );
+			var text   = document.getElementById( 'sb-images-migration-prompt-text' );
+
+			if ( ! button || ! text ) {
+				return;
+			}
+
+			var label = button.textContent;
+
+			function copied() {
+				button.textContent = 'Copied';
+				setTimeout( function () {
+					button.textContent = label;
+				}, 2000 );
+			}
+
+			function fallback() {
+				text.focus();
+				text.select();
+				document.execCommand( 'copy' );
+				copied();
+			}
+
+			button.addEventListener( 'click', function () {
+				if ( navigator.clipboard && window.isSecureContext ) {
+					navigator.clipboard.writeText( text.value ).then( copied, fallback );
+				} else {
+					fallback();
+				}
+			} );
+		}() );
+		</script>
+		<?php
+	}
+
 	private static function render_sizes() {
 		$chosen = self::chosen();
 
@@ -271,12 +330,32 @@ class SB_Images_Cleaner {
 		// the Sizes and Rebuild panels out of place.
 		echo '<div class="sb-images-cleaner">';
 
+		// The first column: Sizes, and on the hub the size migration prompt under it.
+		echo '<div class="sb-images-cleaner__side">';
 		self::render_sizes();
+		self::render_migration_prompt();
+		echo '</div>';
 
 		echo '<section class="sb-tweaks-section sb-images-rebuild" id="sb-images-rebuild" data-nonce="' . esc_attr( wp_create_nonce( 'sb_images' ) ) . '">';
 		echo '<div class="sb-tweaks-section__head"><div><h2>' . esc_html__( 'Rebuild Thumbnails', 'sb-tweaks' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Scan the library to see what is missing, what is left over from sizes you have removed, and what is sitting in the uploads folder unaccounted for.', 'sb-tweaks' ) . '</p></div></div>';
 		echo '<div class="sb-images-rebuild-body" id="sb-images-rebuild-body">';
+
+		// The buttons sit at the top, under the instructions, so the report, the
+		// progress and the lists open below them rather than pushing them down.
+		echo '<div class="sb-images-rebuild__actions">';
+		echo '<button type="button" class="button button-primary" id="sb-images-scan">' . esc_html__( 'Scan images', 'sb-tweaks' ) . '</button>';
+		// Next to Scan, not at the end: the buttons between them only appear after a
+		// scan, and the two that start a scan belong together.
+		echo '<button type="button" class="button sb-tweaks-button--quiet" id="sb-images-deep">' . esc_html__( 'Find leftover thumbnails', 'sb-tweaks' ) . '</button>';
+		echo '<button type="button" class="button sb-tweaks-button--go" id="sb-images-rebuild-run" hidden disabled>' . esc_html__( 'Build Thumbnails', 'sb-tweaks' ) . '</button>';
+		echo '<button type="button" class="button sb-tweaks-button--danger" id="sb-images-rebuild-clean" hidden>' . esc_html__( 'Remove old sizes', 'sb-tweaks' ) . '</button>';
+		echo '<button type="button" class="button sb-tweaks-button--danger" id="sb-images-orphans-run" hidden>' . esc_html__( 'Delete orphan images', 'sb-tweaks' ) . '</button>';
+		echo '<label class="sb-images-rebuild__force" id="sb-images-force-wrap" hidden><input type="checkbox" id="sb-images-rebuild-force"> ' . esc_html__( 'Force rebuild all thumbnails', 'sb-tweaks' ) . '</label>';
+		echo '</div>';
+
+		// The button names are bold, so the line reads as two instructions.
+		echo '<p class="sb-images-rebuild__help">' . wp_kses( __( '<strong>Scan images</strong> to see what is missing or left over in the library. <strong>Find leftover thumbnails</strong> looks at the files themselves, for thumbnails nothing registers any more.', 'sb-tweaks' ), [ 'strong' => [] ] ) . '</p>';
 
 		// Everything below is filled in once the scan has run.
 		echo '<div class="sb-images-report__panel" id="sb-images-report" hidden></div>';
@@ -294,22 +373,20 @@ class SB_Images_Cleaner {
 		echo '<ul class="sb-images-progress__log" id="sb-images-progress-log"></ul>';
 		echo '</div>';
 
-		echo '<div class="sb-images-rebuild__actions">';
-		echo '<button type="button" class="button button-primary" id="sb-images-scan">' . esc_html__( 'Scan images', 'sb-tweaks' ) . '</button>';
-		// Next to Scan, not at the end: the buttons between them only appear after a
-		// scan, and the two that start a scan belong together.
-		echo '<button type="button" class="button sb-tweaks-button--quiet" id="sb-images-deep">' . esc_html__( 'Find leftover thumbnails', 'sb-tweaks' ) . '</button>';
-		echo '<button type="button" class="button sb-tweaks-button--go" id="sb-images-rebuild-run" hidden disabled>' . esc_html__( 'Build Thumbnails', 'sb-tweaks' ) . '</button>';
-		echo '<button type="button" class="button sb-tweaks-button--danger" id="sb-images-rebuild-clean" hidden>' . esc_html__( 'Remove old sizes', 'sb-tweaks' ) . '</button>';
-		echo '<button type="button" class="button sb-tweaks-button--danger" id="sb-images-orphans-run" hidden>' . esc_html__( 'Delete orphan images', 'sb-tweaks' ) . '</button>';
-		echo '<label class="sb-images-rebuild__force" id="sb-images-force-wrap" hidden><input type="checkbox" id="sb-images-rebuild-force"> ' . esc_html__( 'Force rebuild all thumbnails', 'sb-tweaks' ) . '</label>';
-		echo '</div>';
-
-		// The button names are bold, so the line reads as two instructions.
-		echo '<p class="sb-images-rebuild__help">' . wp_kses( __( '<strong>Scan images</strong> to see what is missing or left over in the library. <strong>Find leftover thumbnails</strong> looks at the files themselves, for thumbnails nothing registers any more.', 'sb-tweaks' ), [ 'strong' => [] ] ) . '</p>';
-
 		// Filled in by the deep scan, which is a separate and slower job.
 		echo '<div class="sb-images-deep" id="sb-images-deep-panel" hidden></div>';
+
+		// The same buttons again under a long list (orphaned images, leftover
+		// thumbnails, the images still to build), so they are to hand without
+		// scrolling back up. Each copies its button at the top and passes the
+		// click to it, so the two rows always match. Shown only while a list is open.
+		echo '<div class="sb-images-rebuild__actions sb-images-rebuild__actions--foot" id="sb-images-actions-foot" hidden>';
+
+		foreach ( [ 'sb-images-scan', 'sb-images-deep', 'sb-images-rebuild-run', 'sb-images-rebuild-clean', 'sb-images-orphans-run' ] as $source ) {
+			echo '<button type="button" class="button" data-sb-images-mirror="' . esc_attr( $source ) . '" hidden></button>';
+		}
+
+		echo '</div>';
 
 		echo '</div></section>';
 		echo '</div>';

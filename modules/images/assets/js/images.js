@@ -1184,6 +1184,98 @@
 				clearOrphans( 0, 0, 0 );
 			} );
 
+			/**
+			 * The second row of buttons, under a long list. Each one copies its
+			 * button at the top (wording, look, hidden, switched off) and clicks
+			 * it, so the rows never disagree and every question before a delete
+			 * is still asked. The row shows only while a list is open, the log
+			 * of a run included.
+			 */
+			var $foot      = $( '#sb-images-actions-foot' );
+			var $deepPanel = $( '#sb-images-deep-panel' );
+			var footQueued = false;
+			var progressWas = ! $progress.prop( 'hidden' );
+
+			function syncFoot() {
+				footQueued = false;
+
+				$foot.find( '[data-sb-images-mirror]' ).each( function () {
+					var source = document.getElementById( this.getAttribute( 'data-sb-images-mirror' ) );
+
+					if ( ! source ) {
+						return;
+					}
+
+					// Only what has changed is written, so this does not wake itself.
+					if ( this.className !== source.className ) {
+						this.className = source.className;
+					}
+
+					if ( this.textContent !== source.textContent ) {
+						this.textContent = source.textContent;
+					}
+
+					if ( this.hidden !== source.hidden ) {
+						this.hidden = source.hidden;
+					}
+
+					if ( this.disabled !== source.disabled ) {
+						this.disabled = source.disabled;
+					}
+				} );
+
+				// The run's own log counts too: a finished run leaves its list of
+				// images on screen, and Scan again is wanted straight after it.
+				var listOpen = $panel.find( '.sb-images-report__orphans, .sb-images-missing__log' ).filter( ':visible' ).length > 0 ||
+					$deepPanel.find( '.sb-images-deep__list' ).filter( ':visible' ).length > 0 ||
+					( ! $progress.prop( 'hidden' ) && $( '#sb-images-progress-log' ).children().length > 0 );
+
+				if ( $foot.prop( 'hidden' ) === listOpen ) {
+					$foot.prop( 'hidden', ! listOpen );
+				}
+
+				// A run opens its progress box under the report, which a long list
+				// can push off the screen. Bring it into view when it opens there.
+				var progressNow = ! $progress.prop( 'hidden' );
+
+				if ( progressNow && ! progressWas ) {
+					var box = $progress[0].getBoundingClientRect();
+
+					if ( box.top < 40 || box.top > window.innerHeight - 120 ) {
+						window.scrollTo( { top: window.pageYOffset + box.top - 60, behavior: 'smooth' } );
+					}
+				}
+
+				progressWas = progressNow;
+			}
+
+			function queueFoot() {
+				if ( ! footQueued ) {
+					footQueued = true;
+					window.requestAnimationFrame( syncFoot );
+				}
+			}
+
+			if ( $foot.length ) {
+				new MutationObserver( queueFoot ).observe( document.getElementById( 'sb-images-rebuild-body' ), {
+					subtree: true,
+					childList: true,
+					characterData: true,
+					attributes: true,
+					attributeFilter: [ 'hidden', 'disabled', 'class' ]
+				} );
+
+				$foot.on( 'click', '[data-sb-images-mirror]', function () {
+					var source = document.getElementById( this.getAttribute( 'data-sb-images-mirror' ) );
+
+					if ( source && ! source.disabled && ! source.hidden ) {
+						source.click();
+					}
+				} );
+
+				syncFoot();
+			}
+
 			// Another window, or another person, may already be running a job.
 			$.post( ajaxurl, { action: 'sb_images_status', nonce: nonce } ).done( function ( response ) {
 				if ( response && response.success && response.data.busy ) {

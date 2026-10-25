@@ -156,6 +156,18 @@ class SB_Tweaks_Settings {
 		echo '<div class="sb-tweaks-grid"' . SB_Tweaks_Cards::container_attributes( SB_TWEAKS_OPTION ) . '>';
 
 		foreach ( $ordered as $id ) {
+			/**
+			 * On a client site, a module the site cannot run (no Bricks, no
+			 * WooCommerce) stays off the page, with nothing said about it.
+			 * save_modules() keeps its saved switch as it was, and the card comes
+			 * back by itself once the plugin it needs is active. The hub shows
+			 * every module, greyed out with what it needs. A module that failed to
+			 * load always shows, with its error.
+			 */
+			if ( ! sb_tweaks_is_hub() && SB_Tweaks_Modules::instance()->missing( $id ) ) {
+				continue;
+			}
+
 			$this->render_module_card( $id, $modules[ $id ], isset( $failed[ $id ] ) ? $failed[ $id ] : '' );
 		}
 

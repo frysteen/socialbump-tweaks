@@ -2996,3 +2996,58 @@ a.sb-tweaks-header__version:focus {
 	border-color: #50575e;
 	color: #1d2327;
 }
+
+/* Download plugin zip: the published zip, and a test build when there are
+   unpublished changes. */
+.sb-tweaks-release__card form.sb-tweaks-release__download {
+	margin-top: 0;
+}
+
+.sb-tweaks-release__download + .sb-tweaks-release__download {
+	padding-top: 12px;
+	border-top: 1px solid #dcdcde;
+}
+
+/* New version number: Reset sits inside the box when the number has been
+   changed from the automatic one. */
+.sb-tweaks-release__version {
+	position: relative;
+}
+
+.sb-tweaks-release__card .sb-tweaks-release__version input[type="text"] {
+	padding-right: 130px;
+}
+
+.sb-tweaks-release__reset {
+	position: absolute;
+	top: 50%;
+	right: 6px;
+	transform: translateY(-50%);
+	padding: 3px 12px;
+	border: 0;
+	border-radius: 3px;
+	background: #d63638;
+	color: #fff;
+	font-size: 13px;
+	line-height: 1.6;
+	cursor: pointer;
+}
+
+.sb-tweaks-release__reset:hover,
+.sb-tweaks-release__reset:focus {
+	background: #b32d2e;
+}
+
+.sb-tweaks-release__reset[hidden] {
+	display: none;
+}
+
+.sb-tweaks-release__version-note {
+	margin: 0;
+	color: #008a20;
+	font-size: 12px;
+}
+
+.sb-tweaks-release__version-note.is-error {
+	color: #d63638;
+}

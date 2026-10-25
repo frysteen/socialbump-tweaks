@@ -18,6 +18,7 @@ class SB_Tweaks_Release {
 	const NOTICE_PREFIX = 'sb_tweaks_release_notice_';
 	const ASSET_NAME    = 'socialbump-tweaks.zip';
 	const CHANGES_OPTION = 'sb_tweaks_pending_changes';
+	const NEXT_OPTION    = 'sb_tweaks_next_version';
 
 	public static function instance() {
 		if ( self::$instance === null ) {
@@ -32,6 +33,7 @@ class SB_Tweaks_Release {
 		add_action( 'admin_post_sb_tweaks_save_token', [ $this, 'save_token' ] );
 		add_action( 'admin_post_sb_tweaks_publish', [ $this, 'publish' ] );
 		add_action( 'admin_post_sb_tweaks_download_zip', [ $this, 'download_zip' ] );
+		add_action( 'wp_ajax_sb_tweaks_save_next_version', [ $this, 'save_next_version' ] );
 	}
 
 	/* Token storage: encrypted with the site's auth salt so it never sits in the database as plain text. */
@@ -278,7 +280,11 @@ class SB_Tweaks_Release {
 		return $list;
 	}
 
-	private function build_zip() {
+	/**
+	 * The plugin folder as a zip. Given a version, the main file inside the zip
+	 * carries it instead (the test build); the file on disk is left alone.
+	 */
+	private function build_zip( $version = '' ) {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			return new WP_Error( 'sb_tweaks_zip', __( 'This server has no ZipArchive support, so the zip could not be built.', 'sb-tweaks' ) );
 		}
@@ -290,7 +296,24 @@ class SB_Tweaks_Release {
 			return new WP_Error( 'sb_tweaks_zip', __( 'The zip file could not be created.', 'sb-tweaks' ) );
 		}
 
+		$main = wp_normalize_path( SB_TWEAKS_FILE );
+
 		foreach ( $this->files() as $rel => $abs ) {
+			// The test build: the main file in the zip carries the given version.
+			if ( $version !== '' && wp_normalize_path( $abs ) === $main ) {
+				$src = $this->bump( file_get_contents( $abs ), $version );
+
+				if ( $src === null ) {
+					$zip->close();
+					wp_delete_file( $path );
+
+					return new WP_Error( 'sb_tweaks_zip', __( 'Could not find both version lines in the main plugin file.', 'sb-tweaks' ) );
+				}
+
+				$zip->addFromString( SB_TWEAKS_SLUG . '/' . $rel, $src );
+				continue;
+			}
+
 			$zip->addFile( $abs, SB_TWEAKS_SLUG . '/' . $rel );
 		}
 
@@ -741,6 +764,7 @@ class SB_Tweaks_Release {
 
 		wp_delete_file( $zip );
 		self::clear_changes();
+		delete_option( self::NEXT_OPTION );
 		set_transient( self::LATEST_CACHE, $version, 5 * MINUTE_IN_SECONDS );
 
 		$url = ! empty( $live['body']['html_url'] ) ? $live['body']['html_url'] : 'https://github.com/' . SB_TWEAKS_GITHUB_REPO . '/releases';
@@ -756,10 +780,159 @@ class SB_Tweaks_Release {
 		);
 	}
 
+	/** The next patch number after this site's version: the number on its own. */
+	private function auto_version() {
+		$parts = array_map( 'intval', explode( '.', $this->file_version() . '.0.0' ) );
+
+		return $parts[0] . '.' . $parts[1] . '.' . ( $parts[2] + 1 );
+	}
+
+	/**
+	 * The number typed in for the next release, kept until that release goes
+	 * out. Empty when none is set, or when it is no longer ahead of this site.
+	 */
+	private function saved_version() {
+		$saved = (string) get_option( self::NEXT_OPTION, '' );
+
+		if ( $saved === '' || ! preg_match( '/^\d+\.\d+\.\d+$/', $saved ) || version_compare( $saved, $this->file_version(), '<=' ) ) {
+			return '';
+		}
+
+		return $saved;
+	}
+
+	/** The next version: the saved number when there is one, else the next patch. */
+	private function next_version() {
+		$saved = $this->saved_version();
+
+		return $saved !== '' ? $saved : $this->auto_version();
+	}
+
+	/**
+	 * Save, or clear, the number in New version number. The box saves when it
+	 * loses focus, so the test build and later visits use it. The automatic
+	 * number, or an empty box (Reset), clears it.
+	 */
+	public function save_next_version() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to do that.', 'sb-tweaks' ) ], 403 );
+		}
+
+		check_ajax_referer( 'sb_tweaks_next_version', 'nonce' );
+
+		$version = isset( $_POST['version'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['version'] ) ) ) : '';
+
+		// 1.1 means 1.1.0, as on publish.
+		if ( preg_match( '/^[0-9]+(\.[0-9]+)?$/', $version ) ) {
+			$version = implode( '.', array_slice( array_pad( explode( '.', $version ), 3, '0' ), 0, 3 ) );
+		}
+
+		$auto    = $this->auto_version();
+		$current = $this->file_version();
+
+		if ( $version === '' || $version === $auto ) {
+			delete_option( self::NEXT_OPTION );
+		} elseif ( ! preg_match( '/^\d+\.\d+\.\d+$/', $version ) ) {
+			wp_send_json_error( [ 'message' => __( 'Use a version number in the form 1.2.0.', 'sb-tweaks' ) ] );
+		} elseif ( version_compare( $version, $current, '<=' ) ) {
+			/* translators: 1: new version, 2: current version */
+			wp_send_json_error( [ 'message' => sprintf( __( '%1$s has to be higher than the current version, %2$s.', 'sb-tweaks' ), $version, $current ) ] );
+		} else {
+			update_option( self::NEXT_OPTION, $version, false );
+		}
+
+		$next = $this->next_version();
+
+		wp_send_json_success(
+			[
+				'version' => $next,
+				'manual'  => $next !== $auto,
+				'beta'    => $this->test_version(),
+			]
+		);
+	}
+
+	/**
+	 * The name a test build carries: the next version with -beta on the end.
+	 * version_compare() puts 0.3.3-beta after 0.3.2 and before 0.3.3, so a site
+	 * running a test build still sees the real release as an update. Publish
+	 * only takes a number higher than this site's version, so whatever goes
+	 * out next is never lower than the test build.
+	 */
+	private function test_version() {
+		return $this->next_version() . '-beta';
+	}
+
+	/**
+	 * The published zip, fetched from the GitHub release it is attached to, so
+	 * it is exactly what the sites update from.
+	 *
+	 * @return string|WP_Error Path to a temporary copy.
+	 */
+	private function published_zip( $version ) {
+		$res = wp_remote_get(
+			'https://api.github.com/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/tags/v' . rawurlencode( $version ),
+			[
+				'timeout' => 15,
+				'headers' => [
+					'Accept'     => 'application/vnd.github+json',
+					'User-Agent' => 'SocialBUMP-Bricks-Tweaks',
+				],
+			]
+		);
+
+		if ( is_wp_error( $res ) || (int) wp_remote_retrieve_response_code( $res ) !== 200 ) {
+			/* translators: %s: version */
+			return new WP_Error( 'sb_tweaks_zip', sprintf( __( 'Could not reach the %s release on GitHub.', 'sb-tweaks' ), $version ) );
+		}
+
+		$data   = json_decode( wp_remote_retrieve_body( $res ), true );
+		$assets = ( is_array( $data ) && ! empty( $data['assets'] ) ) ? (array) $data['assets'] : [];
+		$url    = '';
+
+		foreach ( $assets as $asset ) {
+			if ( isset( $asset['name'], $asset['browser_download_url'] ) && $asset['name'] === self::ASSET_NAME ) {
+				$url = $asset['browser_download_url'];
+			}
+		}
+
+		if ( $url === '' ) {
+			/* translators: %s: version */
+			return new WP_Error( 'sb_tweaks_zip', sprintf( __( 'The %s release on GitHub has no zip attached.', 'sb-tweaks' ), $version ) );
+		}
+
+		if ( ! function_exists( 'download_url' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$path = download_url( $url, 120 );
+
+		if ( is_wp_error( $path ) ) {
+			/* translators: 1: version, 2: error message */
+			return new WP_Error( 'sb_tweaks_zip', sprintf( __( 'The %1$s zip could not be downloaded from GitHub (%2$s).', 'sb-tweaks' ), $version, $path->get_error_message() ) );
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Two downloads: the published version, fetched from GitHub, and a test
+	 * build of this site's files as they are now. The test build is named
+	 * <next version>-beta inside the zip only; this site's files are not
+	 * touched.
+	 */
 	public function download_zip() {
 		$this->guard( 'sb_tweaks_download_zip' );
 
-		$zip = $this->build_zip();
+		$test = isset( $_POST['sb_tweaks_zip'] ) && sanitize_key( wp_unslash( $_POST['sb_tweaks_zip'] ) ) === 'test';
+
+		if ( $test ) {
+			$version = $this->test_version();
+			$zip     = $this->build_zip( $version );
+		} else {
+			$version = $this->latest_release();
+			$zip     = $version === '' ? new WP_Error( 'sb_tweaks_zip', __( 'No published version was found on GitHub.', 'sb-tweaks' ) ) : $this->published_zip( $version );
+		}
 
 		if ( is_wp_error( $zip ) ) {
 			$this->back( 'error', $zip->get_error_message() );
@@ -771,7 +944,7 @@ class SB_Tweaks_Release {
 
 		nocache_headers();
 		header( 'Content-Type: application/zip' );
-		header( 'Content-Disposition: attachment; filename="' . SB_TWEAKS_SLUG . '-' . $this->file_version() . '.zip"' );
+		header( 'Content-Disposition: attachment; filename="' . SB_TWEAKS_SLUG . '-' . $version . '.zip"' );
 		header( 'Content-Length: ' . filesize( $zip ) );
 		readfile( $zip );
 		wp_delete_file( $zip );
@@ -786,7 +959,8 @@ class SB_Tweaks_Release {
 		$latest  = $this->latest_release();
 		$notice  = get_transient( self::NOTICE_PREFIX . get_current_user_id() );
 		$parts   = array_map( 'intval', explode( '.', $current . '.0.0' ) );
-		$suggest = $parts[0] . '.' . $parts[1] . '.' . ( $parts[2] + 1 );
+		$auto    = $this->auto_version();
+		$suggest = $this->next_version();
 		$repo    = 'https://github.com/' . SB_TWEAKS_GITHUB_REPO;
 		$changes = self::pending_changes();
 
@@ -846,7 +1020,16 @@ class SB_Tweaks_Release {
 						<input type="hidden" name="action" value="sb_tweaks_publish">
 						<?php wp_nonce_field( 'sb_tweaks_publish' ); ?>
 						<label for="sb_tweaks_version"><?php esc_html_e( 'New version number', 'sb-tweaks' ); ?></label>
-						<input type="text" id="sb_tweaks_version" name="sb_tweaks_version" value="<?php echo esc_attr( $suggest ); ?>" pattern="\d+\.\d+\.\d+" required>
+						<div class="sb-tweaks-release__version">
+							<input type="text" id="sb_tweaks_version" name="sb_tweaks_version" value="<?php echo esc_attr( $suggest ); ?>" pattern="\d+\.\d+\.\d+" required data-nonce="<?php echo esc_attr( wp_create_nonce( 'sb_tweaks_next_version' ) ); ?>">
+							<button type="button" class="sb-tweaks-release__reset" id="sb-tweaks-version-reset"<?php echo $suggest === $auto ? ' hidden' : ''; ?>>
+								<?php
+								/* translators: %s: the automatic next version */
+								printf( esc_html__( 'Reset to %s', 'sb-tweaks' ), esc_html( $auto ) );
+								?>
+							</button>
+						</div>
+						<p class="sb-tweaks-release__version-note" id="sb-tweaks-version-note" role="status" hidden></p>
 						<?php
 						/**
 						 * 1.1 and 1 are what you type; x.y.z is what a release needs. The
@@ -858,26 +1041,88 @@ class SB_Tweaks_Release {
 						?>
 						<script>
 						( function () {
-							var box = document.getElementById( 'sb_tweaks_version' );
+							var box   = document.getElementById( 'sb_tweaks_version' );
+							var reset = document.getElementById( 'sb-tweaks-version-reset' );
+							var note  = document.getElementById( 'sb-tweaks-version-note' );
+							var words = <?php echo wp_json_encode( [ 'saved' => __( 'Saved.', 'sb-tweaks' ), 'failed' => __( 'Not saved.', 'sb-tweaks' ), 'dropped' => __( 'Not saved: the server did not answer.', 'sb-tweaks' ) ] ); ?>;
+							var timer = null;
 
-							if ( ! box ) {
+							if ( ! box || ! reset || ! note || ! window.fetch || ! window.FormData ) {
 								return;
+							}
+
+							var saved = box.value;
+
+							function say( text, bad ) {
+								window.clearTimeout( timer );
+								note.textContent = text;
+								note.classList.toggle( 'is-error', !! bad );
+								note.hidden = text === '';
+
+								if ( text && ! bad ) {
+									timer = window.setTimeout( function () {
+										note.hidden = true;
+									}, 2500 );
+								}
+							}
+
+							// The test build in the Download card carries the same number.
+							function paint( data ) {
+								box.value    = data.version;
+								saved        = data.version;
+								reset.hidden = ! data.manual;
+
+								document.querySelectorAll( '[data-sb-tweaks-beta]' ).forEach( function ( el ) {
+									el.textContent = data.beta;
+								} );
+							}
+
+							function save( value ) {
+								var body = new FormData();
+
+								body.append( 'action', 'sb_tweaks_save_next_version' );
+								body.append( 'nonce', box.getAttribute( 'data-nonce' ) );
+								body.append( 'version', value );
+
+								window.fetch( window.ajaxurl, { method: 'POST', body: body, credentials: 'same-origin' } )
+									.then( function ( response ) {
+										return response.json();
+									} )
+									.then( function ( res ) {
+										if ( res && res.success ) {
+											paint( res.data );
+											say( words.saved, false );
+										} else {
+											say( ( res && res.data && res.data.message ) || words.failed, true );
+										}
+									} )
+									.catch( function () {
+										say( words.dropped, true );
+									} );
 							}
 
 							box.addEventListener( 'blur', function () {
 								var value = box.value.trim();
 
-								if ( ! /^[0-9]+(\.[0-9]+)*$/.test( value ) ) {
-									return;
+								// 1.1 and 1 are what you type; x.y.z is what a release needs.
+								if ( /^[0-9]+(\.[0-9]+)*$/.test( value ) ) {
+									var parts = value.split( '.' );
+
+									while ( parts.length < 3 ) {
+										parts.push( '0' );
+									}
+
+									value     = parts.slice( 0, 3 ).join( '.' );
+									box.value = value;
 								}
 
-								var parts = value.split( '.' );
-
-								while ( parts.length < 3 ) {
-									parts.push( '0' );
+								if ( value !== saved ) {
+									save( value );
 								}
+							} );
 
-								box.value = parts.slice( 0, 3 ).join( '.' );
+							reset.addEventListener( 'click', function () {
+								save( '' );
 							} );
 						} )();
 						</script>
@@ -984,15 +1229,51 @@ class SB_Tweaks_Release {
 				<div class="sb-tweaks-card sb-tweaks-release__card">
 					<h3><?php esc_html_e( 'Download plugin zip', 'sb-tweaks' ); ?></h3>
 					<p class="sb-tweaks-card__desc">
-						<?php esc_html_e( 'The plugin exactly as it is on this site right now. Upload it to any WordPress site under Plugins, Add New, Upload Plugin.', 'sb-tweaks' ); ?>
+						<?php esc_html_e( 'Upload a zip to any WordPress site under Plugins, Add New, Upload Plugin.', 'sb-tweaks' ); ?>
 					</p>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="sb_tweaks_download_zip">
-						<?php wp_nonce_field( 'sb_tweaks_download_zip' ); ?>
-						<div class="sb-tweaks-release__actions">
-							<button type="submit" class="button"><?php esc_html_e( 'Download zip', 'sb-tweaks' ); ?></button>
-						</div>
-					</form>
+					<?php if ( $latest !== '' ) : ?>
+						<form class="sb-tweaks-release__download" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+							<input type="hidden" name="action" value="sb_tweaks_download_zip">
+							<input type="hidden" name="sb_tweaks_zip" value="published">
+							<?php wp_nonce_field( 'sb_tweaks_download_zip' ); ?>
+							<p class="sb-tweaks-card__desc">
+								<?php
+								/* translators: %s: published version */
+								printf( esc_html__( 'Published version: %s, the same zip the sites update from.', 'sb-tweaks' ), '<strong>' . esc_html( $latest ) . '</strong>' );
+								?>
+							</p>
+							<div class="sb-tweaks-release__actions">
+								<?php /* translators: %s: published version */ ?>
+								<button type="submit" class="button"><?php printf( esc_html__( 'Download %s', 'sb-tweaks' ), esc_html( $latest ) ); ?></button>
+							</div>
+						</form>
+					<?php else : ?>
+						<p class="sb-tweaks-card__desc"><?php esc_html_e( 'No published version was found on GitHub.', 'sb-tweaks' ); ?></p>
+					<?php endif; ?>
+					<?php
+					// The test build only when there is something in it that the
+					// published zip does not have.
+					if ( $changes ) :
+						?>
+						<form class="sb-tweaks-release__download" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+							<input type="hidden" name="action" value="sb_tweaks_download_zip">
+							<input type="hidden" name="sb_tweaks_zip" value="test">
+							<?php wp_nonce_field( 'sb_tweaks_download_zip' ); ?>
+							<p class="sb-tweaks-card__desc">
+								<?php
+								printf(
+									/* translators: 1: number of changes, 2: test build version */
+									esc_html( _n( 'Test build: this site\'s files as they are now, with %1$s change not yet published. It is named %2$s, so a site running it still updates when the next version is published.', 'Test build: this site\'s files as they are now, with %1$s changes not yet published. It is named %2$s, so a site running it still updates when the next version is published.', count( $changes ), 'sb-tweaks' ) ),
+									esc_html( number_format_i18n( count( $changes ) ) ),
+									'<strong data-sb-tweaks-beta>' . esc_html( $this->test_version() ) . '</strong>'
+								);
+								?>
+							</p>
+							<div class="sb-tweaks-release__actions">
+								<button type="submit" class="button"><?php esc_html_e( 'Download test build', 'sb-tweaks' ); ?></button>
+							</div>
+						</form>
+					<?php endif; ?>
 				</div>
 			</div>
 		</div>
