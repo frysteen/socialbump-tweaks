@@ -320,3 +320,27 @@ button's class, wording, hidden and disabled through a MutationObserver on
 #sb-images-rebuild-body and passes clicks to it, so the confirmations and runs
 are the top button's own. The Force rebuild tickbox is only in the top row.
 When a run opens the progress box off screen, the page scrolls to it.
+
+## WebP copies and the site icon (October 2026)
+
+Found on jetskihirenoosa.com.au and noosariverboathire.com.au, both running
+ShortPixel:
+
+- ShortPixel writes its WebP beside a file with the extension swapped
+  (photo-480x320.webp), where WPvivid, EWWW and Imagify add it
+  (photo-480x320.jpg.webp). Only the added kind was handled, so Remove old
+  sizes left ShortPixel's copies behind (379 and 356 files), and neither scan
+  saw them, because is_image_file() took the .webp off and found no extension
+  left. SB_Images_Rebuild::copies() now gives both kinds for a size file (the
+  swapped one only when no attachment names it as its own file), and
+  delete_file(), size_files() and stale_usage() use it. SB_Images_Orphans::add()
+  counts both kinds as belonging, and is_image_file() judges a plain .webp as
+  a WebP, so Find leftover thumbnails now lists ShortPixel copies of old sizes.
+- WordPress registers site_icon-32, -180, -192 and -270 only while a site icon
+  is cropped, so they looked like leftovers from another source and got
+  cleared, and the favicon fell back to the 150 and 300 thumbnails.
+  SB_Images_Rebuild::wanted_for( $id ) is all_wanted() plus those sizes for the
+  attachment in the site_icon option. present(), missing_all(), build(),
+  rebuild(), stale() and foreign() use it, as does the leftover scan's
+  expected_dimensions(), so the site icon's sizes are never cleared or listed,
+  and Build Thumbnails makes them again where they are missing.

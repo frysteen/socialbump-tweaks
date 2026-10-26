@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.3
+Stable tag: 0.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,10 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.3.4 =
+* SB Image Cleaner: Remove old sizes and Find leftover thumbnails now handle ShortPixel's WebP copies (photo-480x320.webp), which were left behind before.
+* SB Image Cleaner: the site icon's own sizes (the 32, 180, 192 and 270 pixel favicons) are never cleared any more, and Build Thumbnails makes them again where they were removed.
 
 = 0.3.3 =
 * SB Image Cleaner: the Rebuild Thumbnails buttons now stay at the top, under the instructions, so scan results and lists open below them.

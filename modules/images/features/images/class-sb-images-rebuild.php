@@ -11,9 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * recognised as ours later. WordPress, Bricks and WooCommerce sizes, and the
  * original file, are never touched.
  *
- * Optimiser plugins write a WebP or AVIF next to each file (name.ext.webp or
- * name.ext.avif), so those siblings are removed alongside the file they belong
- * to.
+ * Optimiser plugins write a WebP or AVIF next to each file, either with the
+ * extension added (name.ext.webp: WPvivid, EWWW, Imagify) or swapped
+ * (name.webp: ShortPixel), so those copies are removed alongside the file
+ * they belong to. See copies().
  */
 class SB_Images_Rebuild {
 
@@ -129,7 +130,7 @@ class SB_Images_Rebuild {
 		$meta = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 		$have = array_keys( (array) ( $meta['sizes'] ?? [] ) );
 
-		return array_values( array_diff( $have, array_keys( self::all_wanted() ), self::owned(), self::adopted(), self::wp_off() ) );
+		return array_values( array_diff( $have, array_keys( self::wanted_for( $id ) ), self::owned(), self::adopted(), self::wp_off() ) );
 	}
 
 	/** The files one size of one attachment has on disk, WebP and AVIF copies included. */
@@ -146,7 +147,7 @@ class SB_Images_Rebuild {
 			return $found;
 		}
 
-		foreach ( [ $path, $path . '.webp', $path . '.avif' ] as $candidate ) {
+		foreach ( self::copies( $path ) as $candidate ) {
 			if ( file_exists( $candidate ) ) {
 				$found['files']++;
 				$found['bytes'] += (int) filesize( $candidate );
@@ -236,7 +237,7 @@ class SB_Images_Rebuild {
 	public static function present( $id, ?array $meta = null ) {
 		$meta   = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 		$file   = get_attached_file( $id );
-		$sizes  = self::all_wanted();
+		$sizes  = self::wanted_for( $id );
 		$real   = self::dimensions( $id, $meta );
 		$width  = $real[0];
 		$height = $real[1];
@@ -327,7 +328,7 @@ class SB_Images_Rebuild {
 		//
 		// A locked size (SB_Images::locked_sizes()) is never stale, so neither
 		// Remove old sizes nor a single image rebuild deletes its files.
-		$stale = array_intersect( array_diff( $have, array_keys( self::all_wanted() ) ), array_merge( self::owned(), self::adopted(), self::wp_off() ) );
+		$stale = array_intersect( array_diff( $have, array_keys( self::wanted_for( $id ) ) ), array_merge( self::owned(), self::adopted(), self::wp_off() ) );
 
 		return array_values( class_exists( 'SB_Images' ) ? array_diff( $stale, SB_Images::locked_sizes() ) : $stale );
 	}
@@ -441,7 +442,7 @@ class SB_Images_Rebuild {
 	public static function delete_file( $path ) {
 		$removed = 0;
 
-		foreach ( [ $path, $path . '.webp', $path . '.avif' ] as $file ) {
+		foreach ( self::copies( $path ) as $file ) {
 			if ( $file && file_exists( $file ) && is_writable( $file ) ) {
 				wp_delete_file( $file );
 				$removed++;
@@ -610,7 +611,7 @@ class SB_Images_Rebuild {
 
 		$meta    = (array) wp_get_attachment_metadata( $id );
 		$wanted  = $all ? self::missing_all( $id, $meta, $only ) : self::missing( $id, $meta );
-		$sizes   = self::all_wanted();
+		$sizes   = self::wanted_for( $id );
 
 		if ( $only !== null ) {
 			$wanted = array_values( array_intersect( $wanted, $only ) );
@@ -716,7 +717,7 @@ class SB_Images_Rebuild {
 				continue;
 			}
 
-			foreach ( [ $path, $path . '.webp', $path . '.avif' ] as $candidate ) {
+			foreach ( self::copies( $path ) as $candidate ) {
 				if ( file_exists( $candidate ) ) {
 					$count++;
 					$bytes += (int) filesize( $candidate );
@@ -803,6 +804,65 @@ class SB_Images_Rebuild {
 	}
 
 	/**
+	 * A size file and the WebP or AVIF copies an optimiser may have written for
+	 * it. Most add the extension (photo-480x320.jpg.webp); ShortPixel swaps it
+	 * (photo-480x320.webp). Only the added kind was ever counted, so Remove old
+	 * sizes left ShortPixel's copies behind: 379 files on jetskihirenoosa.com.au
+	 * and 356 on noosariverboathire.com.au. A swapped name is only taken as a
+	 * copy when no attachment names it as a file of its own, so an image
+	 * uploaded as .webp with the same name is never mistaken for one.
+	 */
+	public static function copies( $path ) {
+		$list = [ $path, $path . '.webp', $path . '.avif' ];
+		$ext  = strtolower( pathinfo( (string) $path, PATHINFO_EXTENSION ) );
+
+		if ( $ext === '' || in_array( $ext, [ 'webp', 'avif' ], true ) ) {
+			return $list;
+		}
+
+		$stem   = substr( $path, 0, -( strlen( $ext ) + 1 ) );
+		$owners = self::file_owners();
+
+		foreach ( [ '.webp', '.avif' ] as $swap ) {
+			if ( ! isset( $owners['first'][ basename( $stem . $swap ) ] ) ) {
+				$list[] = $stem . $swap;
+			}
+		}
+
+		return $list;
+	}
+
+	/**
+	 * Everything registered, plus the sizes only the site icon has.
+	 *
+	 * WordPress registers site_icon-32, -180, -192 and -270 only while a site
+	 * icon is being cropped, so on every other request they look like leftovers
+	 * from another source. Cleared that way on jetskihirenoosa.com.au, the
+	 * favicon fell back to the 150 and 300 pixel thumbnails. For the attachment
+	 * that is the site icon they count as wanted: never cleared, never listed
+	 * as leftovers, and made again by Build Thumbnails when missing.
+	 */
+	public static function wanted_for( $id ) {
+		$wanted = self::all_wanted();
+		$id     = (int) $id;
+
+		if ( $id > 0 && $id === (int) get_option( 'site_icon' ) ) {
+			foreach ( self::site_icon_sizes() as $px ) {
+				$wanted[ 'site_icon-' . $px ] = [ 'width' => $px, 'height' => $px, 'crop' => true ];
+			}
+		}
+
+		return $wanted;
+	}
+
+	/** The site icon's own sizes, as WP_Site_Icon makes them. */
+	public static function site_icon_sizes() {
+		$sizes = (array) apply_filters( 'site_icon_image_sizes', [ 270, 192, 180, 32 ] );
+
+		return array_values( array_filter( array_map( 'intval', $sizes ) ) );
+	}
+
+	/**
 	 * Sizes an attachment is missing, counting everything registered.
 	 *
 	 * A size is only expected when the original is big enough for it, since
@@ -881,7 +941,7 @@ class SB_Images_Rebuild {
 		$real    = self::dimensions( $id, $meta );
 		$missing = [];
 
-		foreach ( self::all_wanted() as $name => $size ) {
+		foreach ( self::wanted_for( $id ) as $name => $size ) {
 			if ( in_array( $name, $have, true ) || ( $only !== null && ! in_array( $name, $only, true ) ) ) {
 				continue;
 			}
@@ -913,7 +973,7 @@ class SB_Images_Rebuild {
 		}
 
 		$meta  = (array) wp_get_attachment_metadata( $id );
-		$sizes = self::all_wanted();
+		$sizes = self::wanted_for( $id );
 		$real  = self::dimensions( $id, $meta );
 		$specs = [];
 

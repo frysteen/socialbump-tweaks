@@ -99,11 +99,21 @@ class SB_Images_Orphans {
 		return $known;
 	}
 
-	/** Note a file and the WebP or AVIF an optimiser may have written beside it. */
+	/**
+	 * Note a file and the WebP or AVIF an optimiser may have written beside it:
+	 * photo.jpg.webp (WPvivid, EWWW, Imagify) or photo.webp (ShortPixel).
+	 */
 	private static function add( array &$known, $path ) {
-		$known[ $path ]            = true;
+		$known[ $path ]           = true;
 		$known[ $path . '.webp' ] = true;
 		$known[ $path . '.avif' ] = true;
+
+		$stem = preg_replace( '/\.[^.\/]+$/', '', $path );
+
+		if ( $stem !== $path ) {
+			$known[ $stem . '.webp' ] = true;
+			$known[ $stem . '.avif' ] = true;
+		}
 	}
 	/**
 	 * Files that live in uploads but are not uploads: index files WordPress drops
@@ -223,8 +233,15 @@ class SB_Images_Orphans {
 
 		$name = strtolower( basename( $path ) );
 
-		// A WebP or AVIF written by an optimiser keeps the original extension in front of it.
-		$name = preg_replace( '/\.(webp|avif)$/', '', $name );
+		// A WebP or AVIF an optimiser wrote can keep the original extension in
+		// front of it (photo.jpg.webp), and is judged by that one. A file named
+		// photo.webp is judged as a WebP: taking its only extension off used to
+		// leave nothing, so neither scan ever looked at a plain WebP file.
+		$inner = preg_replace( '/\.(webp|avif)$/', '', $name );
+
+		if ( $inner !== $name && in_array( pathinfo( $inner, PATHINFO_EXTENSION ), $allowed, true ) ) {
+			$name = $inner;
+		}
 
 		$extension = pathinfo( $name, PATHINFO_EXTENSION );
 
@@ -411,6 +428,7 @@ class SB_Images_Orphans {
 		global $wpdb;
 
 		$sizes  = SB_Images_Rebuild::all_wanted();
+		$icon   = (int) get_option( 'site_icon' );
 		$expect = [];
 
 		$rows = $wpdb->get_results( "SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attachment_metadata'" );
@@ -446,7 +464,8 @@ class SB_Images_Orphans {
 				$expect[ $name ][ $width . 'x' . $height ] = true;
 			}
 
-			foreach ( $sizes as $size ) {
+			// The site icon also has its own sizes. SB_Images_Rebuild::wanted_for().
+			foreach ( ( (int) $row->post_id === $icon ? SB_Images_Rebuild::wanted_for( $icon ) : $sizes ) as $size ) {
 				$dims = image_resize_dimensions( $width, $height, (int) $size['width'], (int) $size['height'], ! empty( $size['crop'] ) );
 
 				if ( $dims ) {
