@@ -130,7 +130,16 @@ class SB_Images_Rebuild {
 		$meta = $meta === null ? (array) wp_get_attachment_metadata( $id ) : $meta;
 		$have = array_keys( (array) ( $meta['sizes'] ?? [] ) );
 
-		return array_values( array_diff( $have, array_keys( self::wanted_for( $id ) ), self::owned(), self::adopted(), self::wp_off() ) );
+		// Never the site icon's own sizes: they were offered here, ticked for
+		// clearing, and the favicon lost them. See is_site_icon_size().
+		return array_values(
+			array_filter(
+				array_diff( $have, array_keys( self::wanted_for( $id ) ), self::owned(), self::adopted(), self::wp_off() ),
+				function ( $name ) {
+					return ! self::is_site_icon_size( $name );
+				}
+			)
+		);
 	}
 
 	/** The files one size of one attachment has on disk, WebP and AVIF copies included. */
@@ -329,6 +338,15 @@ class SB_Images_Rebuild {
 		// A locked size (SB_Images::locked_sizes()) is never stale, so neither
 		// Remove old sizes nor a single image rebuild deletes its files.
 		$stale = array_intersect( array_diff( $have, array_keys( self::wanted_for( $id ) ) ), array_merge( self::owned(), self::adopted(), self::wp_off() ) );
+
+		// Nor the site icon's own sizes, even where an older version let them be
+		// chosen for clearing.
+		$stale = array_filter(
+			$stale,
+			function ( $name ) {
+				return ! self::is_site_icon_size( $name );
+			}
+		);
 
 		return array_values( class_exists( 'SB_Images' ) ? array_diff( $stale, SB_Images::locked_sizes() ) : $stale );
 	}
@@ -614,7 +632,14 @@ class SB_Images_Rebuild {
 		$sizes   = self::wanted_for( $id );
 
 		if ( $only !== null ) {
-			$wanted = array_values( array_intersect( $wanted, $only ) );
+			$wanted = array_values(
+				array_filter(
+					$wanted,
+					function ( $name ) use ( $only ) {
+						return in_array( $name, $only, true ) || self::is_site_icon_size( $name );
+					}
+				)
+			);
 		}
 
 		if ( ! $wanted ) {
@@ -855,6 +880,15 @@ class SB_Images_Rebuild {
 		return $wanted;
 	}
 
+	/**
+	 * Whether a size name is one of the site icon's (site_icon-32 and so on).
+	 * These are never listed as leftovers from another source and never
+	 * cleared, on any attachment.
+	 */
+	public static function is_site_icon_size( $name ) {
+		return (bool) preg_match( '/^site_icon-\d+$/', (string) $name );
+	}
+
 	/** The site icon's own sizes, as WP_Site_Icon makes them. */
 	public static function site_icon_sizes() {
 		$sizes = (array) apply_filters( 'site_icon_image_sizes', [ 270, 192, 180, 32 ] );
@@ -942,7 +976,9 @@ class SB_Images_Rebuild {
 		$missing = [];
 
 		foreach ( self::wanted_for( $id ) as $name => $size ) {
-			if ( in_array( $name, $have, true ) || ( $only !== null && ! in_array( $name, $only, true ) ) ) {
+			// The site icon's sizes are never in the ticked list (they are not
+			// registered), so they are built whatever is ticked.
+			if ( in_array( $name, $have, true ) || ( $only !== null && ! in_array( $name, $only, true ) && ! self::is_site_icon_size( $name ) ) ) {
 				continue;
 			}
 

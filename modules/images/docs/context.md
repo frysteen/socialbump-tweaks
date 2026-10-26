@@ -344,3 +344,11 @@ ShortPixel:
   rebuild(), stale() and foreign() use it, as does the leftover scan's
   expected_dimensions(), so the site icon's sizes are never cleared or listed,
   and Build Thumbnails makes them again where they are missing.
+
+Follow-up: the site icon's sizes had been offered under Leftover sizes from
+other sources and ticked for clearing. is_site_icon_size() now keeps any
+site_icon-* name out of foreign() and stale() on every attachment, so they are
+never listed or cleared, even if an older version let them be chosen. Build
+also ignores the ticked list for them (missing_all() and build()), because
+they are never registered and so never ticked, which had left Sizes to build
+at 0 on jetskihirenoosa.com.au with the favicon sizes still missing.
