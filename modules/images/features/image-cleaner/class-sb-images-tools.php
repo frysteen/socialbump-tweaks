@@ -1154,7 +1154,10 @@ class SB_Images_Tools {
 
 			$html .= '</tbody></table>';
 			$html .= '<p class="sb-images-report__note">' . esc_html__( 'Remove old sizes deletes the files and also removes each size from the image records in the database, so take a database backup first.', 'sb-tweaks' ) . '</p>';
-			$html .= '<p><button type="submit" class="button">' . esc_html__( 'Add ticked to Old thumbnails to clear', 'sb-tweaks' ) . '</button></p>';
+			// Select all and Select none again beside the button, so a long list needs
+			// no scroll back up to tick it (Sam, October 2026).
+			$html .= '<p class="sb-images-report__submit"><button type="submit" class="button">' . esc_html__( 'Add ticked to Old thumbnails to clear', 'sb-tweaks' ) . '</button>';
+			$html .= '<span class="sb-images-report__pick sb-images-report__pick--foot"><button type="button" class="button-link" data-sb-always-on data-sb-images-foreign="all">' . esc_html__( 'Select all', 'sb-tweaks' ) . '</button> | <button type="button" class="button-link" data-sb-always-on data-sb-images-foreign="none">' . esc_html__( 'Select none', 'sb-tweaks' ) . '</button></span></p>';
 			$html .= '</form>';
 		}
 

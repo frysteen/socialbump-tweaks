@@ -485,3 +485,9 @@ Each snippet is a group of its own (the key holds the table and the snippet
 id), so two snippets registering sizes make two groups. A size named in both
 goes to the one switched on, then the one where the name sits nearest an
 add_image_size() call.
+
+The Leftover list has Select all and Select none twice: above the list, and
+beside the Add ticked to Old thumbnails to clear button under it
+(.sb-images-report__pick--foot), so a long list needs no scroll back up. The
+same images.js handler serves both, as it ticks the boxes of the form the link
+sits in.

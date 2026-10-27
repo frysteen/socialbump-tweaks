@@ -26,14 +26,14 @@ class SB_Tweaks_Installs {
 	const MAX      = 1000;
 	const STALE    = 3 * DAY_IN_SECONDS;
 	const LABELS   = [
-		'socialbump-ai-knowledge-exporter' => 'SEO for AI',
 		'socialbump-tweaks'                => 'Tweaks',
+		'socialbump-ai-knowledge-exporter' => 'SEO for AI',
 	];
 
 	/** Each plugin's main admin page, so an Active version links straight to it. */
 	const PAGES = [
-		'socialbump-ai-knowledge-exporter' => 'sb-ai-knowledge-exporter',
 		'socialbump-tweaks'                => 'sb-tweaks',
+		'socialbump-ai-knowledge-exporter' => 'sb-ai-knowledge-exporter',
 	];
 
 	public static function boot() {
@@ -323,8 +323,8 @@ class SB_Tweaks_Installs {
 
 	/** Each plugin's release class and admin page, for the hub table. */
 	const RELEASES = [
-		'socialbump-ai-knowledge-exporter' => [ 'SBAIKE_Release', 'sb-ai-knowledge-exporter' ],
 		'socialbump-tweaks'                => [ 'SB_Tweaks_Release', 'sb-tweaks' ],
+		'socialbump-ai-knowledge-exporter' => [ 'SBAIKE_Release', 'sb-ai-knowledge-exporter' ],
 	];
 
 	/**

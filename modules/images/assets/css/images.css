@@ -1438,3 +1438,15 @@ table.sb-images-report tr.sb-images-report__morerow td {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
+
+/* Leftover sizes: Select all and Select none again beside the Add ticked button. */
+.sb-images-report__submit {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+}
+
+.sb-images-report__pick--foot {
+	margin: 0;
+}
