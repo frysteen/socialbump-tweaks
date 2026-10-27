@@ -140,6 +140,20 @@ still keeps any file another size of the image, ticked or not, still names
 (SB_Images_Rebuild::file_has_other_owner()), so a leftover size that shares
 its file with a kept one only loses its entry.
 
+A size some plugin still registers never shows here, even when the scan runs
+in a request where that plugin does not register it. On feelsoma.com
+LearnDash Visual Customizer adds course_icon (150 x 150, cropped) on
+admin_init only, so a scan run over REST listed course_icon as a leftover on
+374 images (735 files, 4.7 MB) and Select all would have cleared thumbnails
+the live plugin uses. SB_Images_Rebuild::note_registered() remembers every
+size registered when SB Image Settings or SB Image Cleaner is opened, or a
+scan runs (option sb_tweaks_images_seen_sizes), and all_wanted() counts those
+as wanted in every request. The list is replaced at each visit, so a size
+whose plugin has gone shows as a leftover from the next visit on. A
+remembered size cannot be chosen for clearing, and one chosen before is taken
+off the list. elementor_custom_640x360 and elementor_custom_400pxx600px on the
+same site are real leftovers and still show.
+
 ## Switching a site to the standard sizes
 
 How bricks.socialbump.com.au, doogood.com.au and epoxyflooringco.com.au were
@@ -251,7 +265,11 @@ or background image files show as unknown.
 3. SB Image Cleaner: Scan.
 4. Leftover sizes from other sources: Select all, add them to Old thumbnails
    to clear (elementor_custom_*, wpex_* and the like), after checking step 3
-   found none in use.
+   found none in use. Run this scan from SB Image Cleaner itself, not from a
+   chat over REST: open the page first so the sizes plugins register in the
+   admin are remembered (feelsoma's course_icon, see Leftover sizes from other
+   sources), and check anything unfamiliar against SB Image Settings' Other
+   Image Sizes before ticking it.
 5. Remove old sizes. Any file another kept size still names is kept, so only
    its entry goes (SB_Images_Rebuild::file_has_other_owner()).
 6. Orphaned files, then clear the host cache.
@@ -352,3 +370,79 @@ never listed or cleared, even if an older version let them be chosen. Build
 also ignores the ticked list for them (missing_all() and build()), because
 they are never registered and so never ticked, which had left Sizes to build
 at 0 on jetskihirenoosa.com.au with the favicon sizes still missing.
+
+## Scans that disagree (feelsoma.com, October 2026)
+
+A chat cleaning feelsoma.com found the page and a scan run over REST giving
+different answers. Both causes were requests that see a different site:
+
+- The page said 392 images with nothing to build; summary() over REST said
+  416 images, 24 of them missing thumbnail, medium and the image-* sizes. The
+  24 were customers' avatars from YITH WooCommerce Customize My Account, whose
+  admin class hides them from attachment queries with pre_get_posts
+  (post__not_in from the option yith_wcmap_users_avatar_ids). get_posts()
+  runs pre_get_posts even with suppress_filters, and that class only loads in
+  the admin, so the page's admin-ajax scan never saw them. query_ids() now
+  reads the ids straight from the database, so every request scans the same
+  images.
+- course_icon looked like a leftover over REST and wanted on the page. See
+  Leftover sizes from other sources.
+
+A second REST scan a few minutes after the first gave 138 sizes to build
+instead of 160 with nothing known to have changed. Not explained; not seen on
+the page.
+
+## Size sources (October 2026)
+
+SB Image Cleaner's size list groups the sizes by what registers them: Image
+Sizes (ours), one group per plugin, theme, must-use plugin or snippet, then
+Unknown source and WordPress. Sam asked for it after feelsoma.com's Other Image
+Sizes mixed WPCodeBox snippet #3 (Image Sizes), Modern Events Calendar,
+WooCommerce and LearnDash Visual Customizer in one width order.
+
+SB_Images_Sources (features/image-cleaner/class-sb-images-sources.php) reads
+the code, since WordPress does not record who called add_image_size(): every
+PHP file under the plugins, themes and mu-plugins folders that calls it (grep
+when exec is allowed, a PHP walk otherwise), plus snippets in WPCodeBox
+(wpcb_snippets), Code Snippets (snippets) and WPCode (wpcode posts), switched on
+or not. A name counts as found where it appears in quotes in such a file. With
+more than one match, anything but SB Tweaks beats SB Tweaks, active beats
+switched off, then the match nearest an add_image_size() call wins: on
+feelsoma the woocommerce_ names are also in SB Tweaks' code and still go to
+WooCommerce. The WooCommerce group used to go by the woocommerce_ prefix; that
+rule is gone.
+
+It cannot see a name built up in code ('image-' . $width) or added through a
+filter. Those go under Unknown source, with a note saying why, never into a
+wrong group. That miss is why the idea was dropped once before.
+
+The answer is kept in the option sb_tweaks_images_size_sources with a signature
+of the active plugins and their main files' times, the plugins folder's time,
+the theme and its version, and the snippet tables' counts and last changes;
+when any of those change it is worked out again. Names asked about later (the
+leftover list) are searched then and added. Leftover sizes from other sources
+show "Found in <source>" under the name when their name still turns up, which
+is usually a plugin or snippet that is switched off.
+
+The media library's sizes panel uses the same groups.
+
+### Elementor custom sizes, and refreshing the sources
+
+elementor_custom_<width>x<height> sizes are made by Elementor when a widget's
+image size is set to Custom; Elementor never registers them, so no code names
+them. SB_Images_Sources labels them "Made by an Elementor widget set to a
+Custom image size" (key elementor-custom) instead of leaving them without a
+source. A width or height typed with a unit keeps it in the name:
+elementor_custom_400pxx600px.
+
+size_warnings() checks whether a widget still uses one:
+elementor_custom_uses() finds _elementor_data rows holding that width and
+height, decodes them, and counts a page only where an *_custom_dimension with
+those values sits beside its *_size set to custom. The check on the size
+setting matters: a widget keeps its last custom width and height after it is
+switched to another size, and on feelsoma.com 181 widgets carried 600 x 400
+that way. The plain "Looks like it belongs to a plugin or theme" warning is
+not shown for these.
+
+Scan on SB Image Cleaner clears the cached sources (SB_Images_Sources::forget()),
+so if a group ever looks wrong, a Scan and a page reload search again.

@@ -314,18 +314,35 @@ class SB_Images_Tools {
 		}
 	}
 
+	/**
+	 * Every image attachment, read straight from the database.
+	 *
+	 * Not get_posts(): other plugins change attachment queries in some
+	 * requests only. YITH WooCommerce Customize My Account hides customers'
+	 * avatar uploads from the media library with pre_get_posts (post__not_in),
+	 * which runs in admin-ajax but not over REST. On feelsoma.com the page's
+	 * scan saw 392 images and a scan run over REST saw 416: the 24 avatars,
+	 * none with their thumbnails, never showed as sizes to build.
+	 */
 	private static function query_ids() {
-		return get_posts(
-			[
-				'post_type'      => 'attachment',
-				'post_mime_type' => self::mime_types(),
-				'post_status'    => 'inherit',
-				'posts_per_page' => -1,
-				'orderby'        => 'ID',
-				'order'          => 'ASC',
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			]
+		global $wpdb;
+
+		$types = array_values( array_filter( array_map( 'strval', self::mime_types() ) ) );
+
+		if ( ! $types ) {
+			return [];
+		}
+
+		$in = implode( ', ', array_fill( 0, count( $types ), '%s' ) );
+
+		return array_map(
+			'intval',
+			(array) $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type IN ( {$in} ) ORDER BY ID ASC",
+					$types
+				)
+			)
 		);
 	}
 
@@ -462,6 +479,16 @@ class SB_Images_Tools {
 		// still look like a use.
 		require_once __DIR__ . '/class-sb-images-orphans.php';
 		SB_Images_Orphans::forget_mentions();
+
+		// Where each size comes from is searched again too, so a Scan is the
+		// way to refresh it if it ever looks wrong.
+		require_once __DIR__ . '/class-sb-images-sources.php';
+		SB_Images_Sources::forget();
+
+		// The sizes registered in this request are remembered, so a scan run
+		// where a plugin does not register its sizes still counts them as wanted.
+		SB_Images_Rebuild::note_registered();
+
 		wp_send_json_success( self::summary() );
 	}
 
@@ -1100,8 +1127,20 @@ class SB_Images_Tools {
 			$html .= '<p class="sb-images-report__pick"><button type="button" class="button-link" data-sb-always-on data-sb-images-foreign="all">' . esc_html__( 'Select all', 'sb-tweaks' ) . '</button> | <button type="button" class="button-link" data-sb-always-on data-sb-images-foreign="none">' . esc_html__( 'Select none', 'sb-tweaks' ) . '</button></p>';
 			$html .= '<table class="sb-images-report"><tbody>';
 
+			// Where each leftover's name still turns up in code, usually a plugin
+			// or snippet that is switched off. See SB_Images_Sources.
+			require_once __DIR__ . '/class-sb-images-sources.php';
+			$from = SB_Images_Sources::of( array_map( 'strval', array_keys( $foreign ) ) );
+
 			foreach ( $foreign as $name => $found ) {
 				$html .= '<tr><td class="sb-images-report__file"><label class="sb-images-report__name"><input type="checkbox" name="sb_images_adopt[]" value="' . esc_attr( $name ) . '"> <code>' . esc_html( $name ) . '</code></label>';
+
+				if ( isset( $from[ (string) $name ] ) ) {
+					$source = $from[ (string) $name ];
+					/* translators: %s: plugin, theme or snippet */
+					$text   = $source['key'] === 'elementor-custom' ? $source['label'] : sprintf( __( 'Found in %s', 'sb-tweaks' ), $source['label'] );
+					$html  .= '<span class="sb-images-report__source">' . esc_html( $text ) . '</span>';
+				}
 
 				foreach ( self::size_warnings( $name ) as $warning ) {
 					$html .= '<span class="sb-images-report__used">' . esc_html( $warning ) . '</span>';
@@ -1150,12 +1189,57 @@ class SB_Images_Tools {
 	 * theme that registers it is switched off, or registers it only on the
 	 * front end.
 	 */
+	/**
+	 * How many pages and templates have an Elementor widget set to Custom image
+	 * size with this width and height. The stored data is read, because a
+	 * widget keeps its last custom width and height after it is switched to
+	 * another size: on feelsoma.com 181 widgets carried 600 x 400 that way.
+	 */
+	private static function elementor_custom_uses( $width, $height ) {
+		global $wpdb;
+
+		$like = '%' . $wpdb->esc_like( '"width":"' . $width . '","height":"' . $height . '"' ) . '%';
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT pm.post_id, pm.meta_value FROM {$wpdb->postmeta} pm JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = '_elementor_data' AND p.post_type <> 'revision' AND pm.meta_value LIKE %s", $like ) );
+		$used = [];
+
+		foreach ( (array) $rows as $row ) {
+			$data = json_decode( (string) $row->meta_value, true );
+
+			if ( is_array( $data ) && self::elementor_custom_in( $data, (string) $width, (string) $height ) ) {
+				$used[ (int) $row->post_id ] = true;
+			}
+		}
+
+		return count( $used );
+	}
+
+	/** Does any part of this Elementor data have an image set to that custom size? */
+	private static function elementor_custom_in( array $node, $width, $height ) {
+		foreach ( $node as $key => $value ) {
+			if ( is_string( $key ) && is_array( $value ) && substr( $key, -17 ) === '_custom_dimension' ) {
+				$size = $node[ substr( $key, 0, -17 ) . '_size' ] ?? '';
+
+				if ( $size === 'custom' && (string) ( $value['width'] ?? '' ) === $width && (string) ( $value['height'] ?? '' ) === $height ) {
+					return true;
+				}
+			}
+		}
+
+		foreach ( $node as $value ) {
+			if ( is_array( $value ) && self::elementor_custom_in( $value, $width, $height ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private static function size_warnings( $name ) {
 		global $wpdb;
 
 		$warnings = [];
 
-		if ( preg_match( '/^(woocommerce|shop_|wc[-_]|et[-_]pb|elementor|jet[-_]|astra|kadence|generate|blocksy|bricks|avada|fusion|divi|ocean|neve|twentytwenty)/i', $name ) ) {
+		if ( strpos( $name, 'elementor_custom_' ) !== 0 && preg_match( '/^(woocommerce|shop_|wc[-_]|et[-_]pb|elementor|jet[-_]|astra|kadence|generate|blocksy|bricks|avada|fusion|divi|ocean|neve|twentytwenty)/i', $name ) ) {
 			$warnings[] = __( 'Looks like it belongs to a plugin or theme. If that is only switched off, its images will need this size again.', 'sb-tweaks' );
 		}
 
@@ -1166,6 +1250,18 @@ class SB_Images_Tools {
 		if ( $pages ) {
 			/* translators: %s: number of pages */
 			$warnings[] = sprintf( _n( 'Named in %s page or template.', 'Named in %s pages or templates.', $pages, 'sb-tweaks' ), number_format_i18n( $pages ) );
+		}
+
+		// An Elementor custom size is named after the width and height typed into
+		// a widget's Custom image size. The widget stores those, not the name, so
+		// the search above never finds it.
+		if ( preg_match( '/^elementor_custom_(\d*(?:px)?)x(\d*(?:px)?)$/i', $name, $typed ) ) {
+			$using = self::elementor_custom_uses( $typed[1], $typed[2] );
+
+			if ( $using ) {
+				/* translators: %s: number of pages */
+				$warnings[] = sprintf( _n( 'An Elementor widget on %s page or template is still set to this Custom image size.', 'Elementor widgets on %s pages or templates are still set to this Custom image size.', $using, 'sb-tweaks' ), number_format_i18n( $using ) );
+			}
 		}
 
 		// Code snippet plugins keep their snippets in tables of their own.

@@ -1416,3 +1416,11 @@ table.sb-images-report tr.sb-images-report__morerow td {
 	padding-top: 16px;
 	border-top: 1px solid #dcdcde;
 }
+
+/* Leftover sizes: where the name still turns up in code. */
+.sb-images-report__source {
+	display: block;
+	margin-top: 2px;
+	color: #646970;
+	font-size: 12px;
+}

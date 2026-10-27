@@ -59,9 +59,27 @@ class SB_Images_Module {
 		return add_query_arg( array_merge( [ 'page' => self::SLUG . '-' . sanitize_key( $group ) ], $args ), admin_url( 'upload.php' ) );
 	}
 
+	/**
+	 * Remember the sizes registered on the module's two pages, for scans run
+	 * where some plugin does not register its sizes. Last on admin_init, after
+	 * plugins that register theirs there. See SB_Images_Rebuild::note_registered().
+	 */
+	public static function note_sizes() {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+		if ( $page !== self::SLUG . '-settings' && $page !== self::SLUG . '-cleaner' ) {
+			return;
+		}
+
+		if ( class_exists( 'SB_Images_Rebuild' ) && current_user_can( 'manage_options' ) ) {
+			SB_Images_Rebuild::note_registered();
+		}
+	}
+
 	public static function boot() {
 		add_action( 'admin_enqueue_scripts', [ __CLASS__, 'assets' ] );
 		add_action( 'admin_page_access_denied', [ __CLASS__, 'old_addresses' ] );
+		add_action( 'admin_init', [ __CLASS__, 'note_sizes' ], PHP_INT_MAX );
 	}
 
 	/**

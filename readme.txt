@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.5
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,12 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.4.0 =
+* SB Image Cleaner now scans every image, including ones another plugin hides from the media library (customer avatars from YITH My Account), so their missing thumbnails show and get built.
+* Sizes another plugin registers only in the admin (LearnDash Visual Customizer's course_icon) are remembered when SB Image Settings or SB Image Cleaner is opened, so they are never listed as leftovers to clear.
+* SB Image Cleaner groups other image sizes by the plugin, theme or code snippet that registers them (for example a WPCodeBox snippet, Modern Events Calendar or WooCommerce), with anything it cannot trace under Unknown source. Leftover sizes show where their name still turns up, usually a plugin or snippet that is switched off.
+* Leftover elementor_custom_ sizes are labelled as made by an Elementor widget's Custom image size, with a warning when a widget on a page is still set to that size. Scan on SB Image Cleaner also refreshes where each size comes from.
 
 = 0.3.5 =
 * SB Image Cleaner: the site icon's sizes no longer appear under leftover sizes from other sources, and Build Thumbnails puts them back whichever sizes are ticked.

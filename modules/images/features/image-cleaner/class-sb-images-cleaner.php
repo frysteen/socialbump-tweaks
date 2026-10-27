@@ -35,23 +35,24 @@ class SB_Images_Cleaner {
 	const CHOICE_META = 'sb_tweaks_images_cleaner_sizes';
 
 	/**
-	 * Every registered size, grouped for the list on the page: ours, the ones
-	 * WordPress makes, WooCommerce's, and whatever else is registered.
+	 * Every registered size, grouped for the list on the page: ours, one group
+	 * per plugin, theme or snippet that registers the rest, Unknown source, and
+	 * the ones WordPress makes.
 	 *
-	 * Grouping the rest by the theme or plugin that registered them is not
-	 * possible: WordPress does not record it, reading the code misses anything
-	 * registered through a filter or with a built up name, which is how the
-	 * common ones do it, and registration timing puts the theme and the plugins
-	 * in the same bucket. Tried both; neither was honest enough to show.
+	 * WordPress does not record who registered a size, so SB_Images_Sources
+	 * reads the code for each name. A name built up in code or added through a
+	 * filter cannot be found that way and goes under Unknown source rather than
+	 * a wrong group. That miss is why this was dropped once; Sam asked again in
+	 * October 2026 after feelsoma.com's list mixed a WPCodeBox snippet, Modern
+	 * Events Calendar, WooCommerce and LearnDash in one width order, and with
+	 * Unknown source as the fallback it is honest about what it cannot place.
+	 * WooCommerce's group used to go by the woocommerce_ name; it now comes
+	 * from the search like any other plugin.
 	 */
 	public static function size_groups() {
-		$core   = [ 'thumbnail', 'medium', 'medium_large', 'large', '1536x1536', '2048x2048' ];
-		$groups = [
-			'ours'        => [ 'title' => __( 'Image Sizes', 'sb-tweaks' ), 'sizes' => [] ],
-			'other'       => [ 'title' => __( 'Other Image Sizes', 'sb-tweaks' ), 'sizes' => [] ],
-			'woocommerce' => [ 'title' => __( 'WooCommerce', 'sb-tweaks' ), 'sizes' => [] ],
-			'wordpress'   => [ 'title' => __( 'WordPress', 'sb-tweaks' ), 'sizes' => [] ],
-		];
+		require_once __DIR__ . '/class-sb-images-sources.php';
+
+		$core = [ 'thumbnail', 'medium', 'medium_large', 'large', '1536x1536', '2048x2048' ];
 
 		// Image Management's own: the widths SB Image Settings registers right now. An
 		// image- name from a snippet, or one Image Management used to register, is not
@@ -64,19 +65,47 @@ class SB_Images_Cleaner {
 			}
 		}
 
-		foreach ( SB_Images_Rebuild::all_wanted() as $name => $size ) {
-			if ( in_array( $name, $ours, true ) ) {
-				$key = 'ours';
-			} elseif ( in_array( $name, $core, true ) ) {
-				$key = 'wordpress';
-			} elseif ( strpos( $name, 'woocommerce_' ) === 0 ) {
-				$key = 'woocommerce';
-			} else {
-				$key = 'other';
-			}
+		$all     = SB_Images_Rebuild::all_wanted();
+		$names   = array_map( 'strval', array_keys( $all ) );
+		$sources = SB_Images_Sources::of( array_values( array_diff( $names, $ours, $core ) ) );
+		$found   = [];
+		$unknown = [];
+		$wp      = [];
+		$mine    = [];
 
-			$groups[ $key ]['sizes'][ $name ] = $size;
+		foreach ( $all as $name => $size ) {
+			$name = (string) $name;
+
+			if ( in_array( $name, $ours, true ) ) {
+				$mine[ $name ] = $size;
+			} elseif ( in_array( $name, $core, true ) ) {
+				$wp[ $name ] = $size;
+			} elseif ( isset( $sources[ $name ] ) ) {
+				$key = 'source-' . md5( (string) $sources[ $name ]['key'] );
+
+				if ( ! isset( $found[ $key ] ) ) {
+					$found[ $key ] = [ 'title' => (string) $sources[ $name ]['label'], 'sizes' => [] ];
+				}
+
+				$found[ $key ]['sizes'][ $name ] = $size;
+			} else {
+				$unknown[ $name ] = $size;
+			}
 		}
+
+		uasort(
+			$found,
+			function ( $a, $b ) {
+				return strnatcasecmp( $a['title'], $b['title'] );
+			}
+		);
+
+		$groups = [ 'ours' => [ 'title' => __( 'Image Sizes', 'sb-tweaks' ), 'sizes' => $mine ] ]
+			+ $found
+			+ [
+				'unknown'   => [ 'title' => __( 'Unknown source', 'sb-tweaks' ), 'sizes' => $unknown ],
+				'wordpress' => [ 'title' => __( 'WordPress', 'sb-tweaks' ), 'sizes' => $wp ],
+			];
 
 		foreach ( $groups as $key => $group ) {
 			if ( ! $group['sizes'] ) {
@@ -264,8 +293,8 @@ class SB_Images_Cleaner {
 			echo '</span>';
 			echo '<span><button type="button" class="button-link sb-toggle" data-sb-always-on data-sizes-all>' . esc_html__( 'all', 'sb-tweaks' ) . '</button> | <button type="button" class="button-link sb-toggle" data-sb-always-on data-sizes-none>' . esc_html__( 'none', 'sb-tweaks' ) . '</button></span></div>';
 
-			if ( 'other' === $key ) {
-				echo '<p class="sb-images-sizegroup__note">' . esc_html__( 'Added by the theme, a snippet or another plugin.', 'sb-tweaks' ) . '</p>';
+			if ( 'unknown' === $key ) {
+				echo '<p class="sb-images-sizegroup__note">' . esc_html__( 'Not found in any plugin, theme or snippet: the name may be built up in code or added through a filter.', 'sb-tweaks' ) . '</p>';
 			}
 
 			foreach ( $group['sizes'] as $name => $size ) {

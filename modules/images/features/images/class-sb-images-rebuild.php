@@ -29,6 +29,16 @@ class SB_Images_Rebuild {
 	const ADOPTED_OPTION = 'sb_tweaks_images_adopted_image_sizes';
 
 	/**
+	 * The sizes registered the last time SB Image Settings or SB Image Cleaner
+	 * was opened, or a scan ran, as name => width, height and crop. Some
+	 * plugins register sizes in the admin only: LearnDash Visual Customizer
+	 * adds course_icon on admin_init, so on feelsoma.com a scan run over REST
+	 * listed its 374 images as leftovers from other sources, a Select all away
+	 * from deleting thumbnails a live plugin uses. See all_wanted().
+	 */
+	const SEEN_OPTION = 'sb_tweaks_images_seen_sizes';
+
+	/**
 	 * WordPress sizes that can be switched off on SB Image Settings. Thumbnail and
 	 * medium always stay: the media library and the editor show them.
 	 */
@@ -798,6 +808,69 @@ class SB_Images_Rebuild {
 	 * a missing thumbnail is a missing thumbnail whoever asked for it.
 	 */
 	public static function all_wanted() {
+		$wanted = self::registered();
+		$skip   = array_merge( self::owned(), self::wp_off() );
+
+		// Sizes seen registered on the module's pages count as wanted in every
+		// request, so one that a plugin only registers in the admin is never a
+		// leftover. Ours and the WordPress sizes switched off are left out: their
+		// state is known in every request.
+		foreach ( self::seen() as $name => $size ) {
+			if ( isset( $wanted[ $name ] ) || in_array( $name, $skip, true ) || ! is_array( $size ) ) {
+				continue;
+			}
+
+			$wanted[ $name ] = [
+				'width'  => (int) ( $size['width'] ?? 0 ),
+				'height' => (int) ( $size['height'] ?? 0 ),
+				'crop'   => ! empty( $size['crop'] ),
+			];
+		}
+
+		return array_filter(
+			$wanted,
+			function ( $size ) {
+				return $size['width'] > 0 || $size['height'] > 0;
+			}
+		);
+	}
+
+	/** The sizes remembered by note_registered(). */
+	public static function seen() {
+		$seen = get_option( self::SEEN_OPTION, [] );
+
+		return is_array( $seen ) ? $seen : [];
+	}
+
+	/**
+	 * Remember the sizes registered in this request. Run on loads of SB Image
+	 * Settings and SB Image Cleaner and by the scan, where plugins that only
+	 * register in the admin have done so. The list is replaced, not added to,
+	 * so a size whose plugin has gone drops off at the next visit and shows as
+	 * a leftover then. A size registered here is also taken off the sizes
+	 * chosen for clearing, in case one was chosen from a scan run elsewhere.
+	 */
+	public static function note_registered() {
+		$now = self::registered();
+
+		ksort( $now );
+
+		if ( $now !== self::seen() ) {
+			update_option( self::SEEN_OPTION, $now, false );
+		}
+
+		$live = array_values( array_intersect( self::adopted(), array_keys( $now ) ) );
+
+		if ( $live ) {
+			self::unadopt( $live );
+		}
+	}
+
+	/**
+	 * Every size registered in this request, as name => width, height and crop.
+	 * all_wanted() adds the ones remembered from the admin.
+	 */
+	public static function registered() {
 		global $_wp_additional_image_sizes;
 
 		$wanted = [];
