@@ -1424,3 +1424,17 @@ table.sb-images-report tr.sb-images-report__morerow td {
 	color: #646970;
 	font-size: 12px;
 }
+
+/* SB Image Cleaner's two columns. .sb-tweaks-section's own 24px top margin
+   pushed Rebuild Thumbnails below Sizes, and nothing stacked the columns on a
+   narrow screen, so Rebuild was squeezed into a sliver beside Sizes (Sam,
+   October 2026). Same breakpoint as SB Image Settings. */
+.sb-images-cleaner > .sb-tweaks-section {
+	margin: 0;
+}
+
+@media (max-width: 1100px) {
+	.sb-images-cleaner {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}

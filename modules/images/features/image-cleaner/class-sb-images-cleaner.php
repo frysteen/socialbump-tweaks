@@ -84,7 +84,7 @@ class SB_Images_Cleaner {
 				$key = 'source-' . md5( (string) $sources[ $name ]['key'] );
 
 				if ( ! isset( $found[ $key ] ) ) {
-					$found[ $key ] = [ 'title' => (string) $sources[ $name ]['label'], 'sizes' => [] ];
+					$found[ $key ] = [ 'title' => (string) $sources[ $name ]['label'], 'source' => $sources[ $name ], 'sizes' => [] ];
 				}
 
 				$found[ $key ]['sizes'][ $name ] = $size;
@@ -282,7 +282,7 @@ class SB_Images_Cleaner {
 
 		foreach ( self::size_groups() as $key => $group ) {
 			echo '<div class="sb-images-sizegroup" data-sizegroup="' . esc_attr( $key ) . '">';
-			echo '<div class="sb-images-sizegroup__head"><span class="sb-images-sizegroup__title"><strong>' . esc_html( $group['title'] ) . '</strong>';
+			echo '<div class="sb-images-sizegroup__head"><span class="sb-images-sizegroup__title"><strong>' . ( isset( $group['source'] ) ? SB_Images_Sources::title_html( $group['source'] ) : esc_html( $group['title'] ) ) . '</strong>';
 
 			// Only Image Management's own widths can be changed, on SB Image Settings, which
 			// exists only while Images is switched on.

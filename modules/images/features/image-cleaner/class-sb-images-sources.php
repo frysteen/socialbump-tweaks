@@ -27,7 +27,43 @@ class SB_Images_Sources {
 	const OPTION = 'sb_tweaks_images_size_sources';
 
 	/** Raised when the way sources are found changes, so every site searches again. */
-	const SCHEME = 2;
+	const SCHEME = 3;
+
+	/**
+	 * A source's name for the page, with a snippet's own title linking to it
+	 * where its plugin can open a snippet from a link.
+	 */
+	public static function title_html( array $source ) {
+		if ( ! empty( $source['url'] ) && isset( $source['name'] ) && (string) $source['name'] !== '' ) {
+			return esc_html( (string) ( $source['prefix'] ?? '' ) ) . '<a href="' . esc_url( (string) $source['url'] ) . '">' . esc_html( (string) $source['name'] ) . '</a>' . esc_html( (string) ( $source['suffix'] ?? '' ) );
+		}
+
+		return esc_html( (string) ( $source['label'] ?? '' ) );
+	}
+
+	/**
+	 * Where to edit a snippet, for the plugins known to open one from a link:
+	 * WPCodeBox 2 reads ?snippet= on its page (checked in 1.4.1 on feelsoma.com),
+	 * and Code Snippets answers through its own get_snippet_edit_url(). WPCode
+	 * gets no link.
+	 */
+	private static function edit_url( $table, $id ) {
+		global $wpdb;
+
+		if ( $table === $wpdb->prefix . 'wpcb_snippets' ) {
+			return in_array( 'wpcodebox2/wpcodebox2.php', self::active_plugins(), true ) ? admin_url( 'admin.php?page=wpcodebox2&snippet=' . (int) $id ) : '';
+		}
+
+		if ( $table === $wpdb->prefix . 'snippets' && function_exists( 'Code_Snippets\code_snippets' ) ) {
+			$plugin = call_user_func( 'Code_Snippets\code_snippets' );
+
+			if ( is_object( $plugin ) && method_exists( $plugin, 'get_snippet_edit_url' ) ) {
+				return (string) $plugin->get_snippet_edit_url( (int) $id );
+			}
+		}
+
+		return '';
+	}
 
 	/** Search again on the next look. SB Image Cleaner's Scan calls this. */
 	public static function forget() {
@@ -141,7 +177,14 @@ class SB_Images_Sources {
 		$map = [];
 
 		foreach ( $best as $name => $found ) {
-			$map[ (string) $name ] = [ 'key' => $found['key'], 'label' => $found['label'] ];
+			$map[ (string) $name ] = [
+				'key'    => $found['key'],
+				'label'  => $found['label'],
+				'prefix' => $found['prefix'] ?? '',
+				'name'   => $found['name'] ?? '',
+				'suffix' => $found['suffix'] ?? '',
+				'url'    => $found['url'] ?? '',
+			];
 		}
 
 		return $map;
@@ -175,7 +218,15 @@ class SB_Images_Sources {
 			$score = [ $source['ours'] ? 1 : 0, $source['active'] ? 0 : 1, $near ];
 
 			if ( ! isset( $best[ $name ] ) || self::beats( $score, $best[ $name ]['score'] ) ) {
-				$best[ $name ] = [ 'key' => $source['key'], 'label' => $source['label'], 'score' => $score ];
+				$best[ $name ] = [
+					'key'    => $source['key'],
+					'label'  => $source['label'],
+					'prefix' => $source['prefix'] ?? '',
+					'name'   => $source['name'] ?? '',
+					'suffix' => $source['suffix'] ?? '',
+					'url'    => $source['url'] ?? '',
+					'score'  => $score,
+				];
 			}
 		}
 	}
@@ -372,6 +423,11 @@ class SB_Images_Sources {
 					'key'    => 'snippet:' . $table . ':' . $row['id'],
 					/* translators: 1: snippet plugin, 2: snippet id, 3: snippet title */
 					'label'  => sprintf( __( '%1$s #%2$s: %3$s', 'sb-tweaks' ), $c['label'], $row['id'], $row['title'] ) . ( $on ? '' : ' ' . $off ),
+					/* translators: 1: snippet plugin, 2: snippet id */
+					'prefix' => sprintf( __( '%1$s #%2$s:', 'sb-tweaks' ), $c['label'], $row['id'] ) . ' ',
+					'name'   => (string) $row['title'],
+					'suffix' => $on ? '' : ' ' . $off,
+					'url'    => self::edit_url( $table, (int) $row['id'] ),
 					'active' => $on,
 					'ours'   => false,
 					'text'   => (string) $row['code'],

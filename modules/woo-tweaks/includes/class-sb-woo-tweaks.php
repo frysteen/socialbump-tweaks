@@ -22,8 +22,6 @@ class SB_Woo_Tweaks {
 	/** The module's menu slug, which every page address starts with. */
 	const SLUG = 'sb-woo-tweaks';
 
-	const SITE_KIT = 'socialbump-site-kit/socialbump-site-kit.php';
-
 	/** The features that came from Site Kit, under the ids Site Kit saved. */
 	const FEATURE_IDS = [
 		'woo-analytics-csv',
@@ -95,18 +93,9 @@ class SB_Woo_Tweaks {
 	 * 'auto' looks for) only where the store could have been using these: Site
 	 * Kit's WooCommerce group was on and WooCommerce is active, or a WooCommerce
 	 * switch had been saved on. A site without a store gets nothing.
-	 *
-	 * On the hub, standalone Site Kit stays on until it is switched off by hand,
-	 * so the copy waits until it is off.
 	 */
 	public static function migrate() {
 		if ( get_option( self::MIGRATED ) ) {
-			return;
-		}
-
-		$hub = function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub();
-
-		if ( $hub && in_array( self::SITE_KIT, (array) get_option( 'active_plugins', [] ), true ) ) {
 			return;
 		}
 

@@ -52,7 +52,6 @@ if ( ! class_exists( 'SocialBUMP_Reporter' ) ) {
 
 		/** Every SocialBUMP plugin the hub keeps track of, by folder. */
 		const PLUGINS = [
-			'socialbump-site-kit',
 			'socialbump-bricks-tweaks',
 			'socialbump-ai-knowledge-exporter',
 			'socialbump-tweaks',

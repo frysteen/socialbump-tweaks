@@ -18,9 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * keeps its name: the gallery and image blocks' sbskZoom and sbskZoomSize
  * attributes. The image-<width> size names never change.
  *
- * It waits for standalone Site Kit rather than replacing it: the Site Kit
- * module does that, and this one sits out any request Site Kit had loaded in,
- * since both would register the same sizes and handle the same uploads.
+ * It used to wait for the standalone Site Kit plugin ('waits_for'); that plugin
+ * was retired in October 2026 with no site left on it.
  */
 if ( ! defined( 'SB_IMAGES_PATH' ) ) {
 	define( 'SB_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
@@ -34,7 +33,6 @@ return [
 	'title'       => 'Image Management',
 	'description' => 'Image sizes, tidy titles and alt text on upload, media library extras and the Image Cleaner. Adds SB Image Settings and SB Image Cleaner to the Media menu.',
 	'heading'     => 'Image Management',
-	'waits_for'   => SB_Images_Module::SITE_KIT,
 	'migrate'     => [ 'SB_Images_Module', 'migrate' ],
 
 	// Settings first: the order of the Media menu and the admin bar flyout.

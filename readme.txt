@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,10 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.4.1 =
+* SB Image Cleaner: the Rebuild Thumbnails panel now lines up with Sizes, and the two stack on narrow screens and phones.
+* SB Image Cleaner: a size group from a WPCodeBox or Code Snippets snippet links its title to that snippet.
 
 = 0.4.0 =
 * SB Image Cleaner now scans every image, including ones another plugin hides from the media library (customer avatars from YITH My Account), so their missing thumbnails show and get built.

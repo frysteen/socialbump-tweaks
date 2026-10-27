@@ -25,9 +25,8 @@ require_once SB_SITE_KIT_PATH . 'includes/class-sb-site-kit.php';
 return [
 	'id'          => 'site_kit',
 	'title'       => 'Site Kit',
-	'description' => 'Content, FAQ, SEO and admin tweaks for any site, whatever it is built with. Replaces the standalone SocialBUMP Site Kit plugin, apart from its image pages (the Image Management module) and its WooCommerce features (the Woo Tweaks module).',
+	'description' => 'Content, FAQ, SEO and admin tweaks for any site, whatever it is built with.',
 	'heading'     => 'Site Kit',
-	'replaces'    => 'socialbump-site-kit/socialbump-site-kit.php',
 
 	'groups'      => [
 		'content'     => [

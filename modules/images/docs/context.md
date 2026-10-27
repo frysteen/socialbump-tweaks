@@ -446,3 +446,42 @@ not shown for these.
 
 Scan on SB Image Cleaner clears the cached sources (SB_Images_Sources::forget()),
 so if a group ever looks wrong, a Scan and a page reload search again.
+
+## Cleaner layout (October 2026)
+
+Rebuild Thumbnails sat 24px lower than Sizes, and on a phone the two columns
+never stacked, leaving Rebuild a sliver beside Sizes. .sb-images-cleaner > 
+.sb-tweaks-section now has no margin (the framework's .sb-tweaks-section has a
+24px top margin, which the __side column already cancelled for its own
+sections), and the grid drops to one column at 1100px, the same breakpoint as
+SB Image Settings. Checked the plugin's other two-column pages at the same
+time: SB Image Settings, Site Kit's Robots.txt and the Publishing page already
+had both rules. The FAQ source columns and the card grids use auto-fit, which
+wraps on its own. .sb-tweaks-images and .sb-tweaks-cleaner in admin.css are
+left over from before the module split; nothing uses them.
+
+The size migration prompt (docs/size-migration-prompt.md) now mentions the
+size groups, the Found in labels and the Elementor custom size warning, and
+says to take scan figures from the page rather than over REST.
+
+## Standalone Site Kit retired (October 2026)
+
+The module no longer waits_for socialbump-site-kit, and migrate() no longer
+holds off on the hub while that plugin is active; SB_Images_Module::SITE_KIT is
+gone. No site was left on the plugin. migrate() itself stays: it reads the Site
+Kit module's sb_tweaks_site_kit_* options, not the plugin's.
+
+### Snippet titles link to the snippet
+
+A group from a snippet shows its title as a link, on the Sizes list and in
+"Found in" on the Leftover list: WPCodeBox 2 opens
+admin.php?page=wpcodebox2&snippet=<id> (its React app reads ?snippet=, checked
+in 1.4.1 on feelsoma.com), Code Snippets through its own
+get_snippet_edit_url() when it has one. WPCode snippets get no link.
+SB_Images_Sources keeps prefix, name, suffix and url beside the label, and
+title_html() builds the heading. SCHEME 3 searched every site again for them.
+
+Each snippet is a group of its own (the key holds the table and the snippet
+id), so two snippets registering sizes make two groups. A size named in both
+goes to the one switched on, then the one where the name sits nearest an
+add_image_size() call.

@@ -24,9 +24,6 @@ class SB_Images_Module {
 	/** Set once the Site Kit settings have been looked at, whether or not there were any. */
 	const MIGRATED = 'sb_tweaks_images_migrated';
 
-	/** The standalone plugin whose image code this is. */
-	const SITE_KIT = 'socialbump-site-kit/socialbump-site-kit.php';
-
 	/** The module's menu slug: its pages are sb-image-settings and sb-image-cleaner. */
 	const SLUG = 'sb-image';
 
@@ -135,20 +132,9 @@ class SB_Images_Module {
 	 * asks whether the module is on), and never overwrites anything this module
 	 * already holds. Site Kit's own options are left exactly as they are, so the
 	 * standalone plugin still has them if a site ever goes back to it.
-	 *
-	 * On the hub, standalone Site Kit stays on until it is switched off by hand,
-	 * and its image pages could still change what is copied, so the copy waits
-	 * until it is off. Anywhere else the plugin is retired on the same request
-	 * this runs on, with its settings as it left them.
 	 */
 	public static function migrate() {
 		if ( get_option( self::MIGRATED ) ) {
-			return;
-		}
-
-		$hub = function_exists( 'sb_tweaks_is_hub' ) && sb_tweaks_is_hub();
-
-		if ( $hub && in_array( self::SITE_KIT, (array) get_option( 'active_plugins', [] ), true ) ) {
 			return;
 		}
 

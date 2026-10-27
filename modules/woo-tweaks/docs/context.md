@@ -73,3 +73,8 @@ names moved from Site Kit's:
 Once every site with WooCommerce has updated past the release that added this
 module, migrate() and old_address() can go. Driving Events is the only one
 known.
+
+## Standalone Site Kit retired (October 2026)
+
+SB_Woo_Tweaks::SITE_KIT and the hub-only wait in migrate() are gone with the
+standalone plugin. migrate() stays: it reads the Site Kit module's options.

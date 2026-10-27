@@ -1013,3 +1013,64 @@ a word about it. The hub (sb_tweaks_is_hub()) shows every module, greyed out
 with what it needs. save_modules() already keeps a missing module's saved switch
 as it was, so hiding the card loses nothing, and the card returns once the
 plugin is active. A module that failed to load always shows, with its error.
+
+## Two-column pages (October 2026)
+
+Rules for a module page laid out in two columns, from SB Image Cleaner, where
+Rebuild Thumbnails sat 24px below Sizes and the columns never stacked on a
+phone:
+
+- Give every .sb-tweaks-section that is a column, or sits in one, margin 0.
+  The framework's .sb-tweaks-section has a 24px top margin for sections stacked
+  down a page; inside a grid it pushes that column down.
+- Stack the columns at 1100px with grid-template-columns: minmax(0, 1fr), so a
+  column is never squeezed narrower than its content. Publishing stacks at
+  960px, as its cards are narrower.
+- Put notices above the grid, never in it, or they take a grid cell.
+
+Pages that follow this: SB Image Settings (.sb-images-settings), SB Image
+Cleaner (.sb-images-cleaner), Site Kit's Robots.txt (.sb-site-kit-robots) and
+Publishing. Card and field grids use repeat(auto-fit or auto-fill, minmax(...))
+and wrap by themselves.
+
+## Image Management changes, October 2026
+
+Found on feelsoma.com and fixed in the module; the detail is in
+modules/images/docs/context.md:
+
+- The scan reads image ids straight from the database, so a plugin hiding
+  attachments in the admin (YITH My Account's avatars) cannot shrink it
+  (Scans that disagree).
+- Sizes registered on the module's pages are remembered and stay wanted in any
+  request, so a size a plugin only registers in the admin is never a leftover
+  (Leftover sizes from other sources).
+- SB Image Cleaner groups sizes by the plugin, theme or snippet that registers
+  them, labels Elementor custom sizes and warns when a widget still uses one
+  (Size sources).
+- The size migration prompt covers all of the above.
+
+## Standalone Site Kit retired (October 2026)
+
+Sam, 27 October 2026: no site was left on the standalone SocialBUMP Site Kit
+plugin (the Installs page listed it only on the hub, switched off), so it went
+from everywhere on the hub:
+
+- The plugin folder socialbump-site-kit was deleted from the hub (copy in
+  /tmp as sbx-<stamp>-hub-socialbump-site-kit.tar.gz). Its GitHub repo was left
+  alone. Its sbsk_ options on the hub were left too; nothing reads them.
+- The Installs page no longer has a Site Kit column or hub row
+  (SB_Tweaks_Installs::LABELS, PAGES, RELEASES), Publish from the Installs page
+  no longer knows it (SB_Tweaks_Hub_Publish::PLUGINS), and the reporter in SB
+  Tweaks and SEO for AI no longer reports it (SocialBUMP_Reporter::PLUGINS).
+  The hub's stored report row lost its Site Kit entry.
+- The Site Kit module no longer 'replaces' the plugin, Image Management no
+  longer 'waits_for' it, and the hub-only waits in SB_Images_Module::migrate()
+  and SB_Woo_Tweaks::migrate() are gone with their SITE_KIT constants.
+
+Kept on purpose: the two migrate() routines, which copy from the Site Kit
+module's own sb_tweaks_site_kit_* options rather than the plugin's; the
+old_addresses() redirect for bookmarked sb-site-kit-images pages; the FAQ
+fields' ACF keys (field_sbsk_faq_, group_sbsk_faq_), which saved posts use; and
+the module docs' standalone-notes.md and changes.md, the plugin's history.
+socialbump-bricks-tweaks is still in the reporter's list and the framework's
+'replaces' handling stays for Bricks and Elementor Tweaks.

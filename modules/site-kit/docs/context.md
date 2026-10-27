@@ -107,3 +107,9 @@ sb_tweaks_site_kit_ and records it in sb_tweaks_site_kit_scheme, and the two
 image ones, which Image Management's migrate covers. Before a site moves over,
 check it has sb_tweaks_site_kit_scheme; a site without it still has its
 settings under the old sbsk_ names.
+
+## Standalone Site Kit retired (October 2026)
+
+The module no longer has 'replaces' => socialbump-site-kit: no site was left on
+the standalone plugin, and it was deleted from the hub. Its description no
+longer mentions it. standalone-notes.md and changes.md stay as its history.

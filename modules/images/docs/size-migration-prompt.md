@@ -5,6 +5,8 @@ Work on the site this chat is about, through the SocialBUMP MCP hub connector. R
 THE SIZES
 - The standard sizes are widths, uncropped (the height follows each image): image-450, image-665, image-890, image-1330 and image-1920. WordPress's own thumbnail, medium and large count as standard too, but check this site's widths for them on SB Image Settings, as some sites have changed them.
 - Old sizes are anything else the site registers or still has files for. Usually that's image-240, image-480, image-640, image-720, image-960 and image-1200 from Site Kit, the old cropped -square and -4x3 sizes, Elementor custom sizes (elementor_custom_WxH), theme sizes (wpex_ and the like), and WordPress's 768, 1536 and 2048 extras.
+- SB Image Cleaner's Sizes list groups the registered sizes by the plugin, theme or code snippet whose code registers them (for example "WPCodeBox snippet #3: Image Sizes"), with Unknown source for any it can't trace. Use those groups to tell me where each old size comes from. On the Leftover sizes list, "Found in ..." under a name says where it still turns up (usually a plugin or snippet that's switched off), and an Elementor custom size warns when a widget is still set to it.
+- Take the scan figures from SB Image Cleaner itself, not by running its summary over REST or PHP. Some plugins only register their sizes in the admin, so a scan from outside it can show a size that's still in use as a leftover.
 
 WHAT I LOOK AFTER, SO DON'T WORRY ABOUT IT
 - Building the new thumbnails (Build Thumbnails on SB Image Cleaner) and, at the end, Remove old sizes, leftover thumbnails and orphaned images. Don't create or delete image files yourself.

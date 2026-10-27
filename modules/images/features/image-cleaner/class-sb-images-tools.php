@@ -1138,8 +1138,8 @@ class SB_Images_Tools {
 				if ( isset( $from[ (string) $name ] ) ) {
 					$source = $from[ (string) $name ];
 					/* translators: %s: plugin, theme or snippet */
-					$text   = $source['key'] === 'elementor-custom' ? $source['label'] : sprintf( __( 'Found in %s', 'sb-tweaks' ), $source['label'] );
-					$html  .= '<span class="sb-images-report__source">' . esc_html( $text ) . '</span>';
+					$text   = $source['key'] === 'elementor-custom' ? esc_html( $source['label'] ) : sprintf( esc_html__( 'Found in %s', 'sb-tweaks' ), SB_Images_Sources::title_html( $source ) );
+					$html  .= '<span class="sb-images-report__source">' . $text . '</span>';
 				}
 
 				foreach ( self::size_warnings( $name ) as $warning ) {
