@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.4.2
+Stable tag: 0.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.4.3 =
+* Elementor Tweaks: an Image widget with an SB aspect ratio and a link no longer collapses to nothing when the image loads lazily (the 4th image on a page onwards).
 
 = 0.4.2 =
 * SB Image Cleaner: Select all and Select none also sit beside the Add ticked to Old thumbnails to clear button, under the leftover sizes list.

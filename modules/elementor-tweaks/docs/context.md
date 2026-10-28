@@ -246,3 +246,23 @@ Not yet seen in the Elementor editor in a browser.
 Once every site with the old plugin has updated past the release that added
 this module, migrate() and convert_old_alt() can go. Keep replaces while any
 site might still have the plugin on disk.
+
+## Linked images collapsing (October 2026)
+
+An Image widget with an SB aspect ratio and a link (Custom URL or Media File)
+could draw nothing: Elementor wraps the img in an <a> that its CSS makes
+inline-block, so the link shrinks to its content, and a lazy image (WordPress
+adds loading=lazy from the fourth image on a page) has no size before it loads.
+Link and image collapsed to 0 x 0, the browser never saw the image as in view,
+and it never loaded. Images 1 to 3 load at once, which is why only later ones
+went blank. Found on terracemarina.com.au/noosa-river-hire/noosa-jet-ski-hire/
+(the 4th image, Noosa Jet Ski Safari), patched there with widget custom CSS.
+
+SB_Elementor_Image_Ratio::controls() now adds {{WRAPPER}} a { display: flex; }
+to the ratio's selectors for the Image widget only. It is written by the same
+controls as the img rule (Aspect ratio and Custom ratio), so it appears only
+where a ratio is set and at each device that sets one, and an image with no SB
+ratio gets nothing new. Flex rather than block is Sam's preference for links
+that wrap content. Other widgets are left alone, since their links can be
+headings or buttons. Once a site has the update, the widget custom CSS added on
+terracemarina can come off.

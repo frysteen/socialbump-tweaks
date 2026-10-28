@@ -74,6 +74,19 @@ class SB_Elementor_Image_Ratio {
 			$rule       = 'aspect-ratio: {{VALUE}}; object-fit: var(--sb-elementor-fit, cover); object-position: var(--sb-elementor-position, 50% 50%);';
 			$condition  = [];
 			$ratio_css  = [ $selector => $rule ];
+
+			// A linked Image widget wraps the img in an <a> that Elementor makes
+			// inline-block, so it shrinks to its content. A lazy image (WordPress
+			// adds loading=lazy from the fourth image on a page) has no size until
+			// it loads, so the link and the image collapsed to 0 x 0, never counted
+			// as in view and never loaded: terracemarina.com.au's jet ski hire page,
+			// October 2026. Written with the ratio, so only where a ratio is set, at
+			// each device that sets one. Flex, not block: Sam's choice for links
+			// that wrap content. Image widget only, where the link wraps nothing but
+			// the image; in other widgets a link can be a heading or a button.
+			if ( isset( $info['widget'] ) && $info['widget'] === 'image' ) {
+				$ratio_css['{{WRAPPER}} a'] = 'display: flex;';
+			}
 			$fit_css    = [ $selector => '--sb-elementor-fit: {{VALUE}};' ];
 			$pos_css    = [ $selector => '--sb-elementor-position: {{VALUE}};' ];
 			$fit_list   = [
