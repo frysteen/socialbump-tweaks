@@ -1796,3 +1796,17 @@ called widgets, not blocks: Not in Use's hint, the remove row and column
 popups and Reset Template's picks ("Row, column and widget settings").
 The code and saved layouts still call them blocks.
 
+## Shortcodes in every field (1 November 2026)
+
+Sam: [site_phone] and Dynamic Shortcodes' {wp-shortcode:site_phone} only
+worked in a Text widget. SB_EmailSig_Data::init() hooks acf/format_value
+for every field whose key starts field_sb_emailsig_ (company Settings,
+companies, people, repeater rows), running SB_EmailSig_Data::expand():
+Dynamic Shortcodes when the plugin is active, then do_shortcode(), tags
+taken out when anything ran. The Address and banner links, read
+unformatted, call expand() themselves. The editing screens (acf_form(),
+acf_render_fields()) don't format, so they still show what was typed.
+Exporting and importing people set SB_EmailSig_Data::$as_typed, so a
+shortcode goes out and is compared as typed. Checked on the hub: both
+forms in a test string gave 0417 002 009.
+

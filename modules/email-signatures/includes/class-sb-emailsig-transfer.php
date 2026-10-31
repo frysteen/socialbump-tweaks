@@ -158,6 +158,7 @@ class SB_EmailSig_Transfer {
 	public static function export() {
 		self::allowed();
 		check_admin_referer( 'sb_emailsig_people_export' );
+		SB_EmailSig_Data::$as_typed = true; // Shortcodes exported as typed, not run.
 
 		$people = SB_EmailSig_Admin::people( array( 'publish', 'draft' ) );
 		$names  = wp_list_pluck( SB_EmailSig_Templates::all(), 'name' );
@@ -527,6 +528,7 @@ class SB_EmailSig_Transfer {
 	public static function import() {
 		self::allowed();
 		check_admin_referer( 'sb_emailsig_people_import' );
+		SB_EmailSig_Data::$as_typed = true; // Compared as typed, so a shortcode isn't seen as changed.
 
 		$rows = get_transient( self::PREVIEW . get_current_user_id() );
 

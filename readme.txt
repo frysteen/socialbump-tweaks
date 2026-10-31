@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.5.2 =
+* Email Signatures: shortcodes, [like_this] and Dynamic Shortcodes {like:this}, work in every company and person field.
 
 = 0.5.1 =
 * Email Signatures: divider lines between columns and rows have their own spacing on each side (left and right, or top and bottom), with a lock to keep them the same.

@@ -11,6 +11,57 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SB_EmailSig_Data {
 
 	/**
+	 * Shortcodes in any Email Signatures field (Sam, 1 November 2026):
+	 * [site_phone] and Dynamic Shortcodes' {wp-shortcode:site_phone} work in
+	 * every field, company and person, as they do in a Text widget. ACF hands
+	 * every formatted value through format_value; editing screens show the
+	 * field as typed (they don't format).
+	 */
+	public static function init() {
+		add_filter( 'acf/format_value', array( __CLASS__, 'format_value' ), 20, 3 );
+	}
+
+	/** True while fields are read as typed, shortcodes and all (exporting and importing people). */
+	public static $as_typed = false;
+
+	/** An Email Signatures field's text with its shortcodes run, as plain text. */
+	public static function format_value( $value, $post_id, $field ) {
+		if ( self::$as_typed || ! is_string( $value ) || strpos( (string) ( $field['key'] ?? '' ), 'field_sb_emailsig_' ) !== 0 ) {
+			return $value;
+		}
+
+		return self::expand( $value );
+	}
+
+	/**
+	 * Text with Dynamic Shortcodes (dynamic.ooo, when the site has it) and
+	 * shortcodes run. $plain: tags taken out, for fields drawn as text.
+	 */
+	public static function expand( $text, $plain = true ) {
+		if ( ! is_string( $text ) || ( strpos( $text, '[' ) === false && strpos( $text, '{' ) === false ) ) {
+			return $text;
+		}
+
+		$was = $text;
+
+		if ( strpos( $text, '{' ) !== false && class_exists( '\DynamicShortcodes\Plugin' ) ) {
+			try {
+				$manager = \DynamicShortcodes\Plugin::instance()->shortcodes_manager;
+				$done    = $manager ? $manager->expand_shortcodes( $text ) : null;
+				$text    = is_string( $done ) ? $done : $text;
+			} catch ( \Throwable $e ) {
+				unset( $e ); // Left as typed.
+			}
+		}
+
+		if ( strpos( $text, '[' ) !== false ) {
+			$text = do_shortcode( $text );
+		}
+
+		return ( $plain && $text !== $was ) ? trim( wp_strip_all_tags( $text ) ) : $text;
+	}
+
+	/**
 	 * $tpl_id: the template the data is for (its social icons), '' for the
 	 * person's main. Read in the person's company (SB_EmailSig_Company; the
 	 * default one for 0), whose id comes back as company_id.
@@ -115,7 +166,7 @@ class SB_EmailSig_Data {
 
 	/** The Address setting, one entry per line as typed. */
 	private static function address_lines() {
-		$address = (string) get_field( 'sb_emailsig_address', self::co_src(), false );
+		$address = (string) self::expand( (string) get_field( 'sb_emailsig_address', self::co_src(), false ) );
 
 		return array_values( array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', $address ) ) ) );
 	}
@@ -183,7 +234,7 @@ class SB_EmailSig_Data {
 		foreach ( array_values( (array) get_field( 'sb_emailsig_banners', $o, false ) ) as $i => $row ) {
 			$t[ 'n' . self::ref( $row['field_sb_emailsig_banner_id'] ?? ( $row['banner_id'] ?? '' ), $i ) ] = array(
 				'kind'  => 'n',
-				'url'   => trim( (string) ( $row['field_sb_emailsig_banner_link'] ?? ( $row['banner_link'] ?? '' ) ) ),
+				'url'   => trim( (string) self::expand( (string) ( $row['field_sb_emailsig_banner_link'] ?? ( $row['banner_link'] ?? '' ) ) ) ),
 				'name'  => 'banner-' . ( $i + 1 ),
 				'label' => 'Banner ' . ( $i + 1 ),
 				'row'   => $i,

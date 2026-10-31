@@ -39,6 +39,7 @@ class SB_EmailSig_Module {
 			require_once SB_EMAILSIG_DIR . 'includes/class-sb-emailsig-' . $part . '.php';
 		}
 
+		SB_EmailSig_Data::init();
 		SB_EmailSig_Company::init();
 		SB_EmailSig_Companies::init();
 		SB_EmailSig_Templates::init();
