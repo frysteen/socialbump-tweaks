@@ -1,0 +1,1986 @@
+/*
+ * SocialBUMP UI
+ *
+ * The look every SocialBUMP plugin page shares, whatever admin colour scheme
+ * the user has picked. Loads after admin.css and only on SocialBUMP pages,
+ * which carry body.sb-ui. Light and dark come from the user's mode
+ * (sb-ui-mode-auto, -light or -dark); a page not yet moved across carries
+ * sb-ui-light-only and stays light.
+ *
+ * Every colour is a --sbui- token, so a module's own CSS can use the same ones.
+ * The UI kit artifact is the reference for how each part should look.
+ */
+
+@font-face {
+	font-family: "SB Outfit";
+	src: url("../fonts/outfit-latin-variable.woff2") format("woff2");
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* ---------- Tokens ---------- */
+
+body.sb-ui {
+	--sbui-green: #85df07;
+	--sbui-btn: #b4ec66;
+	--sbui-btn-hover: #85df07;
+	--sbui-btn-press: #79cb06;
+	--sbui-cyan: #00ccff;
+	--sbui-navy-950: #121318;
+	--sbui-navy-900: #16171d;
+	--sbui-navy-800: #1a1b23;
+
+	--sbui-bg: #f3f4f0;
+	--sbui-surface: #ffffff;
+	--sbui-surface-2: #f8f9f5;
+	--sbui-surface-3: #eef0ea;
+	--sbui-border: #e1e4db;
+	--sbui-border-strong: #c8ccc0;
+	--sbui-text: #16171d;
+	--sbui-text-2: #4c5148;
+	--sbui-text-3: #80857a;
+	--sbui-on-green: #16171d;
+
+	--sbui-green-ink: #3e6803;
+	--sbui-green-soft: #effcdd;
+	--sbui-green-line: #c0ef7e;
+
+	--sbui-ok: #4a7c04;     --sbui-ok-soft: #effcdd;   --sbui-ok-line: #c0ef7e;
+	--sbui-info: #0b6bc4;   --sbui-info-soft: #e8f3ff; --sbui-info-line: #b5d8fd;
+	--sbui-warn: #8a6500;   --sbui-warn-soft: #fff7d6; --sbui-warn-line: #ffe17a;
+	--sbui-danger: #d0331a; --sbui-danger-soft: #ffece8; --sbui-danger-line: #ffb8ab;
+	--sbui-danger-solid: #e2381d;
+	--sbui-warn-solid: #ffc94d;
+	--sbui-warn-solid-hover: #ffb000;
+
+	--sbui-chart-1: #62a405;
+	--sbui-chart-2: #008fb3;
+	--sbui-chart-3: #e5715f;
+	--sbui-chart-grid: #eceee8;
+
+	--sbui-focus: rgba(133, 223, 7, 0.45);
+	--sbui-shadow-1: 0 1px 2px rgba(22, 23, 29, 0.06), 0 1px 1px rgba(22, 23, 29, 0.04);
+	--sbui-shadow-2: 0 8px 24px rgba(22, 23, 29, 0.10), 0 2px 6px rgba(22, 23, 29, 0.06);
+	--sbui-shadow-3: 0 24px 64px rgba(10, 12, 16, 0.28), 0 4px 16px rgba(10, 12, 16, 0.12);
+	--sbui-overlay: rgba(18, 19, 24, 0.55);
+
+	--sbui-r-sm: 6px;
+	--sbui-r: 8px;
+	--sbui-r-lg: 12px;
+	--sbui-r-xl: 16px;
+
+	--sbui-font: "SB Outfit", "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+	--sbui-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--sbui-size: 13px;
+
+	--sbui-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2380857a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
+body.sb-ui.sb-ui-mode-dark {
+	--sbui-bg: #121318; --sbui-surface: #1a1b23; --sbui-surface-2: #1f212a; --sbui-surface-3: #262833;
+	--sbui-border: #2b2e39; --sbui-border-strong: #3b3f4c;
+	--sbui-text: #ecedee; --sbui-text-2: #b4b8c0; --sbui-text-3: #7e838e;
+	--sbui-green-ink: #a8e94e; --sbui-green-soft: rgba(133, 223, 7, 0.12); --sbui-green-line: rgba(133, 223, 7, 0.35);
+	--sbui-ok: #a8e94e; --sbui-ok-soft: rgba(133, 223, 7, 0.12); --sbui-ok-line: rgba(133, 223, 7, 0.32);
+	--sbui-info: #78b9fd; --sbui-info-soft: rgba(79, 168, 252, 0.13); --sbui-info-line: rgba(79, 168, 252, 0.35);
+	--sbui-warn: #ffd84d; --sbui-warn-soft: rgba(255, 201, 5, 0.12); --sbui-warn-line: rgba(255, 201, 5, 0.35);
+	--sbui-danger: #ff7a63; --sbui-danger-soft: rgba(255, 69, 41, 0.13); --sbui-danger-line: rgba(255, 69, 41, 0.4);
+	--sbui-danger-solid: #ff4529;
+	--sbui-chart-1: #62a405; --sbui-chart-2: #00a3cc; --sbui-chart-3: #cc6453; --sbui-chart-grid: #2a2d37;
+	--sbui-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--sbui-shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+	--sbui-shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6);
+	--sbui-overlay: rgba(0, 0, 0, 0.6);
+	--sbui-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237e838e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	body.sb-ui.sb-ui-mode-auto {
+		--sbui-bg: #121318; --sbui-surface: #1a1b23; --sbui-surface-2: #1f212a; --sbui-surface-3: #262833;
+		--sbui-border: #2b2e39; --sbui-border-strong: #3b3f4c;
+		--sbui-text: #ecedee; --sbui-text-2: #b4b8c0; --sbui-text-3: #7e838e;
+		--sbui-green-ink: #a8e94e; --sbui-green-soft: rgba(133, 223, 7, 0.12); --sbui-green-line: rgba(133, 223, 7, 0.35);
+		--sbui-ok: #a8e94e; --sbui-ok-soft: rgba(133, 223, 7, 0.12); --sbui-ok-line: rgba(133, 223, 7, 0.32);
+		--sbui-info: #78b9fd; --sbui-info-soft: rgba(79, 168, 252, 0.13); --sbui-info-line: rgba(79, 168, 252, 0.35);
+		--sbui-warn: #ffd84d; --sbui-warn-soft: rgba(255, 201, 5, 0.12); --sbui-warn-line: rgba(255, 201, 5, 0.35);
+		--sbui-danger: #ff7a63; --sbui-danger-soft: rgba(255, 69, 41, 0.13); --sbui-danger-line: rgba(255, 69, 41, 0.4);
+		--sbui-danger-solid: #ff4529;
+		--sbui-chart-1: #62a405; --sbui-chart-2: #00a3cc; --sbui-chart-3: #cc6453; --sbui-chart-grid: #2a2d37;
+		--sbui-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+		--sbui-shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+		--sbui-shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6);
+		--sbui-overlay: rgba(0, 0, 0, 0.6);
+		--sbui-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237e838e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+		color-scheme: dark;
+	}
+}
+
+/* ---------- Page ---------- */
+
+html:has(> body.sb-ui),
+body.sb-ui,
+body.sb-ui #wpwrap,
+body.sb-ui #wpcontent,
+body.sb-ui #wpbody-content {
+	background: var(--sbui-bg);
+}
+
+body.sb-ui #wpfooter,
+body.sb-ui #wpfooter p {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui #wpfooter a {
+	color: var(--sbui-green-ink);
+}
+
+body.sb-ui .sb-tweaks-wrap,
+body.sb-ui .sb-tweaks-modal,
+body.sb-ui .sb-reorder,
+body.sb-ui .sb-tweaks-job,
+body.sb-ui .sb-ui-toasts {
+	color: var(--sbui-text);
+	font-family: var(--sbui-font);
+	font-size: var(--sbui-size);
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Icon fonts keep their own font: Dashicons draw as boxes in Outfit. */
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) :is(h1, h2, h3, h4, h5, p, li, label, a, span, td, th, legend, button, input, select, textarea, .button):not(.dashicons, [class*="dashicons-"], [class*="acf-icon"]) {
+	font-family: var(--sbui-font);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(h1, h2, h3, h4) {
+	color: var(--sbui-text);
+	letter-spacing: -0.005em;
+	text-wrap: balance;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(p, li, td, th, label) {
+	font-size: var(--sbui-size);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(code, kbd, pre, .code) {
+	font-family: var(--sbui-mono);
+	font-size: 12px;
+}
+
+body.sb-ui .sb-tweaks-wrap :is(code, kbd) {
+	padding: 1px 5px;
+	border-radius: 4px;
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap a:where(:not(.button, .sb-tweaks-header__link, .sb-tweaks-header__home, .sb-tweaks-header__version)) {
+	color: var(--sbui-green-ink);
+	text-underline-offset: 2px;
+}
+
+body.sb-ui .sb-tweaks-wrap a:focus,
+body.sb-ui .sb-tweaks-wrap button:focus {
+	box-shadow: none;
+	outline: none;
+}
+
+body.sb-ui .sb-tweaks-wrap a:focus-visible,
+body.sb-ui .sb-tweaks-wrap button:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--sbui-focus);
+	border-radius: 4px;
+}
+
+/* ---------- Banner ---------- */
+
+body.sb-ui .sb-tweaks-header {
+	position: relative;
+	margin: 20px 0 0;
+	padding: 22px 28px 0;
+	overflow: hidden;
+	border-radius: var(--sbui-r-xl);
+	background:
+		radial-gradient(120% 140% at 100% 0%, rgba(0, 204, 255, 0.09), transparent 55%),
+		radial-gradient(90% 120% at 0% 100%, rgba(133, 223, 7, 0.08), transparent 60%),
+		var(--sbui-navy-900);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	box-shadow: var(--sbui-shadow-2);
+	color: #e9e9ea;
+}
+
+body.sb-ui .sb-tweaks-header::after {
+	content: "";
+	position: absolute;
+	inset: auto 0 0 0;
+	height: 2px;
+	background: linear-gradient(90deg, var(--sbui-green), var(--sbui-cyan) 60%, transparent);
+	opacity: 0.75;
+}
+
+body.sb-ui .sb-tweaks-header__brand {
+	gap: 16px;
+	padding-bottom: 22px;
+}
+
+body.sb-ui .sb-tweaks-header:has(.sb-tweaks-header__intro) .sb-tweaks-header__brand,
+body.sb-ui .sb-tweaks-header:has(.sb-tweaks-header__nav) .sb-tweaks-header__brand {
+	padding-bottom: 0;
+}
+
+body.sb-ui .wrap .sb-tweaks-header__title {
+	border-left-color: rgba(255, 255, 255, 0.14);
+	color: #fff;
+	font-family: var(--sbui-font);
+	font-size: 21px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+body.sb-ui .wrap .sb-tweaks-header__title .sb-tweaks-header__page {
+	color: var(--sbui-green);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-header__intro {
+	margin: 10px 0 0;
+	color: #a3a7b0;
+	font-size: 13px;
+}
+
+body.sb-ui .sb-tweaks-header:not(:has(.sb-tweaks-header__nav)) .sb-tweaks-header__intro {
+	padding-bottom: 22px;
+}
+
+body.sb-ui .sb-tweaks-header__version {
+	padding: 3px 9px;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.06);
+	color: #b4b8c0;
+	font-size: 12px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+body.sb-ui .sb-tweaks-header__version:hover {
+	color: #fff;
+	border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.sb-ui .sb-tweaks-header__nav {
+	gap: 4px;
+	margin: 16px 0 0;
+	padding: 12px 0 14px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+body.sb-ui .sb-tweaks-header__link {
+	padding: 7px 14px;
+	border-radius: 999px;
+	color: #b4b8c0;
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+	transition: background 0.15s, color 0.15s;
+}
+
+body.sb-ui .sb-tweaks-header__link:hover,
+body.sb-ui .sb-tweaks-header__link:focus {
+	background: rgba(255, 255, 255, 0.07);
+	color: #fff;
+}
+
+body.sb-ui .sb-tweaks-header__link.is-current {
+	background: var(--sbui-green);
+	color: var(--sbui-navy-900);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-header__badge {
+	background: var(--sbui-warn-solid);
+	color: var(--sbui-navy-900);
+}
+
+/* The Auto, Light and Dark switch, top right of the banner. */
+.sb-ui-mode {
+	display: inline-flex;
+	margin-left: auto;
+	padding: 3px;
+	gap: 2px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.sb-ui-mode button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 26px;
+	padding: 0 11px;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: #b4b8c0;
+	font-family: var(--sbui-font);
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.15s, color 0.15s;
+}
+
+.sb-ui-mode button:hover {
+	color: #fff;
+}
+
+.sb-ui-mode button[aria-pressed="true"] {
+	background: #fff;
+	color: var(--sbui-navy-900);
+}
+
+.sb-ui-mode button:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--sbui-focus);
+}
+
+.sb-ui-mode svg {
+	width: 14px;
+	height: 14px;
+	flex: none;
+}
+
+@media (max-width: 782px) {
+	.sb-ui-mode span {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+	}
+
+	.sb-ui-mode button {
+		padding: 0 8px;
+	}
+}
+
+/* ---------- Panels ---------- */
+
+body.sb-ui .sb-tweaks-section,
+body.sb-ui .sb-tweaks-release {
+	margin-top: 24px;
+	padding: 20px 24px 24px;
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r-lg);
+	background: var(--sbui-surface);
+	box-shadow: var(--sbui-shadow-1);
+}
+
+body.sb-ui .sb-tweaks-section__head {
+	margin-bottom: 18px;
+	padding-bottom: 16px;
+	border-bottom-color: var(--sbui-border);
+}
+
+body.sb-ui .sb-tweaks-section__head h2 {
+	font-size: 16px;
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-section__head p,
+body.sb-ui .sb-tweaks-wrap .description {
+	color: var(--sbui-text-3);
+}
+
+/* ---------- Toolbar: a page's links and actions in one row, above its cards ---------- */
+
+body.sb-ui .sb-ui-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 20px;
+	margin-top: 24px;
+	padding: 12px 14px 12px 18px;
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r-lg);
+	background: var(--sbui-surface);
+	box-shadow: var(--sbui-shadow-1);
+}
+
+body.sb-ui .sb-ui-bar__group {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+body.sb-ui .sb-ui-bar__group + .sb-ui-bar__group {
+	padding-left: 20px;
+	border-left: 1px solid var(--sbui-border);
+}
+
+body.sb-ui .sb-ui-bar__group form {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-bar__label {
+	margin-right: 4px;
+	color: var(--sbui-text-3);
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+body.sb-ui .sb-ui-bar__end {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
+
+body.sb-ui .sb-ui-bar .button {
+	gap: 6px;
+}
+
+body.sb-ui .sb-ui-bar .button svg {
+	flex: none;
+}
+
+/* Tabs between a thing's pages (Edit styles, Layout): a segmented row of
+   links, or of buttons for tabs that switch in place (a preview's template). */
+body.sb-ui .sb-ui-seg {
+	display: inline-flex;
+	gap: 2px;
+	padding: 3px;
+	border: 1px solid var(--sbui-border);
+	border-radius: 999px;
+	background: var(--sbui-surface-2);
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-seg :is(a, button) {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 28px;
+	padding: 0 14px;
+	border-radius: 999px;
+	border: 0;
+	background: transparent;
+	color: var(--sbui-text-2);
+	font-size: 13px;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background 0.15s, color 0.15s;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-seg :is(a, button):hover {
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-seg :is(a, button)[aria-current="page"] {
+	background: var(--sbui-btn);
+	color: var(--sbui-on-green);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-seg :is(a, button):focus-visible {
+	outline: 0;
+	box-shadow: 0 0 0 3px var(--sbui-focus);
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-bar__title {
+	color: var(--sbui-text);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+/* The card tools (Reorder, Collapse all and the rest) inside a bar. */
+body.sb-ui .sb-ui-bar .sb-cards__tools {
+	margin: 0;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-bar [data-sb-cards-reorder] {
+	min-height: 26px;
+	height: 26px;
+	padding: 0 10px;
+	font-size: 12px;
+	line-height: 24px;
+}
+
+/* A heading over a grid of cards: title, count, a note (SB_Tweaks_UI::heading()). */
+body.sb-ui .sb-ui-heading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 28px 0 12px;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-heading h2 {
+	margin: 0;
+	padding: 0;
+	color: var(--sbui-text);
+	font-size: 16px;
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-heading__meta {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-ui-heading + .sb-tweaks-grid {
+	margin-top: 0;
+}
+
+/* A count beside a heading. */
+body.sb-ui .sb-tweaks-wrap .sb-ui-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	height: 20px;
+	padding: 0 7px;
+	border-radius: 999px;
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text-2);
+	font-size: 11.5px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	box-sizing: border-box;
+}
+
+/* Nothing here yet. */
+body.sb-ui .sb-ui-empty {
+	margin-top: 16px;
+	padding: 40px 24px;
+	border: 1px dashed var(--sbui-border-strong);
+	border-radius: var(--sbui-r-lg);
+	text-align: center;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-empty p {
+	margin: 0;
+	color: var(--sbui-text-3);
+}
+
+@media (max-width: 782px) {
+	body.sb-ui .sb-ui-bar__group + .sb-ui-bar__group {
+		padding-left: 0;
+		border-left: 0;
+	}
+
+	body.sb-ui .sb-ui-bar__end {
+		margin-left: 0;
+	}
+}
+
+/* ---------- Cards ---------- */
+
+body.sb-ui .sb-tweaks-grid {
+	gap: 16px;
+}
+
+body.sb-ui .sb-tweaks-card,
+body.sb-ui .sb-tweaks-section .sb-tweaks-card,
+body.sb-ui .sb-tweaks-release .sb-tweaks-card {
+	position: relative;
+	padding: 18px 20px;
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r-lg);
+	background: var(--sbui-surface);
+	box-shadow: var(--sbui-shadow-1);
+	transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+/* Off: quiet. On: plain. Edited: an amber ring and an Unsaved chip. No stripe down the side.
+   Only a card with its own switch can be off; a plain card (Export, Import) is just a card. */
+body.sb-ui .sb-tweaks-card:not(.is-on):has(> .sb-tweaks-card__head .sb-tweaks-switch) {
+	background: var(--sbui-surface-2);
+	box-shadow: none;
+}
+
+body.sb-ui .sb-tweaks-card:not(.is-on):has(> .sb-tweaks-card__head .sb-tweaks-switch) .sb-tweaks-card__head h3,
+body.sb-ui .sb-tweaks-card:not(.is-on):has(> .sb-tweaks-card__head .sb-tweaks-switch) .sb-tweaks-card__desc {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-card.is-edited {
+	border-color: var(--sbui-warn-solid);
+	box-shadow: 0 0 0 3px var(--sbui-warn-soft), var(--sbui-shadow-1);
+}
+
+body.sb-ui .sb-tweaks-card.is-unavailable .sb-tweaks-card__head h3,
+body.sb-ui .sb-tweaks-card.is-unavailable .sb-tweaks-card__desc {
+	opacity: 0.6;
+}
+
+body.sb-ui .sb-tweaks-card__head h3,
+body.sb-ui .sb-tweaks-card__head h2 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--sbui-text);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-card__desc {
+	margin-top: 6px;
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui .sb-tweaks-card__needs {
+	color: var(--sbui-warn);
+}
+
+body.sb-ui .sb-tweaks-card__meta {
+	color: var(--sbui-text-3);
+}
+
+.sb-ui-unsaved {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 20px;
+	padding: 0 7px;
+	border: 0;
+	border-radius: 999px;
+	font-family: inherit;
+	line-height: 20px;
+	background: var(--sbui-warn-soft);
+	color: var(--sbui-warn);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0;
+	white-space: nowrap;
+}
+
+/* The chip saves too, as the pill at the top right does (Sam, 29 October 2026). */
+button.sb-ui-unsaved {
+	cursor: pointer;
+	transition: background 0.15s, box-shadow 0.15s;
+}
+
+button.sb-ui-unsaved:hover,
+button.sb-ui-unsaved:focus-visible {
+	background: var(--sbui-warn-solid);
+	color: #16171d;
+	outline: 0;
+	box-shadow: 0 0 0 3px var(--sbui-warn-soft);
+}
+
+.sb-ui-unsaved::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--sbui-warn-solid);
+}
+
+body.sb-ui .sb-tweaks-features {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top-color: var(--sbui-border);
+}
+
+body.sb-ui .sb-tweaks-features li {
+	gap: 9px;
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-features li.is-off {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-dot {
+	width: 7px;
+	height: 7px;
+	background: transparent;
+	box-shadow: inset 0 0 0 1.5px var(--sbui-border-strong);
+}
+
+body.sb-ui .sb-tweaks-features li.is-on .sb-tweaks-dot {
+	background: var(--sbui-green);
+	box-shadow: 0 0 0 3px var(--sbui-green-soft);
+}
+
+/* The Settings link at the foot of a card: a quiet button. */
+body.sb-ui .sb-tweaks-card__link {
+	display: flex;
+	justify-content: flex-end;
+	margin: auto -8px -6px 0;
+	padding-top: 14px;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-tweaks-card__link a {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 28px;
+	padding: 0 10px;
+	border-radius: var(--sbui-r-sm);
+	color: var(--sbui-text-2);
+	font-size: 12.5px;
+	font-weight: 500;
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-tweaks-card__link a::after {
+	content: "";
+	width: 14px;
+	height: 14px;
+	background: currentColor;
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-tweaks-card__link a:hover {
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+/* Settings inside a card. */
+body.sb-ui .sb-tweaks-card__settings {
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top-color: var(--sbui-border);
+}
+
+body.sb-ui .sb-tweaks-field + .sb-tweaks-field {
+	margin-top: 16px;
+}
+
+body.sb-ui .sb-tweaks-field__label {
+	color: var(--sbui-text);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-field__desc {
+	color: var(--sbui-text-3);
+	font-size: 12.5px;
+}
+
+body.sb-ui .sb-tweaks-checklist label {
+	color: var(--sbui-text);
+}
+
+/* Collapse arrow on a card that folds to its title. */
+body.sb-ui .sb-card__toggle {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	margin: 0 2px 0 -6px;
+	border-radius: 6px;
+	color: var(--sbui-text-3);
+	font-size: 0;
+	transition: background 0.15s, color 0.15s;
+}
+
+body.sb-ui .sb-card__toggle::before,
+body.sb-ui [data-sb-card].is-collapsed .sb-card__toggle::before {
+	content: "";
+	width: 14px;
+	height: 14px;
+	background: currentColor;
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+	transition: transform 0.2s;
+}
+
+body.sb-ui [data-sb-card].is-collapsed .sb-card__toggle::before {
+	transform: rotate(-90deg);
+}
+
+body.sb-ui .sb-card__toggle:hover {
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+/* Collapse all, Expand all and the like: a joined row of small buttons. */
+body.sb-ui .sb-cards__tools,
+body.sb-ui .sb-toggles {
+	gap: 0;
+	color: transparent;
+	font-size: 0;
+}
+
+body.sb-ui .sb-cards__tools > span[aria-hidden],
+body.sb-ui .sb-toggles > span[aria-hidden] {
+	display: none;
+}
+
+body.sb-ui .sb-tweaks-wrap :is(.sb-cards__tools, .sb-toggles) .button-link.sb-toggle {
+	height: 26px;
+	margin-left: -1px;
+	padding: 0 10px;
+	border: 1px solid var(--sbui-border-strong);
+	background: var(--sbui-surface);
+	color: var(--sbui-text);
+	font-size: 12px;
+	font-weight: 500;
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+body.sb-ui .sb-tweaks-wrap :is(.sb-cards__tools, .sb-toggles) .button-link.sb-toggle:first-of-type {
+	margin-left: 0;
+	border-radius: var(--sbui-r-sm) 0 0 var(--sbui-r-sm);
+}
+
+body.sb-ui .sb-tweaks-wrap :is(.sb-cards__tools, .sb-toggles) .button-link.sb-toggle:last-of-type {
+	border-radius: 0 var(--sbui-r-sm) var(--sbui-r-sm) 0;
+}
+
+body.sb-ui .sb-tweaks-wrap :is(.sb-cards__tools, .sb-toggles) .button-link.sb-toggle:only-of-type {
+	border-radius: var(--sbui-r-sm);
+}
+
+body.sb-ui .sb-tweaks-wrap :is(.sb-cards__tools, .sb-toggles) .button-link.sb-toggle:hover {
+	position: relative;
+	border-color: var(--sbui-green-ink);
+	background: var(--sbui-green-soft);
+	color: var(--sbui-green-ink);
+}
+
+/* ---------- Switches ---------- */
+
+body.sb-ui .sb-tweaks-switch__track {
+	width: 38px;
+	height: 22px;
+	background: var(--sbui-border-strong);
+	box-shadow: none;
+	transition: background 0.18s;
+}
+
+body.sb-ui .sb-tweaks-switch:hover .sb-tweaks-switch__track {
+	background: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-switch__dot {
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+	transition: transform 0.18s;
+}
+
+body.sb-ui .sb-tweaks-switch input:checked + .sb-tweaks-switch__track,
+body.sb-ui .sb-tweaks-switch:hover input:checked + .sb-tweaks-switch__track {
+	background: var(--sbui-green);
+	box-shadow: none;
+}
+
+body.sb-ui .sb-tweaks-switch:hover input:checked + .sb-tweaks-switch__track {
+	background: var(--sbui-btn-press);
+}
+
+body.sb-ui .sb-tweaks-switch input:checked + .sb-tweaks-switch__track .sb-tweaks-switch__dot {
+	transform: translateX(16px);
+}
+
+body.sb-ui .sb-tweaks-switch input:focus-visible + .sb-tweaks-switch__track {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--sbui-focus);
+}
+
+body.sb-ui .sb-tweaks-switch input:disabled + .sb-tweaks-switch__track,
+body.sb-ui .sb-tweaks-switch:hover input:disabled + .sb-tweaks-switch__track {
+	background: var(--sbui-surface-3);
+}
+
+body.sb-ui .sb-tweaks-switch__label {
+	color: var(--sbui-text);
+}
+
+/* ---------- Buttons ---------- */
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button,
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button-secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 0;
+	height: 32px;
+	padding: 0 12px;
+	border: 1px solid var(--sbui-border-strong);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+	box-shadow: none;
+	color: var(--sbui-text);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1;
+	text-shadow: none;
+	white-space: nowrap;
+	vertical-align: middle;
+	transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.05s;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button:hover:not(:disabled) {
+	border-color: var(--sbui-green-ink);
+	background: var(--sbui-green-soft);
+	color: var(--sbui-green-ink);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button:focus-visible {
+	box-shadow: 0 0 0 3px var(--sbui-focus);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button:active:not(:disabled) {
+	transform: translateY(1px);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.button-primary {
+	border-color: transparent;
+	background: var(--sbui-btn);
+	box-shadow: inset 0 -1px 0 rgba(22, 23, 29, 0.10);
+	color: var(--sbui-navy-900);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.button-primary:hover:not(:disabled) {
+	border-color: transparent;
+	background: var(--sbui-btn-hover);
+	color: var(--sbui-navy-900);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.button-primary:active:not(:disabled) {
+	background: var(--sbui-btn-press);
+}
+
+/* Delete and reset: a red outline, solid red with white on hover (Sam, 30 October 2026). */
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--danger {
+	border-color: var(--sbui-danger);
+	background: var(--sbui-surface);
+	color: var(--sbui-danger);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--danger:hover:not(:disabled),
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--danger-solid {
+	border-color: var(--sbui-danger-solid);
+	background: var(--sbui-danger-solid);
+	box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.14);
+	color: #fff;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--danger-solid:hover:not(:disabled) {
+	border-color: var(--sbui-danger-solid);
+	background: var(--sbui-danger-solid);
+	color: #fff;
+	filter: brightness(0.92);
+}
+
+/* An icon with no words is square, whatever its size. */
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--icon {
+	flex: none;
+	width: auto;
+	aspect-ratio: 1;
+	padding: 0;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--go {
+	border-color: var(--sbui-green);
+	background: var(--sbui-surface);
+	color: var(--sbui-green-ink);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--go:hover:not(:disabled) {
+	background: var(--sbui-green-soft);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--quiet {
+	border-color: transparent;
+	background: transparent;
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.sb-tweaks-button--quiet:hover:not(:disabled) {
+	border-color: transparent;
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button:disabled,
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.disabled {
+	border-color: var(--sbui-border) !important;
+	background: var(--sbui-surface-2) !important;
+	box-shadow: none !important;
+	color: var(--sbui-text-3) !important;
+	cursor: not-allowed;
+	transform: none;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.button-small {
+	height: 26px;
+	padding: 0 9px;
+	border-radius: var(--sbui-r-sm);
+	font-size: 12px;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) .button.button-compact {
+	height: 30px;
+	padding: 0 11px;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder, .sb-tweaks-job) :is(.button.button-large, .button.button-hero) {
+	height: 40px;
+	padding: 0 18px;
+	font-size: 14px;
+}
+
+body.sb-ui .sb-tweaks-wrap .button-link {
+	color: var(--sbui-green-ink);
+}
+
+/* Remove crosses on rows: grey until hovered, then red. */
+body.sb-ui .sb-tweaks-wrap .button-link:is([aria-label="Remove"], [aria-label="Delete"]) {
+	display: inline-grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border-radius: var(--sbui-r-sm);
+	color: var(--sbui-text-3);
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s;
+}
+
+body.sb-ui .sb-tweaks-wrap .button-link:is([aria-label="Remove"], [aria-label="Delete"]):hover {
+	background: var(--sbui-danger-soft);
+	color: var(--sbui-danger);
+}
+
+/* Save: Nothing to save sits quiet; unsaved changes light it up. */
+body.sb-ui.wp-core-ui .sb-tweaks-wrap .button.sb-save--clean,
+body.sb-ui.wp-core-ui .sb-tweaks-wrap .button.sb-save--clean:hover,
+body.sb-ui.wp-core-ui .sb-tweaks-wrap .button.sb-save--clean:disabled {
+	border: 1px solid var(--sbui-border) !important;
+	background: var(--sbui-surface-2) !important;
+	box-shadow: none !important;
+	color: var(--sbui-text-3) !important;
+	font-weight: 500;
+}
+
+body.sb-ui.wp-core-ui .sb-tweaks-wrap .button.sb-save--dirty,
+body.sb-ui.wp-core-ui .sb-tweaks-wrap .button.sb-save--dirty:focus {
+	border: 1px solid transparent !important;
+	background: var(--sbui-btn) !important;
+	box-shadow: inset 0 -1px 0 rgba(22, 23, 29, 0.10), 0 0 0 4px var(--sbui-green-soft) !important;
+	color: var(--sbui-navy-900) !important;
+	font-weight: 600;
+	filter: none;
+}
+
+body.sb-ui.wp-core-ui .sb-tweaks-wrap .button.sb-save--dirty:hover {
+	background: var(--sbui-btn-hover) !important;
+	filter: none;
+}
+
+body.sb-ui .sb-tweaks-wrap p.submit {
+	margin-top: 20px;
+	padding: 0;
+}
+
+/* The unsaved reminder that follows you down the page: top right, where Sam
+   looks to save (29 October 2026). Toasts stack under it while it shows. */
+body.sb-ui .sb-unsaved {
+	top: calc(var(--wp-admin--admin-bar--height, 32px) + 16px);
+	right: max(16px, env(safe-area-inset-right, 0px));
+	bottom: auto;
+	left: auto;
+	transform: none;
+	gap: 10px;
+	height: 46px;
+	padding: 0 22px 0 18px;
+	border: 1px solid rgba(255, 201, 5, 0.4);
+	border-radius: 999px;
+	background: color-mix(in srgb, #ffc905 11%, var(--sbui-navy-900));
+	box-shadow: var(--sbui-shadow-3);
+	color: #ecedee;
+	font-family: var(--sbui-font);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+body.sb-ui:has(.sb-unsaved:not([hidden])) .sb-ui-toasts {
+	top: calc(var(--wp-admin--admin-bar--height, 32px) + 16px + 46px + 10px);
+}
+
+body.sb-ui .sb-unsaved:hover {
+	background: color-mix(in srgb, #ffc905 18%, var(--sbui-navy-900));
+}
+
+body.sb-ui .sb-unsaved__dot {
+	width: 9px;
+	height: 9px;
+	background: var(--sbui-warn-solid);
+	box-shadow: 0 0 0 3px rgba(255, 201, 5, 0.2);
+}
+
+/* ---------- Fields ---------- */
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(input[type="text"], input[type="url"], input[type="email"], input[type="number"], input[type="search"], input[type="password"], input[type="tel"], input[type="date"], select, textarea) {
+	min-height: 34px;
+	padding: 0 11px;
+	border: 1px solid var(--sbui-border-strong);
+	border-radius: var(--sbui-r);
+	background-color: var(--sbui-surface);
+	box-shadow: none;
+	color: var(--sbui-text);
+	font-size: 13px;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) textarea {
+	padding: 9px 11px;
+	line-height: 1.5;
+}
+
+/* One height for every single-line box and select, so they line up in a row
+   (Sam, 30 October 2026): WordPress makes selects taller than inputs. */
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(input[type="text"], input[type="url"], input[type="email"], input[type="number"], input[type="search"], input[type="password"], input[type="tel"], input[type="date"], select) {
+	box-sizing: border-box;
+	height: 36px;
+	min-height: 36px;
+}
+
+/* :not([multiple]) so this outranks the shared box rule above, whose
+   input[type] gives it more weight: without it the 11px side padding won and
+   text ran under the arrow (Sam, 30 October 2026). */
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) select:not([multiple]) {
+	padding-top: 0;
+	padding-bottom: 0;
+	line-height: 34px;
+	padding-right: 30px;
+	background: var(--sbui-surface) var(--sbui-select-arrow) no-repeat right 7px center / 14px;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(input, select, textarea)::placeholder {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(input[type="text"], input[type="url"], input[type="email"], input[type="number"], input[type="search"], input[type="password"], input[type="tel"], input[type="date"], select, textarea):hover {
+	border-color: var(--sbui-text-3);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(input[type="text"], input[type="url"], input[type="email"], input[type="number"], input[type="search"], input[type="password"], input[type="tel"], input[type="date"], select, textarea):focus {
+	border-color: var(--sbui-green-ink);
+	outline: none;
+	box-shadow: 0 0 0 3px var(--sbui-focus);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(input, select, textarea):disabled,
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) :is(input, textarea)[readonly] {
+	background-color: var(--sbui-surface-2);
+	color: var(--sbui-text-2);
+}
+
+/* File pickers: the button matches ours. */
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) input[type="file"] {
+	color: var(--sbui-text-2);
+	font-size: 12.5px;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) input[type="file"]::file-selector-button {
+	height: 32px;
+	margin-right: 10px;
+	padding: 0 12px;
+	border: 1px solid var(--sbui-border-strong);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+	color: var(--sbui-text);
+	font-family: var(--sbui-font);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal) input[type="file"]::file-selector-button:hover {
+	border-color: var(--sbui-green-ink);
+	background: var(--sbui-green-soft);
+	color: var(--sbui-green-ink);
+}
+
+/* Ticks and radios */
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) :is(input[type="checkbox"], input[type="radio"]):not(.sb-tweaks-switch input) {
+	display: inline-grid;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	min-width: 18px;
+	margin: 0 6px 0 0;
+	border: 1.5px solid var(--sbui-border-strong);
+	border-radius: 5px;
+	background: var(--sbui-surface);
+	box-shadow: none;
+	vertical-align: -4px;
+	transition: background 0.15s, border-color 0.15s;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) input[type="radio"]:not(.sb-tweaks-switch input) {
+	border-radius: 50%;
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) :is(input[type="checkbox"], input[type="radio"]):not(.sb-tweaks-switch input):hover {
+	border-color: var(--sbui-green-ink);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) :is(input[type="checkbox"], input[type="radio"]):not(.sb-tweaks-switch input):checked {
+	border-color: var(--sbui-green);
+	background: var(--sbui-green);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) input[type="checkbox"]:not(.sb-tweaks-switch input):checked::before {
+	content: "";
+	float: none;
+	width: 9px;
+	height: 5px;
+	margin: 0;
+	border-left: 2px solid var(--sbui-on-green);
+	border-bottom: 2px solid var(--sbui-on-green);
+	transform: translateY(-1px) rotate(-45deg);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) input[type="radio"]:not(.sb-tweaks-switch input):checked::before {
+	content: "";
+	width: 7px;
+	height: 7px;
+	margin: 0;
+	border-radius: 50%;
+	background: var(--sbui-on-green);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) :is(input[type="checkbox"], input[type="radio"]):not(.sb-tweaks-switch input):focus {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--sbui-focus);
+}
+
+body.sb-ui :is(.sb-tweaks-wrap, .sb-tweaks-modal, .sb-reorder) :is(input[type="checkbox"], input[type="radio"]):not(.sb-tweaks-switch input):disabled {
+	opacity: 0.5;
+}
+
+/* Colour field */
+body.sb-ui .sb-tweaks-colour__swatch {
+	box-sizing: border-box;
+	width: 36px;
+	height: 36px;
+	padding: 3px;
+	border: 1px solid var(--sbui-border-strong);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+	cursor: pointer;
+}
+
+body.sb-ui .sb-tweaks-colour__swatch::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+body.sb-ui .sb-tweaks-colour__swatch::-webkit-color-swatch {
+	border: 0;
+	border-radius: 4px;
+}
+
+body.sb-ui .sb-tweaks-colour__swatch::-moz-color-swatch {
+	border: 0;
+	border-radius: 4px;
+}
+
+/* ---------- Tables ---------- */
+
+body.sb-ui .sb-tweaks-wrap table.widefat {
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+	box-shadow: none;
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap table.widefat :is(thead th, thead td, tfoot th, tfoot td) {
+	border-color: var(--sbui-border);
+	background: var(--sbui-surface-2);
+	color: var(--sbui-text-3);
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+body.sb-ui .sb-tweaks-wrap table.widefat :is(td, th) {
+	border-color: var(--sbui-border);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap table.widefat tbody tr {
+	background: transparent;
+}
+
+body.sb-ui .sb-tweaks-wrap table.widefat.striped > tbody > :nth-child(odd) {
+	background: var(--sbui-surface-2);
+}
+
+body.sb-ui .sb-tweaks-wrap table.widefat tbody tr:hover {
+	background: var(--sbui-surface-2);
+}
+
+/* ---------- ACF fields inside our pages ---------- */
+
+body.sb-ui .sb-tweaks-wrap .acf-field .acf-label label {
+	color: var(--sbui-text);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-field p.description,
+body.sb-ui .sb-tweaks-wrap .acf-field .acf-label p.description {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-fields > .acf-field,
+body.sb-ui .sb-tweaks-wrap .acf-fields.-left > .acf-field::before {
+	border-color: var(--sbui-border);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-required {
+	color: var(--sbui-danger);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-table {
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+	border-collapse: separate;
+	border-spacing: 0;
+	overflow: hidden;
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-table > thead > tr > th {
+	border-color: var(--sbui-border);
+	background: var(--sbui-surface-2);
+	color: var(--sbui-text-2);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-table > tbody > tr > td,
+body.sb-ui .sb-tweaks-wrap .acf-table > tbody > tr > th {
+	border-color: var(--sbui-border);
+	background: var(--sbui-surface);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-repeater .acf-row-handle,
+body.sb-ui .sb-tweaks-wrap .acf-repeater .acf-row-handle.order {
+	border-color: var(--sbui-border);
+	background: var(--sbui-surface-2);
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-repeater .acf-row:hover > .acf-row-handle.order,
+body.sb-ui .sb-tweaks-wrap .acf-repeater .acf-row.-hover > .acf-row-handle.order {
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-repeater .acf-row-handle .acf-icon {
+	border-color: var(--sbui-border-strong);
+	background: var(--sbui-surface);
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-input-prepend,
+body.sb-ui .sb-tweaks-wrap .acf-input-append {
+	min-height: 34px;
+	border-color: var(--sbui-border-strong);
+	background: var(--sbui-surface-2);
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-url i {
+	opacity: 0.6;
+}
+
+/* ACF's tab bar sits on a grey strip of its own: on the card instead. */
+body.sb-ui .sb-tweaks-wrap .acf-tab-wrap,
+body.sb-ui .sb-tweaks-wrap .acf-fields > .acf-tab-wrap {
+	background: transparent;
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-tab-wrap .acf-tab-group {
+	border-color: var(--sbui-border);
+}
+
+/* The edit and remove buttons over an image (ACF's image and file fields): light, not near black. */
+body.sb-ui .sb-tweaks-wrap .acf-actions .acf-icon,
+body.sb-ui .sb-tweaks-wrap .acf-image-uploader .acf-actions .acf-icon {
+	border: 1px solid var(--sbui-border-strong);
+	background: var(--sbui-surface);
+	box-shadow: var(--sbui-shadow-2);
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-actions .acf-icon:hover {
+	border-color: var(--sbui-green-ink);
+	background: var(--sbui-green-soft);
+	color: var(--sbui-green-ink);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-actions .acf-icon.-cancel:hover {
+	border-color: var(--sbui-danger-line);
+	background: var(--sbui-danger-soft);
+	color: var(--sbui-danger);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-tab-wrap .acf-tab-group li a {
+	border-color: var(--sbui-border);
+	border-radius: var(--sbui-r-sm) var(--sbui-r-sm) 0 0;
+	background: var(--sbui-surface-2);
+	color: var(--sbui-text-2);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-tab-wrap .acf-tab-group li a:hover {
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-tab-wrap .acf-tab-group li.active a {
+	border-bottom-color: var(--sbui-surface);
+	background: var(--sbui-surface);
+	color: var(--sbui-text);
+	box-shadow: inset 0 2px 0 var(--sbui-green);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-switch {
+	border-color: var(--sbui-border-strong);
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-switch .acf-switch-slider {
+	border-color: var(--sbui-border-strong);
+	background: #fff;
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-switch.-on {
+	border-color: var(--sbui-green);
+	background: var(--sbui-green);
+	color: var(--sbui-navy-900);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-switch.-on .acf-switch-slider {
+	border-color: var(--sbui-green);
+}
+
+/* The Yes on a switched-on toggle: dark on green, like a button. ACF colours
+   that text white itself, so the switch's own colour never reached it. */
+body.sb-ui .sb-tweaks-wrap .acf-switch.-on .acf-switch-on {
+	color: var(--sbui-navy-900);
+	text-shadow: none;
+}
+
+body.sb-ui .sb-tweaks-wrap :is(.acf-checkbox-list, .acf-radio-list) label,
+body.sb-ui .sb-tweaks-wrap .acf-true-false label {
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-button-group label {
+	border-color: var(--sbui-border-strong);
+	background: var(--sbui-surface);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-button-group label.selected {
+	border-color: var(--sbui-green);
+	background: var(--sbui-green);
+	color: var(--sbui-navy-900);
+}
+
+body.sb-ui .sb-tweaks-wrap :is(.acf-image-uploader, .acf-file-uploader) p,
+body.sb-ui .sb-tweaks-wrap .acf-file-uploader .file-info {
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-file-uploader .file-wrap {
+	border-color: var(--sbui-border);
+	background: var(--sbui-surface);
+}
+
+body.sb-ui .sb-tweaks-wrap .acf-file-uploader .file-icon {
+	border-color: var(--sbui-border);
+	background: var(--sbui-surface-2);
+}
+
+body.sb-ui .sb-tweaks-wrap .select2-container--default .select2-selection--single,
+body.sb-ui .sb-tweaks-wrap .select2-container--default .select2-selection--multiple {
+	min-height: 34px;
+	border-color: var(--sbui-border-strong);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+}
+
+body.sb-ui .sb-tweaks-wrap .select2-container--default .select2-selection--single .select2-selection__rendered {
+	color: var(--sbui-text);
+	line-height: 32px;
+}
+
+body.sb-ui .select2-dropdown {
+	border-color: var(--sbui-border-strong);
+	background: var(--sbui-surface);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .select2-container--default .select2-results__option--highlighted[aria-selected],
+body.sb-ui .select2-container--default .select2-results__option--highlighted[data-selected] {
+	background: var(--sbui-green-soft);
+	color: var(--sbui-green-ink);
+}
+
+/* ---------- Notices that stay on the page ---------- */
+
+body.sb-ui .sb-tweaks-wrap .notice {
+	margin: 16px 0 0;
+	padding: 10px 14px;
+	border: 1px solid var(--sbui-border);
+	border-left-width: 1px;
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+	box-shadow: none;
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-wrap .notice p {
+	margin: 0;
+	padding: 0;
+	color: inherit;
+}
+
+body.sb-ui .sb-tweaks-wrap .notice-success {
+	border-color: var(--sbui-ok-line);
+	background: var(--sbui-ok-soft);
+}
+
+body.sb-ui .sb-tweaks-wrap .notice-info {
+	border-color: var(--sbui-info-line);
+	background: var(--sbui-info-soft);
+}
+
+body.sb-ui .sb-tweaks-wrap .notice-warning {
+	border-color: var(--sbui-warn-line);
+	background: var(--sbui-warn-soft);
+}
+
+body.sb-ui .sb-tweaks-wrap .notice-error {
+	border-color: var(--sbui-danger-line);
+	background: var(--sbui-danger-soft);
+}
+
+/* ---------- Toasts: top right, under the admin bar ---------- */
+
+.sb-ui-toasts {
+	position: fixed;
+	transition: top 0.2s ease;
+	z-index: 100100;
+	top: calc(var(--wp-admin--admin-bar--height, 32px) + 16px);
+	right: max(16px, env(safe-area-inset-right, 0px));
+	display: grid;
+	gap: 8px;
+	width: min(380px, calc(100vw - 32px));
+	pointer-events: none;
+}
+
+.sb-ui-toast {
+	position: relative;
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 10px;
+	align-items: center;
+	overflow: hidden;
+	padding: 12px 10px 12px 14px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: var(--sbui-r-lg);
+	background: var(--sbui-navy-900);
+	box-shadow: var(--sbui-shadow-3);
+	color: #ecedee;
+	pointer-events: auto;
+	animation: sb-ui-toast-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+.sb-ui-toast.is-leaving {
+	opacity: 0;
+	transform: translateX(16px);
+	transition: opacity 0.2s, transform 0.2s;
+}
+
+.sb-ui-toast svg {
+	width: 18px;
+	height: 18px;
+	color: var(--sbui-green);
+}
+
+.sb-ui-toast b {
+	display: block;
+	font-weight: 600;
+	font-size: 13px;
+}
+
+.sb-ui-toast small {
+	display: block;
+	margin-top: 1px;
+	color: #a3a7b0;
+	font-size: 12.5px;
+}
+
+.sb-ui-toast small a {
+	color: #c9f08f;
+}
+
+.sb-ui-toast button {
+	height: 28px;
+	padding: 0 8px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: #a3a7b0;
+	font-family: var(--sbui-font);
+	font-size: 12.5px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.sb-ui-toast button:hover {
+	background: rgba(255, 255, 255, 0.08);
+	color: #fff;
+}
+
+.sb-ui-toast::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 2px;
+	background: #85df07;
+	opacity: 0.5;
+	transform-origin: left;
+	animation: sb-ui-toast-timer var(--sbui-life, 4s) linear forwards;
+}
+
+.sb-ui-toast:hover::after {
+	animation-play-state: paused;
+}
+
+.sb-ui-toast--ok { background: color-mix(in srgb, #85df07 11%, var(--sbui-navy-900)); border-color: rgba(133, 223, 7, 0.3); }
+.sb-ui-toast--info { background: color-mix(in srgb, #4fa8fc 13%, var(--sbui-navy-900)); border-color: rgba(79, 168, 252, 0.32); }
+.sb-ui-toast--warn { background: color-mix(in srgb, #ffc905 11%, var(--sbui-navy-900)); border-color: rgba(255, 201, 5, 0.32); }
+.sb-ui-toast--danger { background: color-mix(in srgb, #ff4529 15%, var(--sbui-navy-900)); border-color: rgba(255, 69, 41, 0.4); }
+.sb-ui-toast--info svg { color: #78b9fd; }
+.sb-ui-toast--warn svg { color: #ffd84d; }
+.sb-ui-toast--danger svg { color: #ff7a63; }
+.sb-ui-toast--info::after { background: #4fa8fc; }
+.sb-ui-toast--warn::after { background: #ffc905; }
+.sb-ui-toast--danger::after { display: none; }
+
+@keyframes sb-ui-toast-in {
+	from { opacity: 0; transform: translateX(24px); }
+}
+
+@keyframes sb-ui-toast-timer {
+	to { transform: scaleX(0); }
+}
+
+@media (max-width: 600px) {
+	.sb-ui-toasts {
+		top: calc(var(--wp-admin--admin-bar--height, 46px) + 12px);
+	}
+}
+
+/* ---------- Popups ---------- */
+
+body.sb-ui .sb-tweaks-modal,
+body.sb-ui .sb-reorder,
+body.sb-ui .sb-tweaks-job {
+	background: var(--sbui-overlay);
+	-webkit-backdrop-filter: blur(3px);
+	backdrop-filter: blur(3px);
+}
+
+body.sb-ui .sb-tweaks-dialog,
+body.sb-ui .sb-reorder__box,
+body.sb-ui .sb-tweaks-job__box {
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r-xl);
+	background: var(--sbui-surface);
+	box-shadow: var(--sbui-shadow-3);
+	color: var(--sbui-text);
+	animation: sb-ui-pop 0.18s ease;
+}
+
+@keyframes sb-ui-pop {
+	from { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+
+body.sb-ui .sb-tweaks-dialog h2,
+body.sb-ui .sb-reorder__title,
+body.sb-ui .sb-tweaks-job__title {
+	color: var(--sbui-text);
+	font-family: var(--sbui-font);
+	font-size: 17px;
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-dialog__message,
+body.sb-ui .sb-reorder__note,
+body.sb-ui .sb-tweaks-job__current,
+body.sb-ui .sb-tweaks-job__summary {
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui .sb-tweaks-dialog__field > span,
+body.sb-ui .sb-tweaks-dialog__check {
+	color: var(--sbui-text);
+	font-weight: 600;
+}
+
+body.sb-ui .sb-tweaks-dialog__list li {
+	color: var(--sbui-text-2);
+}
+
+body.sb-ui .sb-tweaks-dialog__field :is(input, textarea) {
+	border-color: var(--sbui-border-strong);
+	background: var(--sbui-surface);
+	color: var(--sbui-text);
+}
+
+/* As the UI Kit: a warning icon by the title of a delete or reset, and the
+   buttons together on the right in a grey footer. */
+body.sb-ui .sb-tweaks-dialog__head {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin: 0 30px 14px 0;
+}
+
+body.sb-ui .sb-tweaks-dialog__head h2 {
+	margin: 0;
+}
+
+body.sb-ui .sb-tweaks-dialog__icon {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 10px;
+	background: var(--sbui-danger-soft);
+	color: var(--sbui-danger);
+}
+
+body.sb-ui .sb-tweaks-dialog__buttons {
+	justify-content: flex-end;
+	gap: 8px;
+	margin: 22px -24px -24px;
+	padding: 14px 24px;
+	border-top: 1px solid var(--sbui-border);
+	background: var(--sbui-surface-2);
+}
+
+body.sb-ui .sb-tweaks-dialog__x {
+	color: var(--sbui-text-3);
+	border-radius: 6px;
+}
+
+body.sb-ui .sb-tweaks-dialog__x:hover {
+	background: var(--sbui-surface-3);
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-reorder__item {
+	gap: 10px;
+	margin-bottom: 6px;
+	padding: 10px 12px;
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface);
+	box-shadow: var(--sbui-shadow-1);
+	color: var(--sbui-text);
+	font-size: 13.5px;
+	font-weight: 500;
+	transition: border-color 0.15s, background 0.15s;
+}
+
+body.sb-ui .sb-reorder__item:hover {
+	border-color: var(--sbui-border-strong);
+	background: var(--sbui-surface-2);
+}
+
+body.sb-ui .sb-reorder__item.is-moving {
+	opacity: 1;
+	border: 1.5px dashed var(--sbui-green-line);
+	background: var(--sbui-green-soft);
+	box-shadow: none;
+	color: transparent;
+}
+
+body.sb-ui .sb-reorder__item.is-moving * {
+	visibility: hidden;
+}
+
+body.sb-ui .sb-reorder__ghost {
+	border-color: var(--sbui-green);
+	background: var(--sbui-surface);
+	box-shadow: var(--sbui-shadow-3);
+	transform: rotate(-1deg);
+}
+
+body.sb-ui .sb-reorder__grip {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-job__track {
+	height: 8px;
+	background: var(--sbui-surface-3);
+}
+
+body.sb-ui .sb-tweaks-job__bar {
+	background: linear-gradient(90deg, var(--sbui-green), #a8e94e);
+}
+
+body.sb-ui .sb-tweaks-job.is-failed .sb-tweaks-job__bar {
+	background: var(--sbui-danger-solid);
+}
+
+body.sb-ui .sb-tweaks-job__count {
+	font-variant-numeric: tabular-nums;
+}
+
+body.sb-ui .sb-tweaks-job__timer {
+	color: var(--sbui-text-3);
+}
+
+body.sb-ui .sb-tweaks-job__report {
+	border: 1px solid var(--sbui-border);
+	border-radius: var(--sbui-r);
+	background: var(--sbui-surface-2);
+}
+
+body.sb-ui .sb-tweaks-job__summary strong {
+	color: var(--sbui-text);
+}
+
+body.sb-ui .sb-tweaks-job__report li.is-failed {
+	color: var(--sbui-danger);
+}
+
+body.sb-ui .sb-tweaks-job.is-busy .sb-tweaks-job__spin {
+	border-color: var(--sbui-surface-3);
+	border-top-color: var(--sbui-green);
+}
+
+/* ---------- Character count under a field with a maxlength (ui.js) ---------- */
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-chars {
+	color: var(--sbui-text-3);
+	font-size: 11.5px;
+	font-variant-numeric: tabular-nums;
+}
+
+body.sb-ui .sb-tweaks-wrap .sb-ui-chars.is-near {
+	color: var(--sbui-warn);
+	font-weight: 600;
+}
+
+/* ---------- Tooltips: data-sb-tip, dropping down from the button ---------- */
+
+.sb-ui-tip {
+	--sbui-tip-bg: #16171d;
+	--sbui-tip-text: #ffffff;
+	--sbui-tip-arrow: 50%;
+	position: fixed;
+	z-index: 100200;
+	top: 0;
+	left: 0;
+	width: max-content;
+	max-width: 260px;
+	padding: 5px 9px;
+	border-radius: 6px;
+	background: var(--sbui-tip-bg);
+	box-shadow: 0 6px 18px rgba(10, 12, 16, 0.22);
+	color: var(--sbui-tip-text);
+	font-family: var(--sbui-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.35;
+	white-space: normal;
+	text-align: center;
+	pointer-events: none;
+	opacity: 0;
+	transform: translateY(-4px);
+	transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.sb-ui-tip.is-up {
+	transform: translateY(4px);
+}
+
+.sb-ui-tip.is-on {
+	opacity: 1;
+	transform: none;
+}
+
+.sb-ui-tip::before {
+	content: "";
+	position: absolute;
+	bottom: 100%;
+	left: var(--sbui-tip-arrow);
+	margin-left: -5px;
+	border: 5px solid transparent;
+	border-bottom-color: var(--sbui-tip-bg);
+}
+
+.sb-ui-tip.is-up::before {
+	top: 100%;
+	bottom: auto;
+	border-bottom-color: transparent;
+	border-top-color: var(--sbui-tip-bg);
+}
+
+body.sb-ui-mode-dark .sb-ui-tip {
+	--sbui-tip-bg: #3a3d4b;
+	--sbui-tip-text: #f4f5f6;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+	body.sb-ui-mode-auto:not(.sb-ui-light-only) .sb-ui-tip {
+		--sbui-tip-bg: #3a3d4b;
+		--sbui-tip-text: #f4f5f6;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+	}
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+	body.sb-ui *,
+	.sb-ui-toast,
+	.sb-ui-toast::after,
+	.sb-ui-tip {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}

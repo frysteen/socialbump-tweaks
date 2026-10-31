@@ -233,6 +233,11 @@ class SB_Tweaks_Modules {
 			$def['path'] = trailingslashit( dirname( $file ) );
 			$def['url']  = SB_TWEAKS_URL . 'modules/' . basename( dirname( $file ) ) . '/';
 
+			// A module the hub hasn't allowed this site isn't here at all (SB_Tweaks_Policy, Sam, 31 October 2026).
+			if ( class_exists( 'SB_Tweaks_Policy' ) && ! SB_Tweaks_Policy::allows( $def['id'] ) ) {
+				continue;
+			}
+
 			$this->modules[ $def['id'] ] = $def;
 		}
 

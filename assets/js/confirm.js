@@ -14,6 +14,9 @@
  *           data-sb-tweaks-confirm-title="Publish release"
  *           data-sb-tweaks-confirm-action="Publish">
  *
+ * Add data-sb-tweaks-confirm-tone="danger" for a delete or reset. A button
+ * whose class has --danger in it (sb-tweaks-button--danger) gets it anyway.
+ *
  * %s stands for the value of the form field named in -field. On the action the
  * element is clicked again with a one shot pass, so a form submits, and any
  * submit handler on it runs, exactly as if nothing had asked.
@@ -25,11 +28,17 @@
  *   SBTweaksConfirm.tell( { title, message } );     // OK only
  *   SBTweaksConfirm.open( options, onAction );      // anything else, a summary say
  *
- * options: title, message, body (more content, such as a run's summary), check
+ * options: title, message, tone ('danger' for anything that deletes or resets:
+ * a warning icon by the title and a solid red action), body (more content, such as a run's summary), check
  * (a tick box: its words, or { label, list } with each line's first word in
  * bold), cancel and action (the two buttons' words), alert (no Cancel), and
  * before( checked ) run just ahead of the second click. onAction( checked ) is
  * told whether the tick box was ticked.
+ *
+ * For fields to fill in, pass them in body, each in a
+ * <label class="sb-tweaks-dialog__field"><span>Label</span><input></label>.
+ * The popup carries wp-core-ui itself, so it looks the same on a front-end
+ * page that loads this stylesheet and WordPress's buttons.css.
  */
 ( function ( $ ) {
 	'use strict';
@@ -50,14 +59,26 @@
 
 		options = options || {};
 
-		var $modal  = $( '<div class="sb-tweaks-modal"><div class="sb-tweaks-dialog" role="dialog" aria-modal="true"></div></div>' );
+		var $modal  = $( '<div class="sb-tweaks-modal wp-core-ui"><div class="sb-tweaks-dialog" role="dialog" aria-modal="true"></div></div>' );
 		var $dialog = $modal.children();
 		var $row    = $( '<p class="sb-tweaks-dialog__buttons"></p>' );
-		var $go     = $( '<button type="button" class="button button-primary sb-tweaks-dialog__go"></button>' ).text( options.action || 'OK' );
+		var danger  = options.tone === 'danger';
+		var $go     = $( '<button type="button" class="button sb-tweaks-dialog__go"></button>' ).addClass( danger ? 'sb-tweaks-button--danger-solid' : 'button-primary' ).text( options.action || 'OK' );
 		var $box    = null;
 
 		$dialog.append( '<button type="button" class="sb-tweaks-dialog__x" aria-label="Close">&times;</button>' );
-		$dialog.append( $( '<h2></h2>' ).text( options.title || '' ) );
+
+		// A delete or reset: the warning icon beside the title, as in the UI Kit.
+		if ( danger ) {
+			$dialog.addClass( 'sb-tweaks-dialog--danger' ).append(
+				$( '<div class="sb-tweaks-dialog__head"></div>' ).append(
+					'<span class="sb-tweaks-dialog__icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>',
+					$( '<h2></h2>' ).text( options.title || '' )
+				)
+			);
+		} else {
+			$dialog.append( $( '<h2></h2>' ).text( options.title || '' ) );
+		}
 
 		if ( options.message ) {
 			$dialog.append( $( '<p class="sb-tweaks-dialog__message"></p>' ).text( options.message ) );
@@ -186,7 +207,8 @@
 		ask( this, {
 			title: $el.attr( 'data-sb-tweaks-confirm-title' ) || words,
 			message: String( $el.attr( 'data-sb-tweaks-confirm' ) ).split( '%s' ).join( value ),
-			action: $el.attr( 'data-sb-tweaks-confirm-action' ) || words
+			action: $el.attr( 'data-sb-tweaks-confirm-action' ) || words,
+			tone: $el.attr( 'data-sb-tweaks-confirm-tone' ) || ( /--danger\b/.test( this.className ) ? 'danger' : '' )
 		} );
 	} );
 }( jQuery ) );

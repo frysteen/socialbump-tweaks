@@ -28,6 +28,9 @@ return [
 	'description' => 'Content, FAQ, SEO and admin tweaks for any site, whatever it is built with.',
 	'heading'     => 'Site Kit',
 
+	// Its pages use the SocialBUMP UI tokens, so dark mode is on.
+	'ui_ready'    => true,
+
 	'groups'      => [
 		'content'     => [
 			'title'       => 'Content',

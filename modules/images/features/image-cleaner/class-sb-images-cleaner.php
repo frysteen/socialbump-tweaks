@@ -311,6 +311,35 @@ class SB_Images_Cleaner {
 			echo '</div>';
 		}
 
+		// Sizes made only for some images (Email Signatures' logos): listed so
+		// it's plain where they come from, always on, nothing to tick. The site
+		// icon's stay out of it, as before. attachment_size_groups().
+		foreach ( SB_Images_Rebuild::attachment_size_groups() as $key => $group ) {
+			if ( 'site-icon' === $key || empty( $group['sizes'] ) ) {
+				continue;
+			}
+
+			echo '<div class="sb-images-sizegroup is-fixed" data-sizegroup="' . esc_attr( $key ) . '">';
+			echo '<div class="sb-images-sizegroup__head"><span class="sb-images-sizegroup__title"><strong>' . esc_html( (string) ( $group['title'] ?? $key ) ) . '</strong></span></div>';
+
+			if ( ! empty( $group['note'] ) ) {
+				echo '<p class="sb-images-sizegroup__note">' . esc_html( (string) $group['note'] ) . '</p>';
+			}
+
+			foreach ( $group['sizes'] as $name => $size ) {
+				$dims = ! empty( $size['width'] ) ? number_format_i18n( (int) $size['width'] ) : '';
+
+				if ( ! empty( $size['height'] ) && $size['height'] < 9999 ) {
+					$dims .= ' x ' . number_format_i18n( (int) $size['height'] );
+				}
+
+				echo '<label class="sb-images-sizegroup__item"><input type="checkbox" checked disabled>';
+				echo '<code>' . esc_html( (string) $name ) . '</code><span>' . esc_html( $dims ) . ( $dims ? ' px' : '' ) . ( ! empty( $size['crop'] ) ? ', ' . esc_html__( 'cropped', 'sb-tweaks' ) : '' ) . '</span></label>';
+			}
+
+			echo '</div>';
+		}
+
 		echo '<div class="sb-images-cleaner__sizes-foot">';
 		echo '<span><button type="button" class="button-link sb-toggle" data-sb-always-on id="sb-images-sizes-all">' . esc_html__( 'Select all', 'sb-tweaks' ) . '</button> | <button type="button" class="button-link sb-toggle" data-sb-always-on id="sb-images-sizes-none">' . esc_html__( 'Select none', 'sb-tweaks' ) . '</button></span>';
 		echo '<button type="submit" class="button sb-save--clean" id="sb-images-sizes-save" data-sb-label-dirty="' . esc_attr__( 'Save sizes', 'sb-tweaks' ) . '" disabled>' . esc_html__( 'Save sizes', 'sb-tweaks' ) . '</button>';

@@ -133,14 +133,11 @@ class SB_Tweaks_Settings {
 			return;
 		}
 
-		echo '<form method="post" autocomplete="off" data-sb-dirty action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		$form = 'sb-tweaks-modules-form';
+
+		echo '<form id="' . esc_attr( $form ) . '" method="post" autocomplete="off" data-sb-dirty action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="sb_tweaks_save_modules">';
 		wp_nonce_field( 'sb_tweaks_save_modules' );
-
-		// Reorder sits up here with the heading, away from Save changes.
-		echo '<section class="sb-tweaks-section"><div class="sb-tweaks-section__head sb-tweaks-section__head--tools"><div><h2>' . esc_html__( 'Modules', 'sb-tweaks' ) . '</h2><p>' . esc_html__( 'Each one switched on adds its own menu with its own pages. Reorder puts them in the order you want, and each one collapses to its title.', 'sb-tweaks' ) . '</p></div>';
-		echo SB_Tweaks_Cards::toolbar( SB_TWEAKS_OPTION, 'reorder' );
-		echo '</div>';
 
 		// By name until the user drags them; then in their order.
 		$titles = [];
@@ -151,8 +148,29 @@ class SB_Tweaks_Settings {
 
 		$ordered = SB_Tweaks_Cards::sort( $titles, SB_TWEAKS_OPTION );
 		$failed  = SB_Tweaks_Modules::instance()->failed();
+		$shown   = 0;
+		$lit     = 0;
 
-		echo SB_Tweaks_Cards::toolbar( SB_TWEAKS_OPTION, 'links' );
+		foreach ( $ordered as $id ) {
+			if ( ! sb_tweaks_is_hub() && SB_Tweaks_Modules::instance()->missing( $id ) ) {
+				continue;
+			}
+
+			$shown++;
+			$lit += ( SB_Tweaks_Modules::instance()->is_enabled( $id ) && ! SB_Tweaks_Modules::instance()->missing( $id ) && ! isset( $failed[ $id ] ) ) ? 1 : 0;
+		}
+
+		// The bar: Reorder and the collapse buttons, then Save changes. The
+		// cards sit on the page below it (Sam, 29 October 2026).
+		echo SB_Tweaks_UI::bar( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+			[
+				[ __( 'Cards', 'sb-tweaks' ), SB_Tweaks_Cards::toolbar( SB_TWEAKS_OPTION, 'reorder' ) . SB_Tweaks_Cards::toolbar( SB_TWEAKS_OPTION, 'links' ) ],
+			],
+			SB_Tweaks_UI::save_button( $form )
+		);
+
+		/* translators: %d: how many are switched on */
+		echo SB_Tweaks_UI::heading( __( 'Modules', 'sb-tweaks' ), $shown, sprintf( __( '%d on', 'sb-tweaks' ), $lit ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside.
 		echo '<div class="sb-tweaks-grid"' . SB_Tweaks_Cards::container_attributes( SB_TWEAKS_OPTION ) . '>';
 
 		foreach ( $ordered as $id ) {
@@ -171,7 +189,7 @@ class SB_Tweaks_Settings {
 			$this->render_module_card( $id, $modules[ $id ], isset( $failed[ $id ] ) ? $failed[ $id ] : '' );
 		}
 
-		echo '</div></section>';
+		echo '</div>';
 		submit_button( esc_html__( 'Save changes', 'sb-tweaks' ), 'primary sb-save--clean' );
 		echo '</form></div>';
 	}
@@ -416,6 +434,11 @@ class SB_Tweaks_Settings {
 
 		echo '</h1>';
 		echo '<a class=' . $q . 'sb-tweaks-header__version' . $q . ' href=' . $q . esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG . '-updates' ) ) . $q . '>v' . esc_html( SB_TWEAKS_VERSION ) . '</a>';
+
+		if ( class_exists( 'SB_Tweaks_UI' ) ) {
+			echo SB_Tweaks_UI::mode_switch(); // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped by SB_Tweaks_UI.
+		}
+
 		echo '</div>';
 
 		if ( $intro !== '' ) {
@@ -435,6 +458,11 @@ class SB_Tweaks_Settings {
 		$ver = file_exists( $css ) ? SB_TWEAKS_VERSION . '.' . filemtime( $css ) : SB_TWEAKS_VERSION;
 
 		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [], $ver );
+
+		// The shared SocialBUMP look, dark mode included, on all four pages.
+		if ( class_exists( 'SB_Tweaks_UI' ) ) {
+			SB_Tweaks_UI::enqueue( true );
+		}
 
 		// Match the accent to whichever admin colour scheme the user has chosen.
 		wp_add_inline_style( 'sb-tweaks-admin', ':root{--sb-tweaks-accent:' . $this->accent_colour() . ';}' );

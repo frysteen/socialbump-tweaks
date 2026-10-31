@@ -12,7 +12,7 @@ the detail on each feature. changes.md holds its 23 release notes, 0.1.0 to
 
 ## What it does
 
-Eleven features in three groups, each with its own switch:
+Twelve features in three groups, each with its own switch:
 
 - Bricks Elements: Image Carousel (sb-bricks-image-carousel), an SEO friendly
   Splide carousel with real img tags, ACF gallery support, breakpoints,
@@ -21,8 +21,8 @@ Eleven features in three groups, each with its own switch:
   ACF Relationship, ACF Repeater, Bricks Content, Post Type, WooCommerce
   Archive Display.
 - Extras: ACF Loop Sorting (repeater and relationship loops, each with its own
-  setting), ACF Gallery Loop, Default To WP Editor, Gutenberg Block Styles,
-  Hide Unpublished ACF Posts.
+  setting), ACF Gallery Loop, Clean Builder Panels, Default To WP Editor,
+  Gutenberg Block Styles, Hide Unpublished ACF Posts.
 
 The module requires Bricks (the framework checks the active theme, because
 themes load after plugins and BRICKS_VERSION is not defined while modules
@@ -133,6 +133,26 @@ when this was added. The only change from the snippet is keeping attachments.
 Checked on the hub with real posts: publish kept; draft, future, private,
 pending and trash dropped; an image attached to a draft kept; a single draft
 post object gave null; empty values passed through untouched.
+
+## Clean Builder Panels (October 2026)
+
+Sam's section, card and layout CSS lives in WPCodeBox snippets, and WPCodeBox
+prints them in wp_head on both pages of the builder: its own window (panels,
+popups, the media library) and the canvas iframe (?brickspreview). So the
+builder's own UI was restyled too (a `section` rule padded its panels). The
+feature (features/builder-panels, on by default) switches off every
+`link.wpcb2-external-style` and `style.wpcb2-inline-style` in the builder's
+window only, `bricks_is_builder_main()`, at wp_head 999 and again on
+DOMContentLoaded. The canvas and the front end keep them. They are disabled,
+not removed, because WPCodeBox echoes them inside its own wp_head closures
+with no handle to dequeue. Tested by Sam on the hub, Bricks 2.4.4.
+
+Tried first and dropped: a WPCodeBox Custom PHP Condition on the snippet
+(`return ! function_exists( 'bricks_is_builder_main' ) || ...`) took the site
+down with a critical error, cause not looked into; and wrapping the CSS in
+`@scope (:root) to (#bricks-workspace)`, which works but makes the scoped
+rules win ties against unscoped ones of the same specificity, and needs the
+whole snippet indented.
 
 ## Sites moved over
 

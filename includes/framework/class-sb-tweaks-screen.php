@@ -60,11 +60,59 @@ class SB_Tweaks_Screen {
 	}
 
 	/**
+	 * A module of pages rather than switchable features: 'menu' =>
+	 * [ 'features' => false ]. It has its own menu but no Features page. Its
+	 * groups are always on, in the order module.php declares them, and the
+	 * menu opens on the first page of the nav. Email Signatures is one.
+	 */
+	public function pages_only() {
+		return $this->parent() === '' && isset( $this->def['menu']['features'] ) && $this->def['menu']['features'] === false;
+	}
+
+	/**
+	 * WordPress screens listed in the nav before the module's own pages, from
+	 * the declaration's 'nav': admin address => title, such as
+	 * 'edit.php?post_type=sb_emailsig' => 'People'.
+	 */
+	private function nav_before() {
+		return ( isset( $this->def['nav'] ) && is_array( $this->def['nav'] ) ) ? $this->def['nav'] : [];
+	}
+
+	/**
+	 * Which nav item is open: a page of ours by its slug, or a WordPress
+	 * screen from 'nav' while that screen's post type is open.
+	 */
+	private function current_item( array $items ) {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+		if ( $page !== '' ) {
+			return isset( $items[ $page ] ) ? $page : '';
+		}
+
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+		if ( $screen && $screen->post_type ) {
+			foreach ( array_keys( $items ) as $slug ) {
+				if ( strpos( $slug, '.php' ) !== false && strpos( $slug, 'post_type=' . $screen->post_type ) !== false ) {
+					return $slug;
+				}
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * The address of one of this module's pages, wherever it sits. The hub's
 	 * Documentation page of a module under a parent menu is registered with no
 	 * parent, so it is reached through admin.php like any other.
 	 */
 	public function page_url( $slug ) {
+		// A WordPress screen from 'nav' is already an admin address.
+		if ( strpos( $slug, '.php' ) !== false ) {
+			return admin_url( $slug );
+		}
+
 		$parent = $this->parent();
 
 		if ( $parent === '' || $slug === $this->slug() . '-documentation' ) {
@@ -76,7 +124,7 @@ class SB_Tweaks_Screen {
 
 	/** The page the module opens on: its Features page, or under a parent menu its first page. */
 	public function front_door() {
-		if ( $this->parent() === '' ) {
+		if ( $this->parent() === '' && ! $this->pages_only() ) {
 			return $this->slug();
 		}
 
@@ -123,6 +171,11 @@ class SB_Tweaks_Screen {
 			return $states;
 		}
 
+		// No Features page to switch them off on, so every group is on.
+		if ( $this->pages_only() ) {
+			return array_fill_keys( array_keys( $states ), true );
+		}
+
 		$sections = $this->features->groups();
 		$titles   = [];
 
@@ -159,15 +212,21 @@ class SB_Tweaks_Screen {
 			$this->menu_position()
 		);
 
-		// First sub item, so the menu reads "Features" rather than repeating the module name.
-		add_submenu_page(
-			$this->slug(),
-			esc_html( $this->def['menu']['page_title'] ),
-			esc_html__( 'Features', 'sb-tweaks' ),
-			'manage_options',
-			$this->slug(),
-			[ $this, 'render_groups' ]
-		);
+		if ( $this->pages_only() ) {
+			// No Features page: the top item links to the first sub item, and
+			// the module's own address goes to the front door.
+			add_action( 'load-toplevel_page_' . $this->slug(), [ $this, 'to_front_door' ] );
+		} else {
+			// First sub item, so the menu reads "Features" rather than repeating the module name.
+			add_submenu_page(
+				$this->slug(),
+				esc_html( $this->def['menu']['page_title'] ),
+				esc_html__( 'Features', 'sb-tweaks' ),
+				'manage_options',
+				$this->slug(),
+				[ $this, 'render_groups' ]
+			);
+		}
 
 		/**
 		 * Each group that is switched on gets a page of its own, in the order
@@ -229,6 +288,12 @@ class SB_Tweaks_Screen {
 				[ $this, 'render_documentation' ]
 			);
 		}
+	}
+
+	/** A module of pages: its own address opens the first page of its nav. */
+	public function to_front_door() {
+		wp_safe_redirect( $this->page_url( $this->front_door() ) );
+		exit;
 	}
 
 	/**
@@ -293,7 +358,11 @@ class SB_Tweaks_Screen {
 	/** The pages the tab bar and the admin bar shortcut list, in menu order. */
 	public function bar_items() {
 		$sections = $this->features->groups();
-		$items    = $this->parent() === '' ? [ $this->slug() => __( 'Features', 'sb-tweaks' ) ] : [];
+		$items    = ( $this->parent() === '' && ! $this->pages_only() ) ? [ $this->slug() => __( 'Features', 'sb-tweaks' ) ] : [];
+
+		foreach ( $this->nav_before() as $slug => $title ) {
+			$items[ $slug ] = $title;
+		}
 
 		foreach ( $this->ordered_groups() as $group => $on ) {
 			if ( ! $on || ! $this->features->in_group( $group ) ) {
@@ -328,8 +397,7 @@ class SB_Tweaks_Screen {
 		$items = $this->bar_items();
 
 		// Which of our pages is open, if any. Nothing is current on the front end.
-		$page    = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-		$current = isset( $items[ $page ] ) ? $page : '';
+		$current = $this->current_item( $items );
 
 		$pages = [];
 
@@ -365,12 +433,12 @@ class SB_Tweaks_Screen {
 			return;
 		}
 
-		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		$current = $this->current_item( $items );
 
 		echo '<nav class="sb-tweaks-header__nav">';
 
 		foreach ( $items as $slug => $title ) {
-			echo '<a class="sb-tweaks-header__link' . ( $slug === $page ? ' is-current' : '' ) . '" href="' . esc_url( $this->page_url( $slug ) ) . '">' . esc_html( $title ) . '</a>';
+			echo '<a class="sb-tweaks-header__link' . ( $slug === $current ? ' is-current' : '' ) . '" href="' . esc_url( $this->page_url( $slug ) ) . '">' . esc_html( $title ) . '</a>';
 		}
 
 		echo '</nav>';
@@ -400,6 +468,10 @@ class SB_Tweaks_Screen {
 
 		// No version badge: a module has no version of its own. It ships inside
 		// SocialBUMP Tweaks, whose own pages show the plugin's version.
+		if ( class_exists( 'SB_Tweaks_UI' ) ) {
+			echo SB_Tweaks_UI::mode_switch(); // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped by SB_Tweaks_UI.
+		}
+
 		echo '</div>';
 
 		if ( $intro !== '' ) {
@@ -426,16 +498,12 @@ class SB_Tweaks_Screen {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'sb-tweaks' ) . '</p></div>';
 		}
 
-		echo '<form method="post" autocomplete="off" data-sb-dirty action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		$form = 'sb-tweaks-groups-form';
+
+		echo '<form id="' . esc_attr( $form ) . '" method="post" autocomplete="off" data-sb-dirty action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="sb_tweaks_save_groups">';
 		echo '<input type="hidden" name="sb_tweaks_module" value="' . esc_attr( $this->def['id'] ) . '">';
 		wp_nonce_field( 'sb_tweaks_save_groups' );
-
-		// Reorder sits up here with the heading. Below the grid it was too
-		// easy to hit on the way to Save changes.
-		echo '<section class="sb-tweaks-section"><div class="sb-tweaks-section__head sb-tweaks-section__head--tools"><div><h2>' . esc_html__( 'Features', 'sb-tweaks' ) . '</h2><p>' . esc_html__( 'Each one switched on adds its own page to the menu. Reorder puts them in the order you want, here and in the menus, and each one collapses to its title.', 'sb-tweaks' ) . '</p></div>';
-		echo SB_Tweaks_Cards::toolbar( $this->features->groups_option(), 'reorder' );
-		echo '</div>';
 
 		// By name until the user drags them; then in their order, new ones by name at the end.
 		$titles = [];
@@ -445,8 +513,27 @@ class SB_Tweaks_Screen {
 		}
 
 		$ordered = SB_Tweaks_Cards::sort( $titles, $this->features->groups_option() );
+		$shown   = 0;
+		$lit     = 0;
 
-		echo SB_Tweaks_Cards::toolbar( $this->features->groups_option(), 'links' );
+		foreach ( $ordered as $group ) {
+			if ( $this->features->in_group( $group ) ) {
+				$shown++;
+				$lit += ( ! empty( $states[ $group ] ) && ! $this->features->group_needs( $group ) ) ? 1 : 0;
+			}
+		}
+
+		// The bar: Reorder and the collapse buttons, then Save changes. The
+		// cards sit on the page below it (Sam, 29 October 2026).
+		echo SB_Tweaks_UI::bar( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+			[
+				[ __( 'Cards', 'sb-tweaks' ), SB_Tweaks_Cards::toolbar( $this->features->groups_option(), 'reorder' ) . SB_Tweaks_Cards::toolbar( $this->features->groups_option(), 'links' ) ],
+			],
+			SB_Tweaks_UI::save_button( $form )
+		);
+
+		/* translators: %d: how many are switched on */
+		echo SB_Tweaks_UI::heading( __( 'Features', 'sb-tweaks' ), $shown, sprintf( __( '%d on', 'sb-tweaks' ), $lit ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside.
 		echo '<div class="sb-tweaks-grid"' . SB_Tweaks_Cards::container_attributes( $this->features->groups_option() ) . '>';
 
 		$states_of = $this->features->get_states();
@@ -509,7 +596,7 @@ class SB_Tweaks_Screen {
 			echo $card . '</div>';
 		}
 
-		echo '</div></section>';
+		echo '</div>';
 		submit_button( esc_html__( 'Save changes', 'sb-tweaks' ), 'primary sb-save--clean' );
 		echo '</form></div>';
 	}
@@ -764,6 +851,11 @@ class SB_Tweaks_Screen {
 
 		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [], $ver );
 
+		// The shared SocialBUMP look, over the top of admin.css.
+		if ( class_exists( 'SB_Tweaks_UI' ) ) {
+			SB_Tweaks_UI::enqueue( $this->dark_ready() );
+		}
+
 		// Match the card accent to the admin colour scheme the user has
 		// chosen, once, however many module screens share the request.
 		if ( ! self::$accent_done ) {
@@ -803,6 +895,42 @@ class SB_Tweaks_Screen {
 		if ( file_exists( $cards ) ) {
 			wp_enqueue_script( 'sb-module-cards', SB_TWEAKS_URL . 'assets/js/module-cards.js', [], SB_TWEAKS_VERSION . '.' . filemtime( $cards ), true );
 		}
+	}
+
+	/**
+	 * Whether this page is drawn only from framework parts: the Features
+	 * page, the group pages and Documentation. Those have a dark look. Pages
+	 * a module draws itself, and modules under another menu such as Images,
+	 * stay light until they are moved across.
+	 */
+	private function dark_ready() {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+		// A module whose own pages have been moved across says so in module.php.
+		if ( ! empty( $this->def['ui_ready'] ) ) {
+			return true;
+		}
+
+		if ( $page === $this->slug() || $page === $this->slug() . '-documentation' ) {
+			return true;
+		}
+
+		if ( $this->parent() !== '' ) {
+			return false;
+		}
+
+		foreach ( array_keys( (array) $this->features->groups() ) as $group ) {
+			if ( $page === $this->group_page_slug( $group ) ) {
+				// A group that is one feature with a page of its own shows
+				// that page, which the module draws itself (Email Signatures).
+				$features = $this->features->in_group( $group );
+				$only     = count( $features ) === 1 ? reset( $features ) : null;
+
+				return ! ( $only && ! empty( $only['admin_page']['render'] ) );
+			}
+		}
+
+		return false;
 	}
 
 	/** Make the mark dim and brighten like the Dashicons around it. */

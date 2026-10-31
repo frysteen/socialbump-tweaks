@@ -1651,7 +1651,7 @@ class SB_Images_Tools {
 		// Listed is not the same as there. A size whose file has gone still has its
 		// metadata entry, and saying the dimensions here would be a lie.
 		$present = SB_Images_Rebuild::present( $id, $meta );
-		$all     = SB_Images_Rebuild::all_wanted();
+		$all     = SB_Images_Rebuild::wanted_for( $id ); // With the sizes only this image has.
 		$width   = isset( $meta['width'] ) ? (int) $meta['width'] : 0;
 		$height  = isset( $meta['height'] ) ? (int) $meta['height'] : 0;
 
@@ -1695,7 +1695,7 @@ class SB_Images_Tools {
 
 		// In the same groups as the Image Cleaner's Sizes panel, each in width
 		// order, so the two lists read the same way.
-		$groups = class_exists( 'SB_Images_Cleaner' ) ? SB_Images_Cleaner::size_groups() : [];
+		$groups = array_merge( class_exists( 'SB_Images_Cleaner' ) ? SB_Images_Cleaner::size_groups() : [], SB_Images_Rebuild::attachment_size_groups() );
 		$html   = '';
 
 		foreach ( $groups as $group ) {

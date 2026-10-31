@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.4.3
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,16 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.5.0 =
+* Added the Email Signatures module.
+* Module controls from the hub: the hub chooses which modules each site can use and sets their limits, and a module a site cannot use is hidden there. Email Signatures is off on client sites until the hub allows it.
+* New look for every SocialBUMP Tweaks page: SocialBUMP colours and the Outfit font whatever the admin colour scheme, an Auto, Light and Dark switch saved per user, and cards that show on, off and unsaved. Tables, ACF fields and popups follow light or dark mode too.
+* Saved notices show as toasts at the top right and fade away by themselves, and a reload no longer shows them again.
+* Toggle switches: the Yes on a switched-on toggle is dark on green, like a button (it was white).
+* Betas: test builds of SocialBUMP Tweaks can be sent from the hub to chosen sites, which go back on to releases at the next one.
+* Reporter 1.3.0: takes a pushed beta of SocialBUMP Tweaks, still signed by the hub and only from its own GitHub release.
+* Installs page on the hub: sites shown as cards with search and filters, Update selected for all or one plugin, and modules and Email Signatures limits set on several sites at once.
 
 = 0.4.3 =
 * Elementor Tweaks: an Image widget with an SB aspect ratio and a link no longer collapses to nothing when the image loads lazily (the 4th image on a page onwards).

@@ -33,6 +33,9 @@ return [
 	'title'       => 'Image Management',
 	'description' => 'Image sizes, tidy titles and alt text on upload, media library extras and the Image Cleaner. Adds SB Image Settings and SB Image Cleaner to the Media menu.',
 	'heading'     => 'Image Management',
+
+	// Its pages use the SocialBUMP UI tokens, so dark mode is on.
+	'ui_ready'    => true,
 	'migrate'     => [ 'SB_Images_Module', 'migrate' ],
 
 	// Settings first: the order of the Media menu and the admin bar flyout.

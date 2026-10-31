@@ -25,8 +25,129 @@ class SB_Tweaks_Push {
 	/** Reporter version that first understood being told to install SocialBUMP Tweaks. */
 	const NEEDS_INSTALL = '1.2.0';
 
+	/** Reporter version that first took a beta (0.5.0-beta.2) of SocialBUMP Tweaks. */
+	const NEEDS_BETA = '1.3.0';
+
 	public static function boot() {
 		add_action( 'wp_ajax_sb_tweaks_push', [ __CLASS__, 'ajax' ] );
+		add_action( 'wp_ajax_sb_tweaks_policy', [ __CLASS__, 'policy_ajax' ] );
+	}
+
+	/** Where the hub keeps what it last sent each site: host => policy (SB_Tweaks_Policy::clean()). */
+	const POLICIES = 'sb_tweaks_policies';
+
+	/** What a site is allowed, as the hub last sent it, else the defaults. */
+	public static function policy_for( $host ) {
+		$all = (array) get_option( self::POLICIES, [] );
+
+		if ( isset( $all[ $host ] ) && is_array( $all[ $host ] ) ) {
+			return SB_Tweaks_Policy::clean( $all[ $host ] ) + [ 'sent' => (int) ( $all[ $host ]['sent'] ?? 0 ) ];
+		}
+
+		$modules = [];
+
+		foreach ( array_keys( SB_Tweaks_Modules::instance()->all() ) as $id ) {
+			$modules[ $id ] = ! in_array( $id, SB_Tweaks_Policy::OFF_BY_DEFAULT, true );
+		}
+
+		return SB_Tweaks_Policy::clean( [ 'modules' => $modules ] ) + [ 'sent' => 0 ];
+	}
+
+	/**
+	 * Send one site which modules it may use and its limits (Sam, 31 October
+	 * 2026). Signed as an update push is; the site keeps it and hides the rest.
+	 * Returns [ ok, message ].
+	 */
+	public static function send_policy( $host, array $policy ) {
+		$sites = (array) get_option( SB_Tweaks_Installs::OPTION, [] );
+
+		if ( ! isset( $sites[ $host ] ) ) {
+			return [ 'ok' => false, 'message' => __( 'Unknown site.', 'sb-tweaks' ) ];
+		}
+
+		$secret = self::secret();
+
+		if ( $secret === '' || ! function_exists( 'sodium_crypto_sign_detached' ) ) {
+			return [ 'ok' => false, 'message' => __( 'The hub has no signing key.', 'sb-tweaks' ) ];
+		}
+
+		// Every module the hub has, each on or off, so nothing is left to the site's defaults.
+		$known  = array_keys( SB_Tweaks_Modules::instance()->all() );
+		$policy = SB_Tweaks_Policy::clean( $policy );
+		$policy['modules'] = array_intersect_key( $policy['modules'], array_flip( $known ) ) + array_fill_keys( $known, false );
+
+		$job = [
+			'action'  => 'policy',
+			'host'    => $host,
+			'policy'  => $policy,
+			'expires' => time() + 300,
+			'nonce'   => bin2hex( random_bytes( 16 ) ),
+		];
+		$raw = wp_json_encode( $job );
+		$sig = sodium_crypto_sign_detached( $raw, $secret );
+
+		$response = wp_remote_post(
+			add_query_arg( 'rest_route', '/socialbump/v1/policy', trailingslashit( $sites[ $host ]['url'] ) ),
+			[
+				'timeout' => 30,
+				'headers' => [ 'Content-Type' => 'application/json' ],
+				'body'    => wp_json_encode( [ 'payload' => base64_encode( $raw ), 'sig' => base64_encode( $sig ) ] ),
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return [ 'ok' => false, 'message' => $response->get_error_message() ];
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+		if ( $code === 404 && is_array( $body ) && ( $body['code'] ?? '' ) === 'rest_no_route' ) {
+			return [ 'ok' => false, 'message' => __( 'This site needs a newer SocialBUMP Tweaks first (the next beta or release).', 'sb-tweaks' ) ];
+		}
+
+		if ( ! is_array( $body ) || ! array_key_exists( 'ok', $body ) ) {
+			/* translators: %d: HTTP status code */
+			return [ 'ok' => false, 'message' => sprintf( __( 'The site answered with an error (%d). A security plugin may be blocking outside REST API requests.', 'sb-tweaks' ), $code ) ];
+		}
+
+		if ( ! empty( $body['ok'] ) ) {
+			$all          = (array) get_option( self::POLICIES, [] );
+			$all[ $host ] = $policy + [ 'sent' => time() ];
+			update_option( self::POLICIES, $all, false );
+		}
+
+		return [
+			'ok'      => ! empty( $body['ok'] ),
+			'message' => sanitize_text_field( (string) ( $body['message'] ?? '' ) ),
+		];
+	}
+
+	/** The Installs page's Modules popup: the ticked modules and the limits, for one site. */
+	public static function policy_ajax() {
+		check_ajax_referer( 'sb_tweaks_push' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json( [ 'ok' => false, 'message' => __( 'You do not have permission to do that.', 'sb-tweaks' ) ], 403 );
+		}
+
+		$host    = isset( $_POST['host'] ) ? sanitize_text_field( wp_unslash( $_POST['host'] ) ) : '';
+		$allowed = isset( $_POST['modules'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['modules'] ) ) : [];
+		$limits  = isset( $_POST['limits'] ) && is_array( $_POST['limits'] ) ? map_deep( wp_unslash( $_POST['limits'] ), 'sanitize_text_field' ) : [];
+
+		$result = self::send_policy(
+			$host,
+			[
+				'modules' => array_fill_keys( $allowed, true ),
+				'limits'  => $limits,
+			]
+		);
+
+		if ( $result['ok'] ) {
+			$result['policy'] = self::policy_for( $host );
+		}
+
+		wp_send_json( $result );
 	}
 
 	private static function secret() {
@@ -48,6 +169,11 @@ class SB_Tweaks_Push {
 		return ! empty( $site['reporter'] ) && version_compare( $site['reporter'], self::NEEDS, '>=' );
 	}
 
+	/** Whether a site's reporter can take a beta. */
+	public static function can_beta( array $site ) {
+		return ! empty( $site['reporter'] ) && version_compare( $site['reporter'], self::NEEDS_BETA, '>=' );
+	}
+
 	/** Whether a site's reporter can be told to install SocialBUMP Tweaks. */
 	public static function can_install( array $site ) {
 		return ! empty( $site['reporter'] ) && version_compare( $site['reporter'], self::NEEDS_INSTALL, '>=' );
@@ -56,9 +182,10 @@ class SB_Tweaks_Push {
 	/**
 	 * Push one plugin to one site. Returns [ ok, message, version ].
 	 *
-	 * $action is update (a plugin the site has) or install (SocialBUMP Tweaks,
+	 * $action is update (a plugin the site has), install (SocialBUMP Tweaks,
 	 * on a site that does not have it yet, which then takes over from the
-	 * standalone plugins it has modules for).
+	 * standalone plugins it has modules for) or beta (SocialBUMP Tweaks' latest
+	 * beta, a pre-release on GitHub, sent to the site as an update).
 	 */
 	public static function push( $host, $slug, $action = 'update' ) {
 		$sites  = (array) get_option( SB_Tweaks_Installs::OPTION, [] );
@@ -75,6 +202,20 @@ class SB_Tweaks_Push {
 		}
 
 		$version = $latest[ $slug ];
+
+		if ( $action === 'beta' ) {
+			$beta    = class_exists( 'SB_Tweaks_Release' ) ? SB_Tweaks_Release::beta() : [];
+			$version = (string) ( $beta['version'] ?? '' );
+
+			if ( $slug !== 'socialbump-tweaks' || $version === '' ) {
+				return [ 'ok' => false, 'message' => __( 'There is no beta to send. Release one from the Publishing page first.', 'sb-tweaks' ) ];
+			}
+
+			if ( ! self::can_beta( $sites[ $host ] ) ) {
+				return [ 'ok' => false, 'message' => __( 'This site cannot take a beta until it has a release with the newer reporter.', 'sb-tweaks' ) ];
+			}
+		}
+
 		$job     = [
 			'action'  => $action === 'install' ? 'install' : 'update',
 			'host'    => $host,
@@ -155,7 +296,8 @@ class SB_Tweaks_Push {
 		$host = isset( $_POST['host'] ) ? sanitize_text_field( wp_unslash( $_POST['host'] ) ) : '';
 		$slug = isset( $_POST['plugin'] ) ? sanitize_key( wp_unslash( $_POST['plugin'] ) ) : '';
 
-		$job  = isset( $_POST['job'] ) && $_POST['job'] === 'install' ? 'install' : 'update';
+		$job  = isset( $_POST['job'] ) ? sanitize_key( wp_unslash( $_POST['job'] ) ) : 'update';
+		$job  = in_array( $job, [ 'install', 'beta' ], true ) ? $job : 'update';
 
 		wp_send_json( self::push( $host, $slug, $job ) );
 	}

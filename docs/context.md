@@ -25,15 +25,22 @@ Naming, because the old plugins used these words differently and it matters:
 
 ## Where it is up to
 
-As of 23 October 2026, version 0.3.1 is the published version (17 October:
-per-size padlocks on SB Image Settings), and the fix in Translations wait for
-init, below, is on the hub, queued for 0.3.2. 0.3.0 was the first with Woo
+As of 31 October 2026, version 0.4.3 is the published version (28 October).
+0.5.0 is next, with Email Signatures, the SocialBUMP UI look, betas and module
+controls from the hub. Betas of it (0.5.0-beta.N, see Betas below) run on
+gimage.com.au and bricks.socialbump.com.au. 0.3.0 was the first with Woo
 Tweaks and Elementor Tweaks.
 
-- Five modules, each with its own notes in its docs/context.md: Bricks Tweaks
+Release notes (Sam, 31 October 2026): keep them short. The changes waiting
+for a release (option sb_tweaks_pending_changes, one line each, shown in the
+notes box on Publishing and written to readme.txt's changelog) say what a
+site owner would notice. A new module is one line, "Added the Email
+Signatures module", with its detail in the module's own docs, not the notes.
+
+- Six modules, each with its own notes in its docs/context.md: Bricks Tweaks
   (modules/bricks), Site Kit (modules/site-kit), Image Management
-  (modules/images), Woo Tweaks (modules/woo-tweaks) and Elementor Tweaks
-  (modules/elementor-tweaks).
+  (modules/images), Woo Tweaks (modules/woo-tweaks), Elementor Tweaks
+  (modules/elementor-tweaks) and Email Signatures (modules/email-signatures).
 - Elementor Tweaks was tested on epoxyflooringco.com.au through a test copy
   plugin (sb-elementor-tweaks-test) and a test page (13644). Epoxy has run
   SocialBUMP Tweaks since 0.3.0 (17 October), when the test copy was deleted;
@@ -137,8 +144,11 @@ configuration and bookmarks hold them.
 - Bricks element registration belongs to the Bricks module, not the
   framework. The Bar port dropped Site Kit's unused accent helpers.
 - assets/js/framework.js holds the shared page behaviours: colour swatch
-  sync, hide-when fields, the card switch is-on class, and the select all and
-  none links (data-sb-tweaks-check).
+  sync, hide-when fields, the card switch is-on class, the select all and
+  none links (data-sb-tweaks-check), and saved notices going by themselves:
+  a dismissible success notice fades after 4 seconds (errors and warnings
+  stay) and the address loses its updated flag, so a reload doesn't show it
+  again (28 October 2026, Sam's request).
 
 ## The shape that was agreed
 
@@ -266,7 +276,7 @@ bookmark breaks.
 | includes/class-sb-tweaks-hub-publish.php | Publish from the Installs page, hub only |
 | includes/class-socialbump-reporter.php | the reporter, identical in every SocialBUMP plugin |
 | includes/framework/ | the seven classes the modules run on |
-| assets/js/framework.js | swatches, hide-when fields, switches, select all and none |
+| assets/js/framework.js | swatches, hide-when fields, switches, select all and none, saved notices fading |
 | assets/js/progress.js | the progress popup, SBTweaksProgress (see Popups) |
 | assets/js/confirm.js | the confirm popup, SBTweaksConfirm (see Popups) |
 | assets/js/module-cards.js | the cards that drag to reorder and collapse |
@@ -359,14 +369,137 @@ per host in the option sb_tweaks_installs (not autoloaded, capped at 1000 sites)
 The key ships inside the plugins, so it keeps out noise rather than a determined
 sender; a forged report can only add a row, which the page can remove.
 
-The Installs tab (sb-tweaks-installs, between Modules and Publishing) shows a row
-per site and a column per plugin. The hub's own copy of each plugin is taken as
-the latest release, so a lower version shows amber, a deactivated one grey, and
-a site silent for over three days is tinted red (a deleted plugin, or a site that
-is down, cannot report). Active under a version links to that plugin's main page on the site (SB_Tweaks_Installs::PAGES, built from the reported home address plus /wp-admin/).
-The cross on each row removes it; it returns if the site
-checks in again. Later the check-in reply is the natural place to send a site
-instructions, such as switching features off on a site that has moved away.
+The Installs tab (sb-tweaks-installs, between Modules and Publishing) shows the sites as
+a grid of cards (the hub's own table above them went 31 October 2026, see
+Publishing from the Installs page) (Sam, 31 October 2026; before that a table with a column per
+plugin). The hub's own copy of each plugin is taken as the latest release, so a
+lower version shows amber (its tip says what the hub has), a beta blue, a
+deactivated one grey, and a site silent for over three days gets a red border
+and a red "Disconnected" pill in the foot where the last seen time was, its
+tip the date and time it was last heard from (a deleted plugin, or a site
+that is down, cannot report). Active beside a version links to that plugin's
+main page on the site (SB_Tweaks_Installs::PAGES, built from the reported home
+address plus /wp-admin/). The red cross on each card removes it, after asking;
+it returns if the site checks in again.
+
+Modules button (Sam, 31 October 2026): "Modules 5 of 6" on the left of each
+card's foot, away from the Update buttons so the two aren't clicked by
+mistake. It opens a popup with a tick box per
+module and, for a module with limits, a number box for each (blank means no
+limit). Save sends the policy to the site (see Module controls from the hub)
+in the framework's progress popup: a spinner while the site answers, then
+one line per module, "Allowed: Companies 1, Active people 5, Templates 2" or
+"Hidden", how long it took, and Close, which closes without reloading the
+page. A site on a version without the policy route answers 404 rest_no_route,
+shown as "This site needs a newer SocialBUMP Tweaks first".
+
+The cards (render() and card(), styles and script inline in script()):
+
+- Bar (SB_Tweaks_UI::bar, class sb-installs-bar): Sites with its count and a
+  search box; a filter (All, Needs update, On beta, each with its count;
+  .sb-ui-seg with aria-pressed; Not heard from went 31 October 2026, the red
+  pill shows it); on the right the select box and Actions. No sites
+  matching shows "No sites match."
+- Modules filter (Sam, 31 October 2026): a Modules button beside the
+  filter opens a list of every module, all ticked, with Select all and
+  Select none. Each row has an Only link on hover, and Option, Cmd or Ctrl
+  click on a row does the same (just that module). A site shows when the
+  hub allows it any ticked module (its data-policy; modMatch()), so Only on
+  Email Signatures leaves the sites that may use it. The button reads
+  Modules: All, None, the one module's name, or 2 of 6, with a green outline
+  while it filters. Like the other filters, a change clears the selection.
+- Selecting (Sam, 31 October 2026): one tick box with "Select all" or "3
+  selected" beside it. Nothing ticked: it ticks every site showing.
+  Anything ticked: it clears them all. Some ticked: it shows a dash
+  (indeterminate). Changing the filter or the search clears the selection,
+  so nothing is ever ticked out of sight. The select control is boxed like a
+  button (140px wide at least) and Actions is at least 150px, so neither
+  moves as the count changes (Sam, 31 October 2026). Actions has the word on the
+  left and the arrow on its own slightly darker strip on the right
+  (.sb-installs__actions-arrow).
+- Actions (n) opens a menu (.sb-installs-menu) in two parts. Selected sites:
+  Update everything waiting, Update Tweaks only, Update SEO for AI only,
+  Modules. All sites: Signature limits, Update beta sites to the latest beta.
+  An item that can't run is aria-disabled (not disabled, so its tip still
+  shows) with the reason as its tip: select some sites first, none of the
+  selected sites need this update, can take module changes, no site has
+  Email Signatures allowed, no site on a beta is behind (blocked()).
+- Card head: a tick box (on any site the hub can send to: one with updates
+  waiting, or Tweaks active for Modules for selected), the site's icon in a 52px circle, the name, and its address with
+  Plugins and Updates on the line under it (Sam, 31 October 2026: side by
+  side they wrapped badly). All three are links with a small arrow (they
+  open the site in a new tab), underlined only on hover (Sam, 31 October
+  2026), as are the plugin names.
+- Site icons: read from site_icon_url in each site's public /wp-json/ index
+  (WordPress gives it out; no reporter change needed) and kept in the option
+  sb_tweaks_install_icons (host to url, ok, at), apart from the reports since
+  each check-in replaces those. A card whose icon is due (none stored, over a
+  week old, or a day after the site didn't answer) carries data-icon-ask, and
+  the page asks for those one at a time after it loads
+  (wp_ajax_sb_tweaks_install_icon), so the page never waits on a site. No
+  icon, or one that won't load, leaves the first letter of the site name on a
+  colour picked from the address (ICON_COLOURS by crc32), so a site always
+  gets the same colour. The image loads from the client site with
+  referrerpolicy no-referrer.
+- Icon ring (Sam, 31 October 2026): 3px, a darker shade (75% mixed with
+  black) of the icon's own colour. It is the circle's background with the
+  image inset 3px and rounded on top, not a border: a border left a thin
+  light line where it met the image. An inner ring (::after, a 2px inset
+  shadow in the same colour, 2px in) sits over the image's own edge, which
+  still showed a faint line on round icons with see-through corners.
+  When the hub fetches an icon, ring() shrinks it to 24 by 24 with GD and
+  averages the coloured pixels, leaving out see-through ones and greys,
+  whites and blacks; it is stored as ring with the icon. Fewer than 12
+  coloured pixels (a black and white logo), a colour too pale to show, or an
+  image GD can't read (.ico, .svg) give no colour and a neutral ring
+  (--sbui-border-strong). Letter circles get a darker ring of their own
+  colour (color-mix with 30% black). An icon stored before rings existed is
+  due again at once. First run 31 October 2026: 9 coloured, 4 neutral
+  (Doogood, Glenys Searle, Makeup by Marlies, RZ Restorations), 3 letters.
+- One line per installed plugin (Sam, 31 October 2026): a light on the left
+  (lit green when active, amber when it needs an update, off and grey when
+  deactivated, the state as its tip), the plugin's name as the link to its page on the site (plain text
+  when deactivated), then the version pill and its buttons on the right. The
+  buttons are always there so every card looks the same: Update on each
+  plugin, and Push beta (Update beta on a site already on one) on Tweaks,
+  greyed out when there's nothing to do. A plugin that
+  isn't installed isn't shown, except Tweaks with an Install button when a
+  module would move a plugin in ("Moves Site Kit in" as its tip). A failed push shows its
+  reason under the line.
+- Under Tweaks, when the site may use Email Signatures: "Signatures" on the
+  left and its limits on the right as plain text split by thin lines
+  (Companies 1 | People 5 | Templates 2), ∞ for no limit with "No limit" as
+  its tip, so it stays on one line (Sam, 31 October 2026; it was pills),
+  and Signatures is a button that opens that one site's three limits in a
+  small popup (esPopup( card ), title "Email Signatures limits on Site"), redrawn after any save (es_line() and the script's esLine()).
+  These are what the hub last sent (sb_tweaks_policies) or the defaults; the
+  hub doesn't know whether the site has switched the module off on its own
+  Modules page, or how many it uses, as sites don't report either yet.
+- Several sites at once (Sam, 31 October 2026): Modules for selected opens
+  one popup for the ticked sites, each module with Leave as is (showing all
+  allowed, all hidden or mixed), Allow or Hide, and limit boxes where blank
+  leaves each site's own. Signature limits lists every site with Email
+  Signatures allowed, its three limits ready to edit, and sends only the
+  rows that changed ("Nothing changed" toast otherwise). Both send each site
+  its whole policy through wp_ajax_sb_tweaks_policy, one at a time in the
+  progress popup, a line per site in the summary (one site: a line per
+  module). The card's data-policy holds what was last sent, for the script.
+- The foot: Modules, then when it last checked in ("6 hours ago" with a
+  clock, the date and time as its tip; a red Disconnected pill instead on a
+  site silent for over three days), and Update all
+  (only with updates waiting) and the red cross on the right. It wraps on a
+  narrow card. WordPress and PHP versions aren't shown (Sam: he has them
+  elsewhere).
+- After an update the pill changes in place and its button greys out (a
+  beta also greys out Update, since the site is now ahead), the filter
+  counts are redone, and a card with nothing left loses its tick box and
+  Update all.
+- Phones: each part of the bar goes on its own line and the filter wraps.
+
+Checked 31 October 2026 by rendering it on the hub (no PHP warnings, 16
+sites) and screenshotting a copy in light, dark and phone widths, with three
+made-up cards added to the copy for the behind, silent and not installed
+states.
 
 ## Hub moved (September 2026)
 
@@ -443,6 +576,14 @@ with a plugin some module's replaces names.
 
 ## Publishing from the Installs page
 
+Removed 31 October 2026 (Sam): the hub table described next is no longer on
+the Installs page. The top navigation shows when a plugin has changes waiting,
+and each plugin's Publishing page shows the hub and GitHub versions.
+render_hub(), hub_script(), live_version() and RELEASES went with it, and the
+hub itself is still left out of the cards. includes/class-sb-tweaks-hub-publish.php
+is still there, but nothing calls SB_Tweaks_Hub_Publish now; remove it or put
+it to use. The rest of this section is how it worked.
+
 includes/class-sb-tweaks-hub-publish.php, hub only. The hub table has a tick box
 per plugin with changes waiting (and select all), the waiting count opens a popup
 listing the changes with Cancel and Publish, Review links to the plugin's
@@ -461,12 +602,11 @@ sb_tweaks (sbbt went with standalone Bricks Tweaks). Tested by asking Site Kit's
 refused before touching GitHub, with the redirect caught and the message read
 back.
 
-Sites table: a tick box (and select all) on each site with updates waiting,
-an Update all button in a narrow column before the remove column, and a
-tfoot row with Update all (everything on the ticked sites) and an Update
-under each plugin column (that plugin only on the ticked sites, enabled only
-when a ticked site is behind on it). Both run the site's waiting updates one at a time in the
-framework's progress popup (SBTweaksProgress, see Popups). A single Update button, stacked under its version, stays inline.
+Sites: Update selected runs every waiting update on the ticked sites, and its
+menu one plugin only on them (each choice enabled only when a ticked site is
+behind on it). Update all on a card does that card's site. All of them run
+one at a time in the framework's progress popup (SBTweaksProgress, see
+Popups). A single Update button on a plugin row updates in place.
 Keep explanatory copy on these pages to a minimum; Sam knows what the buttons do.
 
 ## Popups
@@ -545,10 +685,30 @@ address. From a script: SBTweaksConfirm.ask( element, options ),
 title, message, body, check (a tick box, or { label, list } with each line's
 first word bold), cancel, action, alert, before( checked ). Styles
 .sb-tweaks-modal and .sb-tweaks-dialog*, the same box as the Installs page's.
+
+Deletes and resets (Sam, 30 October 2026): tone: 'danger' (or
+data-sb-tweaks-confirm-tone="danger", and any trigger whose class has --danger
+in it) puts the warning icon by the title (.sb-tweaks-dialog__head and
+__icon) and makes the action solid red with white words
+(.sb-tweaks-button--danger-solid). On SocialBUMP UI pages every popup's
+buttons sit together on the right in a grey footer, as in the UI Kit.
+
+Buttons: .sb-tweaks-button--danger is a red outline that turns solid red
+with white on hover, for every delete or trash button. An icon with no words
+is square at any size: .sb-tweaks-button--icon (the Email Signatures module
+uses its own .sb-emailsig-icon, also square).
 Converted in October 2026: Publish release and Remove token on Publishing,
 Import settings on Updates, and the remove site cross on the Installs page.
 SEO for AI has its own copy, SBAIKEConfirm (data-sbaike-confirm), as it does
 of the progress popup.
+
+Since 28 October 2026 the popup carries wp-core-ui on its own outer element,
+so it looks the same on a front-end page (Email Signatures' team page) that
+loads the framework's admin.css, WordPress's wp-includes/css/buttons.min.css,
+jQuery and confirm.js; in wp-admin nothing changes. Fields to fill in go in
+body, each as <label class="sb-tweaks-dialog__field"><span>Label</span>
+<input or textarea></label>: label above, full width box (Email
+Signatures' Email link popup is the first to use it).
 
 ### Confirm popup (the waiting changes on the Installs page)
 
@@ -1014,6 +1174,77 @@ with what it needs. save_modules() already keeps a missing module's saved switch
 as it was, so hiding the card loses nothing, and the card returns once the
 plugin is active. A module that failed to load always shows, with its error.
 
+A module the hub hasn't allowed a site goes further: SB_Tweaks_Modules
+discover() skips it (`if ( class_exists( 'SB_Tweaks_Policy' ) && !
+SB_Tweaks_Policy::allows( $def['id'] ) ) continue;`), so there is no card,
+menu, admin bar row or code running, on the hub too if it were ever not
+allowed (it always is). Its front-end pages go with it: Sam turned Email
+Signatures off on gimage.com.au and its front-end team pages
+redirected.
+
+## Module controls from the hub (October 2026)
+
+includes/class-sb-tweaks-policy.php (SB_Tweaks_Policy), booted in
+socialbump-tweaks.php before SB_Tweaks_UI. The hub decides which modules each
+client site may use and, for modules that have them, its limits. A module a
+site is allowed, the site still switches on and off itself on its Modules
+page.
+
+- Defaults until the hub sends anything: every module allowed except those in
+  OFF_BY_DEFAULT (email_signatures). LIMITS holds each module's limits:
+  Email Signatures companies 1, people 5, templates 2. LIMIT_LABELS names
+  them for the popups and cards (People, not Active people: the limit counts
+  everyone, trashed people too). 0 means no limit.
+- allows( id ), limits( id ), limit( id, key ). The hub (sb_tweaks_is_hub())
+  is always allowed everything with no limits.
+- The site keeps what the hub sent in the option sb_tweaks_policy: modules
+  (id to bool), limits (id to key to int), set (time). clean() keeps only
+  whole numbers 0 to 100000 for keys in LIMITS.
+- Route POST /wp-json/socialbump/v1/policy (some hosts need
+  ?rest_route=/socialbump/v1/policy). receive() checks it the way a pushed
+  update is checked: sodium signature against SocialBUMP_Reporter::PUSH_KEY,
+  action policy, host matches this site, not expired, nonce used once
+  (transient socialbump_push_<nonce>). Then it saves and fires
+  do_action( 'sb_tweaks/policy' ).
+- On the hub, SB_Tweaks_Push::send_policy( host, policy ) signs
+  { action: policy, host, policy, expires, nonce } with SB_Tweaks_Push::secret()
+  and posts it. What was sent is kept per host in the option
+  sb_tweaks_policies (policy plus sent time); policy_for( host ) reads it
+  back for the popup. AJAX: wp_ajax_sb_tweaks_policy (nonce sb_tweaks_push,
+  manage_options).
+- A module applies its own limits; for Email Signatures see the Limits
+  section of its docs (count pills, greyed Add buttons, the newest over a
+  limit going off).
+
+Testing on the hub without touching a client site: in one execute-php
+request, define( 'SB_TWEAKS_IS_HUB', false ) before anything reads it, then
+flush whatever the module caches (SB_EmailSig_Templates::flush()) and read
+the counts. Read only; nothing is saved that way.
+
+## Betas (October 2026)
+
+A beta is a test build sent only to chosen sites. Release beta on the
+Publishing page (release_beta()) puts this site's files on GitHub as a
+pre-release named the next beta, 0.5.0-beta.1, -beta.2 and so on
+(next_beta(); version_compare() puts each after the last and before 0.5.0).
+Nothing is pushed to the repo's Code tab and the hub's own files and version
+don't change; only the zip carries the beta number. The beta before it is
+deleted from GitHub (release and tag). The latest is kept in the option
+sb_tweaks_beta (version, id, tag, at). Sites checking for updates never see
+it: pre-releases aren't offered.
+
+On the Installs page the beta number shows under the SocialBUMP Tweaks
+heading, a site behind it gets Push beta (Update beta once it is on one), and
+Update beta sites sends the latest to every site already on a beta. The push
+is a signed job like any other (SB_Tweaks_Push, job beta), and needs reporter
+1.3.0 or later (NEEDS_BETA, can_beta()), which takes a SocialBUMP Tweaks zip
+only from its own GitHub release. Beta versions show with is-beta on their
+pill.
+
+When a release at or past the beta's version goes out, retire_beta() deletes
+the pre-release and clears sb_tweaks_beta, and the beta sites update to the
+release like everyone else. Sam publishes betas himself.
+
 ## Two-column pages (October 2026)
 
 Rules for a module page laid out in two columns, from SB Image Cleaner, where
@@ -1074,3 +1305,190 @@ fields' ACF keys (field_sbsk_faq_, group_sbsk_faq_), which saved posts use; and
 the module docs' standalone-notes.md and changes.md, the plugin's history.
 socialbump-bricks-tweaks is still in the reporter's list and the framework's
 'replaces' handling stays for Bricks and Elementor Tweaks.
+
+## Email Signatures (October 2026)
+
+Staff email signatures, built for The Cosmetic Studio Noosa to replace
+MySignature. modules/email-signatures, id email_signatures, its own SB Email
+Signatures menu (Signatures, People, Add Person, Reports, Templates,
+Settings, Documentation; no Features page since 28 October 2026, see Modules
+of pages below). Signatures, the front door, lists everyone as cards and links to a
+private team page on the website. It requires acf: the person fields and the Settings page are
+ACF, registered in PHP. Templates are folders in the module's templates/,
+Classic first; the Templates page previews each and picks the one the site
+uses. It was written as a standalone plugin first but never installed
+anywhere, so it has no replaces and nothing to migrate. It went onto the hub
+28 October 2026 after SocialBUMP Tweaks 0.4.3 was published, switched on
+there, with a Test Person and the client's company details on its Settings
+page for testing. The module's notes cover how a signature is made, what
+email clients force on it, and how to make a template (its Making a template
+section: the folder, styles.php groups, what template.php is given and the
+rules every template keeps).
+
+Getting a new module's files onto the hub: a zip copied across by hand
+through a tool call came out with a different checksum, so the files went up
+one by one through execute-php as nowdoc strings, each checked against the
+local md5, with Cropper.js and the Simple Icons SVGs downloaded by the hub
+itself and checked the same way. module.php went up last, under
+module.php.test, and was test loaded before being renamed into place.
+
+Changes since then went up as a staged copy that is checked (every file's
+md5 and php -l) and then swapped in: the module's Working on this module
+section has the steps. The release zip skips only .git, .github,
+node_modules and .DS_Store, so nothing else may be left in the plugin
+folder. Backups go only in wp-content/uploads/sbx-backups, the newest two
+per prefix kept (checked 31 October 2026: no sbx-prev folders or .bak files
+left in the plugin).
+
+From 0.5.0 it is off on client sites until the hub allows it, with limits
+set from the hub (see Module controls from the hub). Anyone without a company
+is put in the default company (adopt_one() on save, adopt_all() on an admin page load,
+at most every 12 hours),
+which fixed a person made before companies existed on gimage.com.au.
+
+## Modules of pages (October 2026)
+
+Some modules are a few pages rather than a set of features to switch on and
+off. Email Signatures is the first. Two keys in the module declaration, both
+read by SB_Tweaks_Screen and ignored by every other module:
+
+- 'menu' => [ 'features' => false ]: no Features page. Every group is on
+  (ordered_groups() returns them all, in the order module.php declares them),
+  so each group's page is always there. The top menu item has no page of its
+  own: its address redirects to the front door (to_front_door() on
+  load-toplevel_page_<slug>), which is the first item in the nav.
+- 'nav' => [ admin address => title ]: WordPress screens listed in the tab
+  bar and admin bar before the module's own pages, such as
+  'edit.php?post_type=sb_emailsig' => 'People'. page_url() returns any slug
+  holding .php as admin_url( slug ), and current_item() marks one current
+  while a screen of that post type is open. A slug without .php is one of
+  the module's own pages (admin.php?page=): listing a group's page here puts
+  it before the WordPress screens, and so makes it the front door, since a
+  group already in the list keeps its place. Email Signatures lists
+  sb-email-signatures-signatures first that way.
+
+Only a module with its own menu can use it (pages_only() needs parent() to
+be ''). When the change went onto the hub on 28 October 2026, every other
+module's slug, front door, page address and tab bar were compared before and
+after in fresh requests and came out identical.
+
+The module's side menu order is its own job (SB_EmailSig_Module::order_menu()
+at admin_menu 999). On the hub, Admin and Site Enhancements' Admin Menu
+Organiser keeps a saved submenu order (custom_submenus_order in
+admin_site_enhancements_extra) and applies it after that, so a module's
+submenu can show in an older order there until the organiser is saved again.
+
+## SocialBUMP UI (October 2026)
+
+One look for every SocialBUMP page, independent of the user's admin colour
+scheme. The reference for how each part should look is the UI kit artifact
+(Sam has the link). Files:
+
+- includes/framework/class-sb-tweaks-ui.php (SB_Tweaks_UI). boot() adds the
+  body classes and the wp_ajax_sb_tweaks_ui_theme handler. enqueue( $dark_ready )
+  loads assets/css/ui.css after admin.css and assets/js/ui.js. mode_switch()
+  prints the Auto, Light and Dark switch; both banners (SB_Tweaks_Screen and
+  SB_Tweaks_Settings) print it at the end of the brand row.
+- assets/css/ui.css. Everything is scoped to body.sb-ui and every colour is a
+  --sbui- token (light on body.sb-ui, dark on .sb-ui-mode-dark and on
+  .sb-ui-mode-auto inside prefers-color-scheme: dark). Font is Outfit from
+  assets/fonts, as "SB Outfit", at 13px. It restyles the framework's own
+  markup (banner, sections, cards, switches, .button family, fields, ticks,
+  popups, the unsaved pill) by class, so module pages pick it up without
+  changes.
+- assets/js/ui.js (window.SBTweaksUI). toast( message, kind, more ) with
+  kind ok, info, warn or danger: top right under the admin bar, newest on
+  top, danger stays until dismissed. Plain dismissible notices inside
+  .sb-tweaks-wrap (only the classes notice, notice-*, is-dismissible, updated,
+  error, and no id) become toasts on load; .inline notices and anything with
+  other classes or an id (usually another plugin's) stay put. Cards inside a
+  form[data-sb-dirty] get .is-edited and an Unsaved chip while their fields
+  differ from the page load.
+
+The mode is user meta sb_tweaks_ui_theme (auto, light, dark; default auto).
+Dark applies on pages drawn from framework parts (a module's Features page,
+its group pages, Documentation, the four SocialBUMP Tweaks pages) and on every
+page of a module whose module.php sets 'ui_ready' => true (Email Signatures,
+Image Management and Site Kit do). Anything else gets sb-ui-light-only and
+stays light. A module is ready once its CSS uses the --sbui- tokens: colours
+are written var(--sbui-surface, #fff) and the like, so the same file still
+looks right on WordPress screens without body.sb-ui (a person's edit screen).
+admin.css, images.css and site-kit.css were converted that way on 29 October
+2026. ui.css also styles WordPress tables (.widefat), ACF fields, repeaters,
+tabs and switches, select2 and the framework popups, and turns plain Remove
+crosses ([aria-label=Remove]) grey with a red hover. SEO for AI is a separate
+plugin and has none of this yet.
+
+Card states, with no coloured stripe down the side: on is plain, off (a card
+with its own switch and no .is-on) is quieter, edited gets an amber ring and
+the Unsaved chip.
+Edited is worked out from the card's named fields, leaving out hidden
+inputs (ACF keeps plenty) unless one has data-sb-watch, as the Email
+Signatures crop box's does.
+
+Tooltips (ui.js, ui.css .sb-ui-tip): data-sb-tip="Copy link" on any element
+gives it a small dark label that drops down under it (above it near the
+bottom of the window) on hover or keyboard focus, after 120ms. Use it on every
+icon button instead of title, which shows the browser's own. One tooltip
+element is shared and placed with position: fixed, so it isn't clipped by a
+card. Changing data-sb-tip while it shows updates it in place (Copied). An
+element with no text and no aria-label gets the tip as its aria-label; the
+mode switch uses it too. SBTweaksUI.hideTip() hides it.
+
+Toolbar (.sb-ui-bar): a page's links and actions in one panel above its
+cards. .sb-ui-bar__group holds a .sb-ui-bar__label (small capitals) and its
+buttons, with a divider between groups; .sb-ui-bar__end goes on the right,
+for the page's main button (Add person). .sb-ui-count is a count pill beside
+a heading; .sb-ui-empty is a dashed box for nothing here yet.
+
+The unsaved pill (.sb-unsaved, the framework's dirty-form script) sits top
+right under the admin bar (Sam, 29 October 2026: where he looks to save),
+and the toasts move down under it while it shows (body:has(.sb-unsaved:not([hidden]))). The pill is 46px
+tall. A card's Unsaved chip (ui.js) is a button too: it saves the form the
+same way (save(): its data-sb-save, else primary, else first submit,
+including one outside the form with form=).
+
+Tabs (.sb-ui-seg): a pill row of links between a thing's pages, the current
+one marked aria-current=page. .sb-ui-bar__title is a name in a bar.
+
+Page layout (Sam, 29 October 2026): a page's links and actions go in the
+bar at the top, its cards straight on the page below, never inside a
+panel. Build it with SB_Tweaks_UI::bar( [ [ label, html ], ... ], end html ),
+SB_Tweaks_UI::heading( title, count, note ) over the .sb-tweaks-grid and
+SB_Tweaks_UI::save_button( form id ) for Save changes in the bar (give the
+form an id; keep its own Save at the foot). The Features page of every
+module and the Modules page work this way: Cards (Reorder, Collapse all,
+Expand all, Collapse disabled) on the left, Save changes on the right.
+
+Patterns added with Email Signatures (31 October 2026). Their styles live in
+that module's assets/admin.css for now; move them into ui.css when a second
+module needs them.
+
+- Count pill in the bar, left of the Add button: "People 1 of 1", or
+  "People 2" with no limit. Grey normally, amber (is-low) with one slot left,
+  red (is-full) with none. The count replaces any count by the grid heading;
+  no heading over the grid. (.sb-emailsig-limit)
+- An Add button that can't be used stays where it is, greyed out, with the
+  reason as its tip: "No person slots left. Ask for more to add another." A
+  disabled button shows no tip, so a focusable span carries data-sb-tip and
+  holds a .button.disabled. Front-end pages do the same. No banners for it.
+  (.sb-emailsig-limit-lock)
+- A bar under the toolbar and over cards needs space: 28px above the grid.
+- Popup header bar: a popup that switches what it shows (the Preview popups)
+  gets a coloured header bar with the name on the left and the switcher on
+  the far right, the switcher on a white background. A long list in the
+  switcher is grouped by company with optgroups, inactive people marked.
+- Popup footer with links: plain buttons with their icons (Edit styles, Edit
+  Layout) on the far left, Close with an X icon on the far right.
+- A popup grows to the window height as needed and only scrolls when it
+  can't fit (dialog max-height 100% inside the overlay's padding).
+- Card footers sit at the bottom of the card (margin-top: auto), so a row of
+  cards lines up whatever their content.
+- An icon button for a repeat action (Email) stays an icon; choices go in its
+  popup (the Email type dropdown) rather than a second button.
+- Several actions in a bar go in one Actions menu (Sam, 31 October 2026):
+  a primary button with a chevron and the count it acts on, a menu with small
+  capital headings for each part, and items greyed with the reason as their
+  tip. (.sb-installs-actions, .sb-installs-menu, styles in the Installs page)
+- A filter over cards is a .sb-ui-seg of buttons with aria-pressed and a
+  count in each, beside a search box in the bar.

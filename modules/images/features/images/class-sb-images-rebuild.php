@@ -646,7 +646,7 @@ class SB_Images_Rebuild {
 				array_filter(
 					$wanted,
 					function ( $name ) use ( $only ) {
-						return in_array( $name, $only, true ) || self::is_site_icon_size( $name );
+						return in_array( $name, $only, true ) || self::is_attachment_size( $name );
 					}
 				)
 			);
@@ -950,7 +950,11 @@ class SB_Images_Rebuild {
 			}
 		}
 
-		return $wanted;
+		// Sizes another module makes only for some images (Email Signatures'
+		// logos, Sam, 30 October 2026): wanted on those images alone, so never
+		// leftovers there, never asked of any other image, and made again by
+		// Build Thumbnails when missing. attachment_size_groups() lists them.
+		return (array) apply_filters( 'sb_images/wanted_for', $wanted, $id );
 	}
 
 	/**
@@ -967,6 +971,40 @@ class SB_Images_Rebuild {
 		$sizes = (array) apply_filters( 'site_icon_image_sizes', [ 270, 192, 180, 32 ] );
 
 		return array_values( array_filter( array_map( 'intval', $sizes ) ) );
+	}
+
+	/**
+	 * Sizes only some images have, by group: any another module adds through
+	 * the sb_images/attachment_size_groups filter (key => [ title, note,
+	 * sizes => name => width, height, crop ]), then the site icon's. None is
+	 * registered, so none is in the ticked list on SB Image Cleaner, and Build
+	 * makes them whatever is ticked. Which images have them: wanted_for().
+	 */
+	public static function attachment_size_groups() {
+		$icon = [];
+
+		foreach ( self::site_icon_sizes() as $px ) {
+			$icon[ 'site_icon-' . $px ] = [ 'width' => $px, 'height' => $px, 'crop' => true ];
+		}
+
+		$groups = array_filter( (array) apply_filters( 'sb_images/attachment_size_groups', [] ), 'is_array' );
+
+		return $groups + [ 'site-icon' => [ 'title' => __( 'Site Icon', 'sb-tweaks' ), 'sizes' => $icon ] ];
+	}
+
+	/** Whether a size is one of attachment_size_groups(): made only for some images. */
+	public static function is_attachment_size( $name ) {
+		if ( self::is_site_icon_size( $name ) ) {
+			return true;
+		}
+
+		foreach ( (array) apply_filters( 'sb_images/attachment_size_groups', [] ) as $group ) {
+			if ( isset( $group['sizes'][ (string) $name ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -1049,9 +1087,10 @@ class SB_Images_Rebuild {
 		$missing = [];
 
 		foreach ( self::wanted_for( $id ) as $name => $size ) {
-			// The site icon's sizes are never in the ticked list (they are not
-			// registered), so they are built whatever is ticked.
-			if ( in_array( $name, $have, true ) || ( $only !== null && ! in_array( $name, $only, true ) && ! self::is_site_icon_size( $name ) ) ) {
+			// The site icon's sizes, and the others only some images have, are
+			// never in the ticked list (they are not registered), so they are
+			// built whatever is ticked. attachment_size_groups().
+			if ( in_array( $name, $have, true ) || ( $only !== null && ! in_array( $name, $only, true ) && ! self::is_attachment_size( $name ) ) ) {
 				continue;
 			}
 

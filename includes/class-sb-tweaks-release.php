@@ -20,6 +20,9 @@ class SB_Tweaks_Release {
 	const CHANGES_OPTION = 'sb_tweaks_pending_changes';
 	const NEXT_OPTION    = 'sb_tweaks_next_version';
 
+	/** The latest beta on GitHub: version, release id, tag and when (Sam, 30 October 2026). */
+	const BETA_OPTION    = 'sb_tweaks_beta';
+
 	public static function instance() {
 		if ( self::$instance === null ) {
 			self::$instance = new self();
@@ -34,6 +37,7 @@ class SB_Tweaks_Release {
 		add_action( 'admin_post_sb_tweaks_publish', [ $this, 'publish' ] );
 		add_action( 'admin_post_sb_tweaks_download_zip', [ $this, 'download_zip' ] );
 		add_action( 'wp_ajax_sb_tweaks_save_next_version', [ $this, 'save_next_version' ] );
+		add_action( 'admin_post_sb_tweaks_release_beta', [ $this, 'release_beta' ] );
 	}
 
 	/* Token storage: encrypted with the site's auth salt so it never sits in the database as plain text. */
@@ -765,6 +769,7 @@ class SB_Tweaks_Release {
 		wp_delete_file( $zip );
 		self::clear_changes();
 		delete_option( self::NEXT_OPTION );
+		$this->retire_beta( $token, $version );
 		set_transient( self::LATEST_CACHE, $version, 5 * MINUTE_IN_SECONDS );
 
 		$url = ! empty( $live['body']['html_url'] ) ? $live['body']['html_url'] : 'https://github.com/' . SB_TWEAKS_GITHUB_REPO . '/releases';
@@ -861,6 +866,178 @@ class SB_Tweaks_Release {
 	 */
 	private function test_version() {
 		return $this->next_version() . '-beta';
+	}
+
+	/* Betas (Sam, 30 October 2026) */
+
+	/**
+	 * The latest beta: [ version, id, tag, at ], or [] when there is none.
+	 * Pushed to chosen sites from the Installs page.
+	 */
+	public static function beta() {
+		$beta = get_option( self::BETA_OPTION, [] );
+
+		return ( is_array( $beta ) && ! empty( $beta['version'] ) ) ? $beta : [];
+	}
+
+	/**
+	 * The next beta's number: the next version with -beta.1, -beta.2 and so
+	 * on after it. version_compare() puts 0.5.0-beta.2 after 0.5.0-beta.1 and
+	 * before 0.5.0, so each beta updates the last, and the release updates
+	 * them all.
+	 */
+	private function next_beta() {
+		$base = $this->next_version();
+		$beta = self::beta();
+		$n    = 1;
+
+		if ( $beta && preg_match( '/^(.+)-beta\.(\d+)$/', $beta['version'], $m ) && $m[1] === $base ) {
+			$n = (int) $m[2] + 1;
+		}
+
+		return $base . '-beta.' . $n;
+	}
+
+	/** Delete a beta's pre-release and its tag from GitHub. Best effort. */
+	private function delete_beta( $token, array $beta ) {
+		if ( empty( $beta['id'] ) ) {
+			return;
+		}
+
+		$this->github( 'DELETE', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . (int) $beta['id'], $token );
+
+		if ( ! empty( $beta['tag'] ) ) {
+			$this->github( 'DELETE', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/git/refs/tags/' . rawurlencode( $beta['tag'] ), $token );
+		}
+	}
+
+	/**
+	 * Once a release at or past the beta's version is out, the beta has done
+	 * its job: its pre-release goes, and beta sites update to the release.
+	 */
+	private function retire_beta( $token, $version ) {
+		$beta = self::beta();
+
+		if ( ! $beta || ! preg_match( '/^(.+)-beta\.\d+$/', $beta['version'], $m ) || version_compare( $version, $m[1], '<' ) ) {
+			return;
+		}
+
+		$this->delete_beta( $token, $beta );
+		delete_option( self::BETA_OPTION );
+	}
+
+	/**
+	 * Release beta: this site's files as a pre-release on GitHub, named the
+	 * next beta. The code isn't pushed to the repo's Code tab and nothing on
+	 * this site changes; the zip carries the beta's version. Sites checking
+	 * GitHub for updates never see a pre-release, so only the sites it is
+	 * pushed to from the Installs page get it. The beta before it is deleted
+	 * from GitHub once this one is out.
+	 */
+	public function release_beta() {
+		$this->guard( 'sb_tweaks_release_beta' );
+
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 300 );
+		}
+
+		$token   = $this->get_token();
+		$version = $this->next_beta();
+		$tag     = 'v' . $version;
+		$fail    = function ( $message, $zip = '', $release_id = 0 ) use ( $token ) {
+			if ( $release_id ) {
+				$this->github( 'DELETE', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . (int) $release_id, $token );
+			}
+
+			if ( $zip && file_exists( $zip ) ) {
+				wp_delete_file( $zip );
+			}
+
+			$this->back( 'error', $message . ' ' . __( 'No beta was released.', 'sb-tweaks' ) );
+		};
+
+		if ( $token === '' ) {
+			$fail( __( 'Save a GitHub token first.', 'sb-tweaks' ) );
+		}
+
+		$repo = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO, $token );
+
+		if ( $repo['code'] !== 200 ) {
+			/* translators: %s: GitHub error message */
+			$fail( sprintf( __( 'Could not reach the GitHub repo (%s).', 'sb-tweaks' ), $repo['error'] ) );
+		}
+
+		$existing = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/tags/' . rawurlencode( $tag ), $token );
+
+		if ( $existing['code'] === 200 ) {
+			/* translators: %s: release tag */
+			$fail( sprintf( __( 'A release called %s is already on GitHub.', 'sb-tweaks' ), $tag ) );
+		}
+
+		$zip = $this->build_zip( $version );
+
+		if ( is_wp_error( $zip ) ) {
+			$fail( $zip->get_error_message() );
+		}
+
+		$notes   = self::changes_text();
+		$release = $this->github(
+			'POST',
+			'/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases',
+			$token,
+			[
+				'tag_name'         => $tag,
+				'target_commitish' => ! empty( $repo['body']['default_branch'] ) ? $repo['body']['default_branch'] : 'main',
+				'name'             => $version,
+				'body'             => 'Beta for testing on chosen sites. Not offered as an update.' . ( $notes !== '' ? "\n\n" . $notes : '' ),
+				'draft'            => true,
+				'prerelease'       => true,
+				'make_latest'      => 'false',
+			]
+		);
+
+		if ( $release['code'] !== 201 || empty( $release['body']['id'] ) ) {
+			/* translators: %s: GitHub error message */
+			$fail( sprintf( __( 'GitHub would not create the pre-release (%s).', 'sb-tweaks' ), $release['error'] ), $zip );
+		}
+
+		$release_id = (int) $release['body']['id'];
+		$upload_url = preg_replace( '/\{.*\}$/', '', $release['body']['upload_url'] ) . '?name=' . rawurlencode( self::ASSET_NAME );
+		$upload     = $this->github_retry( 'POST', $upload_url, $token, file_get_contents( $zip ), [ 'Content-Type' => 'application/zip' ] );
+
+		if ( $upload['code'] !== 201 || $this->asset_count( $token, $release_id ) < 1 ) {
+			/* translators: %s: GitHub error message */
+			$fail( sprintf( __( 'The zip upload to GitHub failed (%s).', 'sb-tweaks' ), $upload['error'] ? $upload['error'] : 'not attached' ), $zip, $release_id );
+		}
+
+		$live = $this->github_retry( 'PATCH', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . $release_id, $token, [ 'draft' => false, 'prerelease' => true, 'make_latest' => 'false' ] );
+
+		if ( $live['code'] !== 200 && ! $this->is_published( $token, $release_id ) ) {
+			/* translators: %s: GitHub error message */
+			$fail( sprintf( __( 'GitHub would not publish the pre-release (%s).', 'sb-tweaks' ), $live['error'] ), $zip, $release_id );
+		}
+
+		wp_delete_file( $zip );
+
+		$before = self::beta();
+
+		update_option(
+			self::BETA_OPTION,
+			[
+				'version' => $version,
+				'id'      => $release_id,
+				'tag'     => $tag,
+				'at'      => time(),
+			],
+			false
+		);
+
+		if ( $before && (int) $before['id'] !== $release_id ) {
+			$this->delete_beta( $token, $before );
+		}
+
+		/* translators: %s: beta version */
+		$this->back( 'success', sprintf( __( 'Beta %s is on GitHub. Send it to sites from the Installs page.', 'sb-tweaks' ), esc_html( $version ) ) );
 	}
 
 	/**
@@ -1226,6 +1403,8 @@ class SB_Tweaks_Release {
 					</script>
 				</div>
 
+				<?php $this->render_beta( $token ); ?>
+
 				<div class="sb-tweaks-card sb-tweaks-release__card">
 					<h3><?php esc_html_e( 'Download plugin zip', 'sb-tweaks' ); ?></h3>
 					<p class="sb-tweaks-card__desc">
@@ -1276,6 +1455,101 @@ class SB_Tweaks_Release {
 					<?php endif; ?>
 				</div>
 			</div>
+		</div>
+		<?php
+	}
+
+	/** The Beta card: the latest beta, and Release beta with the progress popup. */
+	private function render_beta( $token ) {
+		$beta = self::beta();
+		$next = $this->next_beta();
+		$text = [
+			'title'    => __( 'Releasing beta', 'sb-tweaks' ),
+			/* translators: %s: beta version */
+			'status'   => __( 'Building and putting %s on GitHub', 'sb-tweaks' ),
+			/* translators: %s: beta version */
+			'item'     => __( 'SocialBUMP Tweaks %s', 'sb-tweaks' ),
+			'went'     => __( 'on GitHub', 'sb-tweaks' ),
+			'complete' => __( 'Beta released', 'sb-tweaks' ),
+			'unclear'  => __( 'No clear answer came back from the server, so check GitHub and this page before trying again.', 'sb-tweaks' ),
+			'dropped'  => __( 'The connection dropped before an answer came back, so check GitHub and this page before trying again.', 'sb-tweaks' ),
+		];
+		?>
+		<div class="sb-tweaks-card sb-tweaks-release__card">
+			<h3><?php esc_html_e( 'Beta', 'sb-tweaks' ); ?></h3>
+			<p class="sb-tweaks-card__desc">
+				<?php
+				if ( $beta ) {
+					/* translators: 1: beta version, 2: time since */
+					printf( esc_html__( 'Latest beta: %1$s, %2$s ago.', 'sb-tweaks' ), '<strong>' . esc_html( $beta['version'] ) . '</strong>', esc_html( human_time_diff( (int) $beta['at'] ) ) );
+				} else {
+					esc_html_e( 'No beta out.', 'sb-tweaks' );
+				}
+				?>
+			</p>
+			<form id="sb-tweaks-beta-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-version="<?php echo esc_attr( $next ); ?>">
+				<input type="hidden" name="action" value="sb_tweaks_release_beta">
+				<?php wp_nonce_field( 'sb_tweaks_release_beta' ); ?>
+				<div class="sb-tweaks-release__actions">
+					<?php /* translators: %s: beta version */ ?>
+					<button type="submit" class="button" <?php disabled( $token === '' ); ?>><?php printf( esc_html__( 'Release %s', 'sb-tweaks' ), esc_html( $next ) ); ?></button>
+					<?php if ( $beta ) : ?>
+						<a class="button-link" href="<?php echo esc_url( admin_url( 'admin.php?page=' . SB_Tweaks_Settings::PAGE_SLUG . '-installs' ) ); ?>"><?php esc_html_e( 'Send to sites', 'sb-tweaks' ); ?></a>
+					<?php endif; ?>
+				</div>
+			</form>
+			<script>
+			( function () {
+				var form = document.getElementById( 'sb-tweaks-beta-form' );
+				var text = <?php echo wp_json_encode( $text ); ?>;
+
+				if ( ! form || ! window.fetch || ! window.FormData ) {
+					return;
+				}
+
+				form.addEventListener( 'submit', function ( event ) {
+					if ( ! window.SBTweaksProgress ) {
+						return;
+					}
+
+					var version = form.getAttribute( 'data-version' );
+					var data    = new FormData( form );
+					var job;
+
+					event.preventDefault();
+					job = window.SBTweaksProgress.open( text.title );
+					job.busy();
+					job.status( text.status.replace( '%s', version ) );
+					data.append( 'sb_tweaks_background', '1' );
+
+					window.fetch( form.getAttribute( 'action' ), { method: 'POST', body: data, credentials: 'same-origin' } )
+						.then( function ( response ) {
+							return response.text();
+						} )
+						.then( function ( body ) {
+							var res = null;
+
+							try {
+								res = JSON.parse( body.slice( Math.max( 0, body.indexOf( '{"ok"' ) ) ) );
+							} catch ( err ) {
+								res = null;
+							}
+
+							if ( ! res || typeof res.ok !== 'boolean' ) {
+								job.fail( text.unclear );
+							} else if ( ! res.ok ) {
+								job.fail( res.message || text.unclear );
+							} else {
+								job.log( text.item.replace( '%s', version ), text.went );
+								job.finish( text.complete );
+							}
+						} )
+						.catch( function () {
+							job.fail( text.dropped );
+						} );
+				} );
+			}() );
+			</script>
 		</div>
 		<?php
 	}

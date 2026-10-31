@@ -6,7 +6,8 @@
  * Fields marked data-sb-tweaks-hide-when hide while their checkbox is ticked.
  * Select all and Select none set each tick with a real DOM change event,
  * because save-state.js listens with addEventListener and a jQuery trigger
- * never reaches it.
+ * never reaches it. A dismissible saved notice (Settings saved and the like)
+ * goes by itself after a few seconds; errors and warnings stay.
  */
 ( function ( $ ) {
 	/**
@@ -101,5 +102,24 @@
 				this.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 			} );
 		} );
+
+		// Saved notices go by themselves, and the address loses its updated
+		// flag so a reload doesn't show the notice again.
+		var $saved = $( '#wpbody-content .notice-success.is-dismissible' );
+
+		if ( $saved.length ) {
+			window.setTimeout( function () {
+				$saved.fadeOut( 400, function () {
+					$( this ).remove();
+				} );
+			}, 4000 );
+		}
+
+		if ( window.history && window.history.replaceState && window.URL && /[?&]updated=/.test( window.location.search ) ) {
+			var url = new URL( window.location.href );
+
+			url.searchParams.delete( 'updated' );
+			window.history.replaceState( null, '', url.toString() );
+		}
 	} );
 } )( jQuery );
