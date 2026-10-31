@@ -125,47 +125,47 @@ return [
 			[
 				'width'  => 0,
 				'valign' => '',
-				'padding' => [ 'top' => 'double', 'right' => 0, 'bottom' => 'double', 'left' => 0 ], // Double top and bottom unless set (Sam, 31 October 2026).
+				'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026; Double before the 8px base).
 				'blocks' => [
-					[ 'type' => 'photo', 'align' => 'left', 'space' => 'default' ],
+					[ 'type' => 'photo', 'align' => 'left', 'space' => 'double' ],
 				],
 			],
 			[
 				'width'  => 0,
 				'valign' => '',
-				'padding' => [ 'top' => 'double', 'right' => 0, 'bottom' => 'double', 'left' => 0 ], // Double top and bottom unless set (Sam, 31 October 2026).
+				'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026; Double before the 8px base).
 				'blocks' => [
-					[ 'type' => 'name', 'align' => 'left', 'space' => 'default', 'style' => 'stack', 'sep' => 'bar', 'spacing' => 'quarter' ],
-					[ 'type' => 'company', 'align' => 'left', 'space' => 'half' ],
+					[ 'type' => 'name', 'align' => 'left', 'space' => 'double', 'style' => 'stack', 'sep' => 'bar', 'spacing' => 'half' ],
+					[ 'type' => 'company', 'align' => 'left', 'space' => 'default' ],
 				],
 			],
 			[
 				'width'  => 0,
 				'valign' => '', // Default (the row's), as the others (Sam, 31 October 2026).
-				'padding' => [ 'top' => 'double', 'right' => 0, 'bottom' => 'double', 'left' => 0 ], // Double top and bottom unless set (Sam, 31 October 2026).
+				'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026; Double before the 8px base).
 				'blocks' => [
-					[ 'type' => 'logo', 'align' => 'left', 'space' => 'default' ],
-					[ 'type' => 'info', 'id' => 1, 'align' => 'left', 'space' => 'default', 'style' => 'stack', 'sep' => 'bar', 'spacing' => 'default' ], // Default spacing both (Sam, 31 October 2026).
-					[ 'type' => 'vcard', 'align' => 'left', 'space' => 'default' ],
-					[ 'type' => 'social', 'align' => 'left', 'space' => 'default', 'heading' => 1, 'direction' => 'row', 'indent' => 1 ],
+					[ 'type' => 'logo', 'align' => 'left', 'space' => 'double' ],
+					[ 'type' => 'info', 'id' => 1, 'align' => 'left', 'space' => 'double', 'style' => 'stack', 'sep' => 'bar', 'spacing' => 'default' ], // Info List spacing Default, 8px (Sam, 1 November 2026).
+					[ 'type' => 'vcard', 'align' => 'left', 'space' => 'double' ],
+					[ 'type' => 'social', 'align' => 'left', 'space' => 'double', 'heading' => 1, 'direction' => 'row', 'indent' => 1 ],
 				],
 			],
 		],
 		'gaps'       => [
-			// Double either side, with the Default Line Width, unless set (Sam, 31 October 2026).
-			[ 'space' => 'double', 'line' => 'default' ],
-			[ 'space' => 'double', 'line' => 'default' ],
+			// Triple (24px) either side, with the Default Line Width, unless set (Sam, 31 October 2026).
+			[ 'space' => 'triple', 'line' => 'default' ],
+			[ 'space' => 'triple', 'line' => 'default' ],
 		],
 		'valign'     => 'middle',
-		'block_gap'  => 12, // The Default Spacing.
+		'block_gap'  => 8, // The Default Spacing: 8px (Sam, 31 October 2026; 12 before).
 		'line_width' => 1, // The Default Line Width.
 		'line_style' => 'solid', // The Default Line Style.
 		'padding'    => 0,
 		'border'     => [ 'top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0, 'colour' => '' ],
 		'line_below' => 'default',
-		'line_space' => 'double',
+		'line_space' => 'double', // Double (16px) above, None below, as every footer part (Sam, 31 October 2026).
 		'hold'       => [
-			[ 'type' => 'logo_small', 'align' => 'left', 'space' => 'default' ],
+			[ 'type' => 'logo_small', 'align' => 'left', 'space' => 'double' ],
 		],
 	],
 

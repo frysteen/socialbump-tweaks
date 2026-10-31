@@ -3,7 +3,7 @@
  * Plugin Name: SocialBUMP Tweaks
  * Plugin URI:  https://socialbump.com.au
  * Description: SocialBUMP site tweaks in switchable modules. Turn on only the parts a site needs.
- * Version:     0.5.0
+ * Version:     0.5.1
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author:      SocialBUMP
@@ -37,7 +37,7 @@ if ( PHP_VERSION_ID < 80000 ) {
 // Tells the SocialBUMP hub this site has the plugin, its version and whether it is active.
 require_once __DIR__ . '/includes/class-socialbump-reporter.php';
 
-define( 'SB_TWEAKS_VERSION', '0.5.0' );
+define( 'SB_TWEAKS_VERSION', '0.5.1' );
 define( 'SB_TWEAKS_FILE', __FILE__ );
 define( 'SB_TWEAKS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SB_TWEAKS_URL', plugin_dir_url( __FILE__ ) );

@@ -1535,7 +1535,7 @@ Sam: switch a whole company off when it no longer pays to have its signatures ma
 
 Sam: the layout as rows, each with its own columns, so a row can hold, say, an Info List as a row of icons under the rest. Built in three parts: rows and their settings first (this), then removing rows with their contents in more detail, then columns added, removed and dragged between rows with no maximum.
 
-- Shape: styles['layout']['rows'] (each: columns, gaps, valign, padding, border, background) and row_gaps (one between each row and the next, as a column gap; space each side of a line). A layout from before rows (columns, gaps and valign at the top level) reads as Row 1 (Layout::legacy(), and load() in layout.js). The Container keeps its padding, border and background round all the rows. MAX_ROWS 12.
+- Shape: styles['layout']['rows'] (each: columns, gaps, valign, padding, border, background) and row_gaps (one between each row and the next, as a column gap; space above a line and space_after below it, see Divider spacing). A layout from before rows (columns, gaps and valign at the top level) reads as Row 1 (Layout::legacy(), and load() in layout.js). The Container keeps its padding, border and background round all the rows. MAX_ROWS 12.
 - Drawing (Layout::columns()): one row with no box of its own is drawn exactly as before rows (same HTML), so signatures already copied don't show as changed. Otherwise a full width table, a cell per row with its box, and between rows a cell of the gap's height, or the gap's space each side of a full width line (rule()).
 - Editor: each row a box with its grip (more than one row), name, Columns and Vertical align, cog (padding, background, border sides, style and colour) and X (asks; with blocks in it, where they go: the end of another row's last column, or Not in Use). Between rows a gap bar opens the gap's popup (gapPopup(), as between columns). Add row under the rows. Lists are r{row}c{column}.
 - Layout::all_columns() gives every column for what reads them all (shows(), disabled(), Templates::stats()).
@@ -1599,3 +1599,200 @@ Sam: each site gets Email Signatures only when the hub allows it (SB Tweaks' SB_
 - At a limit nothing more is made: a new person is stopped however they'd come (wp_insert_post_empty_content: the person page, an import, a request, which says why), the person page and a new company's page show the message instead of the form, Add, Duplicate and Import template go back with ?template=limit, and a company can't be switched on (Switch::ajax answers with the message, list.js shows it). Only the oldest people up to the limit can be active (may_be_active(), hold_person() however they're saved, and the Active switch).
 - Over a limit (lowered on the hub): apply() runs on init once per change of limits (sb_emailsig_limits_applied) and the newest go off: active people past it Inactive (by date added), companies switched off (never the default one). Templates over it are left out of Templates::all() (templates_over(), newest by id), so nobody can use them until the limit goes up; nothing is deleted.
 - Anyone without a company joins the default one (Company::adopt_one() on save, adopt_all() twice a day): with one company its field isn't shown, so someone added before companies (Chris on gimage) couldn't be put in it.
+
+## Divider spacing and Save contact in the Info List (31 October 2026)
+
+Sam, working on real signatures: finer control of the space either side of
+a divider line, and Save my contact details inside an Info List so it can
+stack or sit on one row with the company's own links.
+
+- Gaps (between columns, and row_gaps) have space and space_after. Between
+  columns, space is left of the line and space_after right of it; between
+  rows, top and bottom. With no line there is one space, the gap itself
+  (space; space_after is kept but not drawn). A gap saved before has no
+  space_after and reads as the same as space (Layout::clean_gap(), and
+  canonGap() in layout.js), so signatures already copied don't change.
+- Drawing: Layout::row() pads the column before a line by space and the
+  column after it by space_after (a boxed column: space_after as its own
+  cell); Layout::row_gap() pads above the line by space and below it by
+  space_after.
+- The gap's popup: a Spacing heading with a lock, then Left spacing and
+  Right spacing (Top spacing and Bottom spacing between rows). Locked, the
+  second follows the first and is greyed out; it opens locked when they
+  match. Line Width None hides the second field, the heading and the lock,
+  and the first reads "Space between the columns" (or rows). The gap bar
+  on the canvas shows both, 24/6, when a line's sides differ.
+- Info List items gain vcard, "Save my contact details" (Layout::items(),
+  after the person's own items). It draws as its block does: the
+  user-plus icon, the label from Settings and the vCard link, only when
+  Settings has Save my contact details on (Layout::rows()). The block of
+  its own stays. A new Info List, and every Info List saved before, has it
+  unticked, so nothing shows twice until it's ticked. On the person page's
+  list of what a layout leaves out, Save my contact details counts as shown
+  when its block is in a column or any Info List has it ticked.
+- Checked on the hub 31 October 2026: the three templates read with every
+  gap's sides equal and the item unticked, and render unchanged; a test
+  render (not saved) of a 2px line with 7px and 31px sides padded the
+  columns 7 and 31, a row line 9 above and 29 below, and with no line the
+  gap was 7; ticking the item added a second vCard link. The popup was
+  tested in a copy of the Layout page.
+
+## Company and person items as blocks (31 October 2026)
+
+Sam: the company's Additional Info List Items and the person's own as
+blocks of their own, while both stay in the Info List's items too.
+
+- Block types company_info, "Company Info List Items", and person_info,
+  "Person Info List Items" (Layout::blocks(); Sam cut Additional from both:
+  too long). In Not in Use a block shows only its name, not the list of
+  what it holds (an Info List the same).
+  Single blocks, so every layout has each once; a layout from before gets
+  them in Not in Use (sanitize() puts a missing single block there).
+- Both draw as an Info List (Layout::info(), with "{company items here}" or
+  "{person items here}" in a preview with nothing to show) and have its
+  options: Layout (stacked or one row), Separator, Spacing, Icon display,
+  and the Info List's colours (text, labels and separators, icons; colour
+  variants of the icons as for an Info List).
+- company_info has items: the company's only (c:<row id>), dragged into
+  order and ticked or not, with Select all and Select none
+  (clean_company_items(), canonItems( list, true ) in layout.js). One new in
+  Settings goes in at the end ticked; one deleted drops out.
+- person_info has no items of its own: it draws the person's own Additional
+  Info List Items as they are, in their order.
+- The popups' "Also in" note counts these blocks: an Info List's company
+  item ticked in the company block says "Also in Company Info List
+  Items", and its person item says the same of the person block when
+  that is in a column.
+- The person page's list of what a layout leaves out never names these two
+  blocks; their items are judged one by one with the Info Lists'.
+- Checked on the hub 31 October 2026: all three templates have both in Not
+  in Use and render as before; a test render (not saved) with both in a
+  column added one more company item and one more person item, and
+  unticking the item in the company block took it out; open and Save on
+  each popup with no change left the layout unchanged (layout.js's canon
+  matches sanitize()).
+
+## Custom settings under rows and columns (31 October 2026)
+
+Sam: "Own box" by a row and "Auto · Middle" under a column said little.
+Now each shows what its settings change from the design's, the same
+comparison its popup's Reset makes (custom() in layout.js, with rowPick()
+and columnPick() against the design's row or column, or a new one's past
+the design's count): "Custom: Padding · Border", with a column's width
+("180px wide", "Auto width") and its own vertical align when they differ,
+then Padding, Border, Background, Colours. Nothing when it matches. A
+row's sits after its Vertical align; a column's under its name, wrapping
+in a narrow column.
+
+Column Width (Sam, 31 October 2026): px, shown beside the box
+(.sb-emailsig-layout__width). It is the column's td width, which an email
+table treats as a wish: a column never goes narrower than its content
+(Info List lines don't wrap), and the whole signature is held to Signature
+max width (Edit styles, 600px by default), so with the other columns
+already filling that, a wider column has nowhere to grow. Measured on
+template 544 (31 October 2026): column 2 at Auto 142px, 80 stayed 142,
+150 gave 174 (150 plus its 24px padding), 400 only reached 241.
+
+Photo Max width (Sam, 31 October 2026): the photo's Width in Edit styles is
+now Max width. The img is width:100% with max-width at that size (as the
+banners), so it shrinks in a narrow column or a squeezed signature; the
+width attribute stays for Outlook for Windows, which ignores both and
+draws it at that size. The photo file itself is made as before.
+
+## Footer spacing (31 October 2026)
+
+Sam: Footer Settings sets the space above and below each footer part.
+Layout keys (sanitize() and layout.js's canon, same order): line_space
+(above the Footer Divider) and line_space_bottom, then buttons_top,
+buttons_bottom, text_top, text_bottom, campaign_top, campaign_bottom,
+banners_top, banners_bottom. Each a space step or px; above defaults to
+Double (16px on the 8px base), below to None. Before, the gaps were fixed: buttons 16px,
+footer text 14px, campaign banner 16px, banners 16px (10px between two),
+and the divider's Spacing above was Double in the design. The design's
+line_space is now Default too; a template that saved Double keeps it, and
+its Footer Settings card shows as changed until Reset. Banners spacing is
+above the first banner and below the last; 10px stays between two. The
+card: Footer Divider (Line Width, Style, Colour, then Spacing top and
+Spacing bottom on a row of their own), then Buttons, Footer Text,
+Campaign Banner and Banners, each Spacing top and Spacing bottom
+(FOOT_PARTS), then Footer Controls. All are in Footer Settings' Reset
+(PARTS.footer).
+
+Footer Settings groups and locks (Sam, 31 October 2026): each group
+(Footer Divider, Buttons, Footer Text, Campaign Banner, Banners, Footer
+Controls) is a .sb-emailsig-item, so a line sits between them as on the
+Type card. Each Spacing top and bottom pair has a lock (spacePair()):
+locked, the bottom follows the top and is greyed out. Locks start
+unlocked and are kept only while the page is open (footLocks), not saved.
+
+## 8px Default Spacing (31 October 2026)
+
+Sam wanted sizes between 12 and 24. The Default Spacing (block_gap) is
+now 8px, and the steps (Layout::STEPS, layout.js STEPS) are Quarter 2,
+Half 4, Default 8, One and a half 12, Double 16, Triple 24, Quadruple 32,
+smallest first in every spacing dropdown. Eighth is kept for any space
+saved with it (offered only then).
+
+Every default moved one step up, so it stays close in px: Eighth to
+Quarter, Quarter to Half, Half to Default, Default (12) to Double (16, at
+Sam's wish), Double (24) to Triple (24). That is the design
+(templates/classic/styles.php: block_gap 8, columns Triple top and bottom,
+gaps Triple, blocks Double above, name spacing Half, company Default, Info
+List spacing Default, 8px, set by Sam on 1 November 2026, as are the
+Company and Person Info List Items blocks', line_space Double), fallback(), block() and
+block_options(), clean_gap() (Triple), new rows, columns and gaps in
+layout.js, and the footer parts (Double above).
+
+The three templates on the hub were converted the same way on 31 October
+2026 (Classic 544: 33 values, Minimal 547: 11, SocialBUMP 554: 10), with
+block_gap set to 8; px values stayed as they were. Their saved styles
+before are in wp-content/uploads/sbx-backups/estpl-20261031-140125. Next:
+Sam resets Classic to the design, tunes it, and the design defaults are
+then updated from it.
+
+## Footer padding, the footer text box and space between (1 November 2026)
+
+Sam: in Footer Settings, Spacing top and bottom are now Padding top and
+Padding bottom (the same values, spacePair()). Buttons and Banners have
+Space between beside their lock: buttons_gap (Default, 8px, which was the
+fixed gap) and banners_gap (Double, 16px; 10px fixed before). The
+campaign banner is one image, so it has none.
+
+Footer Text has its own box, as a row's: text_padding (four sides, Padding
+top Double and the rest none; cardPadRow(), with a lock that makes right,
+bottom and left follow top, unlocked to start), text_background
+(Background colour, bgcolor too for Outlook) and text_border (Border
+width, one for all four sides or each its own with the lock, Border style
+and Border colour; cardBorderRow(), which the Container card's border now
+uses too). It replaces text_top and text_bottom: a layout saved with those
+reads them as the box's top and bottom padding (sanitize(), and load() in
+layout.js fills any footer key a saved layout hasn't got). Drawn with
+Layout::box() on the footer text's cell, so padding sits inside the box
+and the part above's Padding bottom gives the space above it. Checked on
+the hub: Classic reads Padding top Double (16px), and a test box (not
+saved) drew bgcolor, 16px padding and a 1px border on the cell.
+
+## Reset Template picks (1 November 2026)
+
+Sam: Reset Template asks what to reset, nothing ticked to start and the
+Reset Template button greyed out until something is: Layout (rows,
+columns, gaps and where each block sits, with their settings, from the
+design), Row, column and block settings (each row, column, gap and block's
+settings back to the design's in place, as each popup's Reset does; extra
+rows, columns and blocks stay; ticked and greyed out while Layout is),
+Layout Settings (Default Spacing, Line Width and Line Style, and the card's
+colour and font fields), Container Settings, Footer Settings, and Edit
+styles (saves straight away with the page, as the old tick did).
+resetPicked() in layout.js builds the layout from canon(state) and the
+design (designDefaults(), designLayout(), rowPick(), columnPick(),
+canonGap(), blockDefault()) and hands it to the layout field, so Undo takes
+it back. Tested in a copy of Classic's Layout page: with a row added and a
+column's padding changed, the settings pick kept both rows and put the
+padding back; the Layout pick went back to the design's one row.
+
+Widgets (Sam, 1 November 2026): on screen the things placed in columns
+(Photo, Name and job title, Info List, Divider, Text and the rest) are
+called widgets, not blocks: Not in Use's hint, the remove row and column
+popups and Reset Template's picks ("Row, column and widget settings").
+The code and saved layouts still call them blocks.
+

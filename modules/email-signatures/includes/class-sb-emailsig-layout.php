@@ -14,14 +14,16 @@
  *              ('' for the row's), top and bottom (px of space inside
  *              the column, so a line beside it runs past its blocks), blocks ]
  *     gaps     always four (two before 30 October 2026), between each
- *              column and the next: [ space
- *              (px each side of a line, or between the columns), line (its
+ *              column and the next: [ space (left of a line, or between
+ *              the columns with none), space_after (right of a line; Sam,
+ *              31 October 2026, missing is the same as space), line (its
  *              thickness in px, 0 for none; 0 or 1 before 29 October 2026,
  *              which read the same), line_style, colour ]
  *     valign   top, middle or bottom: its columns' default
  *     padding, border, background: the row's own box, as the Container's ]
  *   row_gaps   one between each row and the next, as a column gap
- *              (space each side of a line, or between the rows)
+ *              (space above a line, or between the rows with none;
+ *              space_after below it)
  *   block_gap  px between blocks in a column (a block's space overrides it)
  *   padding    px inside the border
  *   border     top, right, bottom, left (px), colour ('' for the lines colour)
@@ -29,14 +31,25 @@
  *   line_below the line above the buttons, footer text and banners (the
  *              Footer Divider card): its width (thickness) in px, 0 for none
  *   line_colour its colour ('' for the lines colour)
- *   line_space px above it
+ *   line_space space above it, line_space_bottom below it (Sam, 31
+ *              October 2026: Double and None, as the parts below)
+ *   buttons_top, buttons_bottom, campaign_top, campaign_bottom,
+ *              banners_top, banners_bottom: Padding top and bottom of the
+ *              buttons, the campaign banner and the banners (all of them),
+ *              Footer Settings (Sam, 31 October 2026); Double above, None
+ *              below. buttons_gap and banners_gap: the space between two
+ *              (Default and Double; Sam, 1 November 2026: they were 8px and
+ *              10px). text_padding, text_border, text_background: the
+ *              footer text's own box, as a row's (Sam, 1 November 2026:
+ *              Padding top Double, the rest none; text_top and text_bottom
+ *              before, read as its top and bottom)
  *   hold       the holding area: blocks that don't show
  *
  * Spacing and lines (29 October 2026, Sam): block_gap is the Default
  * Spacing and line_width the Default Line Width. Every space (a block's
  * space above, name and Info List spacing, a column's top and bottom, a
- * gap's space, padding, line_space) is a step of the default ('default',
- * 'double', 'half', 'quarter', 'eighth') or a number of px (0 for none);
+ * gap's space, padding, line_space) is a step of the default (STEPS) or
+ * a number of px (0 for none);
  * px() works it out. Every line (a gap's line, a divider, line_below) is
  * 'default' or a number of px (0 for none, but a divider has at least 1);
  * lpx() works it out. Saved numbers stay as they were (custom), and a
@@ -63,11 +76,20 @@
  * An Info List's items: phone, mobile, email, website, address, each of the
  * company's Additional Info List Items on its own (c:<row id>, Settings,
  * Company tab) and info_person (the person's own, which differ person to
- * person, so they go as one). A company item added in Settings later turns
+ * person, so they go as one), and vcard (Save my contact details, as a
+ * line of the list, Sam 31 October 2026; the block of its own stays, and
+ * a new or older Info List has it unticked). A company item added in Settings later turns
  * up ticked in the Info List holding the company's items (the first in a
  * column with one ticked), after them, and unticked in the others; one
  * deleted drops out. Layouts saved on 29 October 2026 before the items
  * went one by one have info_company (all of them), read as each of them.
+ *
+ * Company Additional Info List Items (company_info) and Person Additional
+ * Info List Items (person_info) are blocks of their own too (Sam, 31
+ * October 2026), drawn as an Info List with its options: the first holds
+ * only the company's items, in its own order, each ticked or not (one new
+ * in Settings goes in ticked); the second the person's own, as they are.
+ * Both stay in the Info List's items as well.
  *
  * Settings decides what exists, the layout where it shows. The sign-off
  * always sits above the columns; buttons, footer text, the campaign banner
@@ -129,6 +151,16 @@ class SB_EmailSig_Layout {
 			'accent' => '',
 			'icons'  => '',
 		],
+		'company_info' => [
+			'text'   => '',
+			'accent' => '',
+			'icons'  => '',
+		],
+		'person_info'  => [
+			'text'   => '',
+			'accent' => '',
+			'icons'  => '',
+		],
 		'vcard'   => [
 			'text'  => '',
 			'icons' => '',
@@ -151,13 +183,21 @@ class SB_EmailSig_Layout {
 	/** The merge tags a Text block fills in (Sam, 31 October 2026). */
 	const TAGS = [ 'first_name', 'last_name', 'name', 'job_title', 'qualifications', 'company', 'phone', 'mobile', 'email', 'website' ];
 
-	/** Spacing steps, as parts of the Default Spacing. */
+	/**
+	 * Spacing steps, as parts of the Default Spacing (8px from 31 October
+	 * 2026, Sam; 12 before): Quarter 2, Half 4, Default 8, One and a half 12,
+	 * Double 16, Triple 24, Quadruple 32. Eighth stays for spaces saved with
+	 * it, but isn't offered.
+	 */
 	const STEPS = [
-		'default' => 1,
-		'double'  => 2,
-		'half'    => 0.5,
-		'quarter' => 0.25,
-		'eighth'  => 0.125,
+		'quarter'   => 0.25,
+		'half'      => 0.5,
+		'default'   => 1,
+		'one_half'  => 1.5,
+		'double'    => 2,
+		'triple'    => 3,
+		'quadruple' => 4,
+		'eighth'    => 0.125,
 	];
 
 	/** Line styles. */
@@ -204,6 +244,8 @@ class SB_EmailSig_Layout {
 			'logo'       => 'Logo',
 			'logo_small' => 'Small logo',
 			'info'       => 'Info List',
+			'company_info' => 'Company Info List Items', // Short, without Additional (Sam, 31 October 2026).
+			'person_info'  => 'Person Info List Items',
 			'vcard'      => 'Save my contact details',
 			'social'     => 'Social icons',
 			'divider'    => 'Divider',
@@ -229,7 +271,10 @@ class SB_EmailSig_Layout {
 			$out[ 'c:' . $ref ] = $item['label'];
 		}
 
-		return $out + [ 'info_person' => 'Person\'s own Additional Info List Items' ];
+		return $out + [
+			'info_person' => 'Person\'s own Additional Info List Items',
+			'vcard'       => 'Save my contact details',
+		];
 	}
 
 	/**
@@ -246,7 +291,14 @@ class SB_EmailSig_Layout {
 
 		foreach ( self::all_columns( $layout ) as $col ) {
 			foreach ( (array) ( $col['blocks'] ?? [] ) as $b ) {
-				if ( ( $b['type'] ?? '' ) !== 'info' ) {
+				// The person's own items in a block of their own.
+				if ( ( $b['type'] ?? '' ) === 'person_info' ) {
+					$shown              = true;
+					$on['info_person'] = true;
+					continue;
+				}
+
+				if ( ( $b['type'] ?? '' ) !== 'info' && ( $b['type'] ?? '' ) !== 'company_info' ) {
 					continue;
 				}
 
@@ -268,12 +320,23 @@ class SB_EmailSig_Layout {
 				continue;
 			}
 
+			// Save my contact details held back but ticked in an Info List still shows.
+			if ( $type === 'vcard' && ! empty( $on['vcard'] ) ) {
+				continue;
+			}
+
+			// The company's and person's items: judged one by one below.
+			if ( $type === 'company_info' || $type === 'person_info' ) {
+				continue;
+			}
+
 			$out[ 'b:' . $type ] = $blocks[ $type ];
 		}
 
 		if ( $shown ) {
 			foreach ( self::items() as $key => $label ) {
-				if ( empty( $on[ $key ] ) ) {
+				// Save my contact details is judged as a block above.
+				if ( $key !== 'vcard' && empty( $on[ $key ] ) ) {
 					$out[ 'i:' . $key ] = $key === 'info_person' ? 'Their own Info List items' : $label;
 				}
 			}
@@ -337,18 +400,18 @@ class SB_EmailSig_Layout {
 					'format'  => 'full', // How the name shows (SB_EmailSig_Names::formats(), Sam, 31 October 2026).
 					'style'   => 'stack', // stack, or row: on one line.
 					'sep'     => 'bar',
-					'spacing' => 'quarter', // Between the lines (stacked) or either side of the separator (row).
+					'spacing' => 'half', // Between the lines (stacked) or either side of the separator (row).
 					'colours' => self::COLOURS['name'],
 				];
 			case 'company':
 				return [ 'colours' => self::COLOURS['company'] ];
 			case 'vcard':
 				return [ 'colours' => self::COLOURS['vcard'] ];
-			case 'info':
+			case 'company_info':
 				$items = [];
-				foreach ( array_keys( self::items() ) as $key ) {
+				foreach ( array_keys( self::company_items() ) as $ref ) {
 					$items[] = [
-						'key' => $key,
+						'key' => 'c:' . $ref,
 						'on'  => 1,
 					];
 				}
@@ -357,7 +420,32 @@ class SB_EmailSig_Layout {
 					'items'   => $items,
 					'style'   => 'stack',
 					'sep'     => 'bar',
-					'spacing' => 'default', // Between lines (stacked) or either side of the separator (row).
+					'spacing' => 'default', // As the Info List's (Sam, 1 November 2026).
+					'lead'    => '',
+					'colours' => self::COLOURS['company_info'],
+				];
+			case 'person_info':
+				return [
+					'style'   => 'stack',
+					'sep'     => 'bar',
+					'spacing' => 'default', // As the Info List's (Sam, 1 November 2026).
+					'lead'    => '',
+					'colours' => self::COLOURS['person_info'],
+				];
+			case 'info':
+				$items = [];
+				foreach ( array_keys( self::items() ) as $key ) {
+					$items[] = [
+						'key' => $key,
+						'on'  => $key === 'vcard' ? 0 : 1, // Its own block shows it already.
+					];
+				}
+
+				return [
+					'items'   => $items,
+					'style'   => 'stack',
+					'sep'     => 'bar',
+					'spacing' => 'default', // Between lines (stacked) or either side of the separator (row): Default, 8px (Sam, 1 November 2026).
 					'lead'    => '', // What starts each line: '' for Info List Styles, or icon, letter, label, none.
 					'colours' => self::COLOURS['info'],
 				];
@@ -382,7 +470,7 @@ class SB_EmailSig_Layout {
 				$out = [
 					'title' => '',
 					'text'  => '',
-					'gap'   => 'quarter', // Between the title and the text.
+					'gap'   => 'half', // Between the title and the text.
 				];
 				foreach ( self::TEXT_PARTS as $part ) {
 					$out[ $part . '_size' ]   = 0;
@@ -409,7 +497,7 @@ class SB_EmailSig_Layout {
 
 		return $b + [
 			'align' => 'left',
-			'space' => 'default',
+			'space' => 'double',
 		] + self::block_options( $type );
 	}
 
@@ -424,19 +512,19 @@ class SB_EmailSig_Layout {
 				[
 					'width'  => 0,
 					'valign' => '',
-					'padding' => [ 'top' => 'double', 'right' => 0, 'bottom' => 'double', 'left' => 0 ], // Double top and bottom unless set (Sam, 31 October 2026).
+					'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026).
 					'blocks' => [ $b( 'photo' ) ],
 				],
 				[
 					'width'  => 0,
 					'valign' => '',
-					'padding' => [ 'top' => 'double', 'right' => 0, 'bottom' => 'double', 'left' => 0 ], // Double top and bottom unless set (Sam, 31 October 2026).
-					'blocks' => [ $b( 'name' ), $b( 'company', [ 'space' => 'half' ] ) ],
+					'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026).
+					'blocks' => [ $b( 'name' ), $b( 'company', [ 'space' => 'default' ] ) ],
 				],
 				[
 					'width'  => 0,
 					'valign' => '', // Default (the row's), as the others (Sam, 31 October 2026).
-					'padding' => [ 'top' => 'double', 'right' => 0, 'bottom' => 'double', 'left' => 0 ], // Double top and bottom unless set (Sam, 31 October 2026).
+					'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026).
 					'blocks' => [
 						$b( 'logo' ),
 						$b( 'info', [], 1 ), // Default spacing both (Sam, 31 October 2026).
@@ -447,16 +535,16 @@ class SB_EmailSig_Layout {
 			],
 			'gaps'       => [
 				[
-					'space' => 'double',
+					'space' => 'triple',
 					'line'  => 'default',
 				],
 				[
-					'space' => 'double',
+					'space' => 'triple',
 					'line'  => 'default',
 				],
 			],
 			'valign'     => 'middle',
-			'block_gap'  => 12,
+			'block_gap'  => 8,
 			'padding'    => 0,
 			'border'     => [
 				'top'    => 0,
@@ -614,14 +702,18 @@ class SB_EmailSig_Layout {
 
 	/** A gap cleaned (between columns, or rows): $space and $line when it has none. */
 	private static function clean_gap( $g, $space, $line ) {
-		$g = is_array( $g ) ? $g : [];
+		$g     = is_array( $g ) ? $g : [];
+		$first = self::space( $g['space'] ?? null, $space );
 
 		return [
-			'space'      => self::space( $g['space'] ?? null, $space ),
-			'line'       => self::line( $g['line'] ?? null, $line ),
-			'line_style' => self::line_style( $g['line_style'] ?? '' ),
+			'space'       => $first,
+			// The other side of a line (Sam, 31 October 2026): missing is
+			// the same as space, so a gap from before reads as it was.
+			'space_after' => self::space( $g['space_after'] ?? null, $first ),
+			'line'        => self::line( $g['line'] ?? null, $line ),
+			'line_style'  => self::line_style( $g['line_style'] ?? '' ),
 			// Its own colour, '' for the lines colour (Sam, 31 October 2026).
-			'colour'     => SB_EmailSig_Styles::clean_colour( is_string( $g['colour'] ?? '' ) ? ( $g['colour'] ?? '' ) : '' ),
+			'colour'      => SB_EmailSig_Styles::clean_colour( is_string( $g['colour'] ?? '' ) ? ( $g['colour'] ?? '' ) : '' ),
 		];
 	}
 
@@ -694,7 +786,7 @@ class SB_EmailSig_Layout {
 		$layout = is_array( $layout ) ? $layout : self::$layout;
 
 		if ( is_string( $v ) && isset( self::STEPS[ $v ] ) ) {
-			return (int) round( (int) ( $layout['block_gap'] ?? 12 ) * self::STEPS[ $v ] );
+			return (int) round( (int) ( $layout['block_gap'] ?? 8 ) * self::STEPS[ $v ] );
 		}
 
 		return max( 0, (int) $v );
@@ -818,7 +910,7 @@ class SB_EmailSig_Layout {
 			$gaps = [];
 			for ( $i = 0; $i < max( self::GAP_PAD, count( $columns ) - 1 ); $i++ ) {
 				$g      = isset( $row['gaps'][ $i ] ) && is_array( $row['gaps'][ $i ] ) ? $row['gaps'][ $i ] : ( $default['rows'][ $r ]['gaps'][ $i ] ?? [] );
-				$gaps[] = self::clean_gap( $g, 'double', 'default' ); // Double, with the Default Line Width, unless set (Sam, 31 October 2026).
+				$gaps[] = self::clean_gap( $g, 'triple', 'default' ); // Triple (24px), with the Default Line Width, unless set (Sam, 31 October 2026).
 			}
 
 			$rows[] = [
@@ -835,7 +927,7 @@ class SB_EmailSig_Layout {
 		// Between each row and the next.
 		$row_gaps = [];
 		for ( $i = 0; $i < count( $rows ) - 1; $i++ ) {
-			$row_gaps[] = self::clean_gap( $raw['row_gaps'][ $i ] ?? [], 'double', 'default' ); // Double, with the Default Line Width, unless set (Sam, 31 October 2026).
+			$row_gaps[] = self::clean_gap( $raw['row_gaps'][ $i ] ?? [], 'triple', 'default' ); // Triple (24px), with the Default Line Width, unless set (Sam, 31 October 2026).
 		}
 
 		$hold   = $clean( $raw['hold'] ?? [] );
@@ -853,7 +945,7 @@ class SB_EmailSig_Layout {
 		return [
 			'rows'       => $rows,
 			'row_gaps'   => $row_gaps,
-			'block_gap'  => self::num( $raw['block_gap'] ?? 12, 0, 40, 12 ),
+			'block_gap'  => self::num( $raw['block_gap'] ?? 8, 0, 40, 8 ),
 			'line_width' => self::lwidth( self::num( $raw['line_width'] ?? 1, 1, self::MAX_LINE, 1 ), $dstyle ),
 			'line_style' => $dstyle,
 			'padding'    => self::space( $raw['padding'] ?? null, 0 ),
@@ -862,7 +954,24 @@ class SB_EmailSig_Layout {
 			'line_below' => self::line( $raw['line_below'] ?? null, 'default' ),
 			'line_below_style' => self::line_style( $raw['line_below_style'] ?? '' ),
 			'line_colour' => SB_EmailSig_Styles::clean_colour( $raw['line_colour'] ?? '' ),
-			'line_space' => self::space( $raw['line_space'] ?? null, 24 ),
+			'line_space' => self::space( $raw['line_space'] ?? null, 'double' ),
+			'line_space_bottom' => self::space( $raw['line_space_bottom'] ?? null, 0 ),
+			'buttons_top'     => self::space( $raw['buttons_top'] ?? null, 'double' ),
+			'buttons_bottom'  => self::space( $raw['buttons_bottom'] ?? null, 0 ),
+			'buttons_gap'     => self::space( $raw['buttons_gap'] ?? null, 'default' ),
+			'text_padding'    => self::clean_pad(
+				isset( $raw['text_padding'] ) ? $raw['text_padding'] : [
+					'top'    => self::space( $raw['text_top'] ?? null, 'double' ),
+					'bottom' => self::space( $raw['text_bottom'] ?? null, 0 ),
+				]
+			),
+			'text_border'     => self::clean_border( $raw['text_border'] ?? [] ),
+			'text_background' => SB_EmailSig_Styles::clean_colour( $raw['text_background'] ?? '' ),
+			'campaign_top'    => self::space( $raw['campaign_top'] ?? null, 'double' ),
+			'campaign_bottom' => self::space( $raw['campaign_bottom'] ?? null, 0 ),
+			'banners_top'     => self::space( $raw['banners_top'] ?? null, 'double' ),
+			'banners_bottom'  => self::space( $raw['banners_bottom'] ?? null, 0 ),
+			'banners_gap'     => self::space( $raw['banners_gap'] ?? null, 'double' ),
 			'hide_buttons'  => empty( $raw['hide_buttons'] ) ? 0 : 1,
 			'hide_banners'  => empty( $raw['hide_banners'] ) ? 0 : 1,
 			'hide_campaign' => empty( $raw['hide_campaign'] ) ? 0 : 1,
@@ -915,7 +1024,7 @@ class SB_EmailSig_Layout {
 		}
 
 		$out['align'] = self::pick( $b['align'] ?? '', [ 'left', 'center', 'right' ], 'left' );
-		$out['space'] = self::space( $b['space'] ?? null, 'default' );
+		$out['space'] = self::space( $b['space'] ?? null, 'double' );
 		$seps         = array_keys( self::seps() );
 
 		foreach ( self::block_options( $type ) as $k => $def ) {
@@ -959,7 +1068,7 @@ class SB_EmailSig_Layout {
 					$out[ $k ] = self::line( $v, $def, 1 );
 					break;
 				case 'items':
-					$out[ $k ] = self::clean_items( $v, $fill );
+					$out[ $k ] = $type === 'company_info' ? self::clean_company_items( $v ) : self::clean_items( $v, $fill );
 					break;
 				case 'colour':
 					$out[ $k ] = SB_EmailSig_Styles::clean_colour( is_string( $v ) ? $v : '' );
@@ -972,6 +1081,45 @@ class SB_EmailSig_Layout {
 					break;
 				default: // 0 or 1.
 					$out[ $k ] = empty( $v ) ? 0 : 1;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The Company Additional Info List Items block's items: the company's
+	 * only, each once, in the order given; one missing (new in Settings, or
+	 * a block from before) goes in at the end, ticked.
+	 */
+	private static function clean_company_items( $list ) {
+		$all = array_map(
+			function ( $ref ) {
+				return 'c:' . $ref;
+			},
+			array_keys( self::company_items() )
+		);
+		$out = [];
+		$got = [];
+
+		foreach ( self::expand( $list ) as $item ) {
+			$key = is_array( $item ) ? (string) ( $item['key'] ?? '' ) : '';
+
+			if ( in_array( $key, $all, true ) && ! isset( $got[ $key ] ) ) {
+				$got[ $key ] = true;
+				$out[]       = [
+					'key' => $key,
+					'on'  => empty( $item['on'] ) ? 0 : 1,
+				];
+			}
+		}
+
+		foreach ( $all as $key ) {
+			if ( ! isset( $got[ $key ] ) ) {
+				$out[] = [
+					'key' => $key,
+					'on'  => 1,
+				];
 			}
 		}
 
@@ -1145,7 +1293,7 @@ class SB_EmailSig_Layout {
 		$out .= self::columns( $layout );
 
 		if ( self::lpx( $layout['line_below'] ?? 0 ) > 0 ) {
-			$out .= '<tr><td style="padding:' . self::px( $layout['line_space'] ?? 24 ) . 'px 0 0 0;">' . self::rule( self::lpx( $layout['line_below'] ), (string) ( $layout['line_colour'] ?? '' ), self::lstyle( $layout['line_below_style'] ?? 'default' ) ) . '</td></tr>';
+			$out .= '<tr><td style="padding:' . self::px( $layout['line_space'] ?? 'double' ) . 'px 0 ' . self::px( $layout['line_space_bottom'] ?? 0 ) . 'px 0;">' . self::rule( self::lpx( $layout['line_below'] ), (string) ( $layout['line_colour'] ?? '' ), self::lstyle( $layout['line_below_style'] ?? 'default' ) ) . '</td></tr>';
 		}
 
 		$out .= self::footer( $layout );
@@ -1227,13 +1375,14 @@ class SB_EmailSig_Layout {
 	/** The space between two rows, with a full width line in the middle when it has one. */
 	private static function row_gap( array $g ) {
 		$space = self::px( $g['space'] );
+		$below = self::px( $g['space_after'] ?? $g['space'] );
 		$line  = self::lpx( $g['line'] );
 
 		if ( ! $line ) {
 			return $space ? '<tr><td style="height:' . $space . 'px;line-height:' . $space . 'px;font-size:0;padding:0;"></td></tr>' : '';
 		}
 
-		return '<tr><td style="padding:' . $space . 'px 0 ' . $space . 'px 0;">' . self::rule( $line, (string) ( $g['colour'] ?? '' ), self::lstyle( $g['line_style'] ?? 'default' ) ) . '</td></tr>';
+		return '<tr><td style="padding:' . $space . 'px 0 ' . $below . 'px 0;">' . self::rule( $line, (string) ( $g['colour'] ?? '' ), self::lstyle( $g['line_style'] ?? 'default' ) ) . '</td></tr>';
 	}
 
 	/** One row's columns, as a table: empty columns (nothing to show) are left out, gaps and all. '' with nothing to show. */
@@ -1294,7 +1443,7 @@ class SB_EmailSig_Layout {
 				);
 				$style .= 'vertical-align:' . $va . ';';
 			} else {
-				$style = 'padding:' . ( self::px( $pad['top'] ?? 0 ) ) . 'px ' . ( ( $after ? self::px( $after['space'] ) : 0 ) + self::px( $pad['right'] ?? 0 ) ) . 'px ' . ( self::px( $pad['bottom'] ?? 0 ) ) . 'px ' . ( ( $bline ? self::px( $befor['space'] ) : 0 ) + self::px( $pad['left'] ?? 0 ) ) . 'px;vertical-align:' . $va . ';';
+				$style = 'padding:' . ( self::px( $pad['top'] ?? 0 ) ) . 'px ' . ( ( $after ? self::px( $after['space'] ) : 0 ) + self::px( $pad['right'] ?? 0 ) ) . 'px ' . ( self::px( $pad['bottom'] ?? 0 ) ) . 'px ' . ( ( $bline ? self::px( $befor['space_after'] ?? $befor['space'] ) : 0 ) + self::px( $pad['left'] ?? 0 ) ) . 'px;vertical-align:' . $va . ';';
 			}
 
 			// The line between columns: a cell of its own in the lines colour,
@@ -1314,8 +1463,8 @@ class SB_EmailSig_Layout {
 			}
 
 			// Boxed: the space after a line before it, as a cell.
-			if ( $boxed && $bline && self::px( $befor['space'] ) > 0 ) {
-				$out .= self::vgap( self::px( $befor['space'] ) );
+			if ( $boxed && $bline && self::px( $befor['space_after'] ?? $befor['space'] ) > 0 ) {
+				$out .= self::vgap( self::px( $befor['space_after'] ?? $befor['space'] ) );
 			}
 
 			$w = (int) $col['width'];
@@ -1420,6 +1569,8 @@ class SB_EmailSig_Layout {
 				self::text_colour( 'company', $pick( 'text', 'text' ) );
 				break;
 			case 'info':
+			case 'company_info':
+			case 'person_info':
 				self::text_colour( 'contact', $pick( 'text', 'text' ) );
 				$accent = $pick( 'accent', 'accent' );
 				$icons  = $pick( 'icons', 'icons' );
@@ -1470,6 +1621,11 @@ class SB_EmailSig_Layout {
 				return self::logo( true, $b['align'] );
 			case 'info':
 				return self::info( $b );
+			case 'company_info':
+				return self::info( $b, 'company items' );
+			case 'person_info':
+				// The person's own, as they are: no order or ticks of its own.
+				return self::info( [ 'items' => [ [ 'key' => 'info_person', 'on' => 1 ] ] ] + $b, 'person items' );
 			case 'vcard':
 				return self::vcard( $b );
 			case 'social':
@@ -1550,8 +1706,11 @@ class SB_EmailSig_Layout {
 		$round = $shape === 'circle' ? '50%' : ( $shape === 'rounded' ? (int) ( $photo['radius'] ?? $s['photo']['radius'] ) . 'px' : '0' );
 
 		if ( $photo ) {
+			// Its width at most, so it can shrink in a narrow column (Sam, 31
+			// October 2026): width 100% up to max-width, as the banners. The
+			// width attribute stays for Outlook for Windows, which ignores both.
 			$w   = (int) $photo['width'];
-			$img = '<img src="' . esc_url( $photo['url'] ) . '" width="' . $w . '" alt="' . esc_attr( $d['name'] ) . '" style="' . self::img_display( $align ) . 'width:' . $w . 'px;height:auto;border:0;outline:none;' . ( $photo['baked'] ? '' : 'border-radius:' . esc_attr( $round ) . ';' ) . '" />';
+			$img = '<img src="' . esc_url( $photo['url'] ) . '" width="' . $w . '" alt="' . esc_attr( $d['name'] ) . '" style="' . self::img_display( $align ) . 'width:100%;max-width:' . $w . 'px;height:auto;border:0;outline:none;' . ( $photo['baked'] ? '' : 'border-radius:' . esc_attr( $round ) . ';' ) . '" />';
 
 			return self::a( $d['profile_link'], $img );
 		}
@@ -1848,6 +2007,12 @@ class SB_EmailSig_Layout {
 				case 'info_person':
 					$extra( $d['info_person'] ?? [] );
 					break;
+				case 'vcard':
+					// As its own block draws it, when Settings has it on.
+					if ( ! empty( $d['vcard_show'] ) && ! empty( $d['vcard_url'] ) ) {
+						$rows[] = [ 'user-plus', $d['vcard_label'], $d['vcard_url'], '' ];
+					}
+					break;
 				default:
 					// One of the company's (gone when the person hides them).
 					foreach ( (array) ( $d['info_company'] ?? [] ) as $info ) {
@@ -1905,12 +2070,12 @@ class SB_EmailSig_Layout {
 		return '<td valign="' . $va . '" style="padding:' . $pad . ';vertical-align:' . $va . ';text-align:left;' . esc_attr( $css ) . $wrap . '">' . ( $row[2] ? self::a( $row[2], $text, self::LINK . $css ) : $text ) . '</td>';
 	}
 
-	/** An Info List: its lines stacked, or on one row with a separator. */
-	private static function info( array $b ) {
+	/** An Info List (or a block drawn as one): its lines stacked, or on one row with a separator. $ph names it in a preview with nothing to show. */
+	private static function info( array $b, $ph = 'Info List' ) {
 		$rows = self::rows( $b['items'] );
 
 		if ( ! $rows ) {
-			return self::ph( 'Info List' );
+			return self::ph( $ph );
 		}
 
 		$va  = esc_attr( self::$s['icons']['valign'] ?? 'top' );
@@ -2006,18 +2171,24 @@ class SB_EmailSig_Layout {
 		$width = (int) ( $s['width'] ?? 600 );
 		$btn   = $s['buttons'] ?? [];
 		$out   = '';
+		// Each part's space above and below (Footer Settings, Sam, 31 October 2026).
+		$pad = function ( $part ) use ( $layout ) {
+			return 'padding:' . self::px( $layout[ $part . '_top' ] ?? 'double' ) . 'px 0 ' . self::px( $layout[ $part . '_bottom' ] ?? 0 ) . 'px 0;';
+		};
 
 		// Footer Controls: a part left out leaves out its placeholder too.
 		if ( ! $d['buttons'] && self::preview() && ! $hide( 'buttons' ) ) {
-			$out .= '<tr><td style="padding:16px 0 0 0;">' . self::ph( 'buttons' ) . '</td></tr>';
+			$out .= '<tr><td style="' . $pad( 'buttons' ) . '">' . self::ph( 'buttons' ) . '</td></tr>';
 		}
 
 		if ( $d['buttons'] && $btn && ! $hide( 'buttons' ) ) {
-			$out .= '<tr><td style="padding:16px 0 0 0;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;"><tr>';
+			$out .= '<tr><td style="' . $pad( 'buttons' ) . '"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;"><tr>';
+			$bgap  = self::px( $layout['buttons_gap'] ?? 'default' ); // Space between (Sam, 1 November 2026; 8px before).
+			$blast = count( $d['buttons'] ) - 1;
 
-			foreach ( $d['buttons'] as $button ) {
+			foreach ( array_values( $d['buttons'] ) as $bi => $button ) {
 				$look = $button['outline'] ? $btn['outline'] : $btn['solid'];
-				$out .= '<td style="padding:0 ' . (int) $btn['gap'] . 'px 0 0;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;"><tr>';
+				$out .= '<td style="padding:0 ' . ( $bi < $blast ? $bgap : 0 ) . 'px 0 0;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;"><tr>';
 				$out .= '<td' . ( $look['bg'] ? ' bgcolor="' . esc_attr( $look['bg'] ) . '"' : '' ) . ' style="border:2px solid ' . esc_attr( $look['border'] ) . ';border-radius:' . (int) $btn['radius'] . 'px;' . ( $look['bg'] ? 'background:' . esc_attr( $look['bg'] ) . ';' : '' ) . '">';
 				$out .= '<a href="' . esc_url( $button['link'], [ 'http', 'https', 'mailto', 'tel' ] ) . '"' . self::NEW_WINDOW . ' style="display:inline-block;padding:' . (int) $btn['pad_y'] . 'px ' . (int) $btn['pad_x'] . 'px;font-family:' . esc_attr( $s['font'] ) . ';font-size:' . (int) $btn['font'] . 'px;line-height:' . (int) $btn['line'] . 'px;font-weight:' . esc_attr( $btn['weight'] ) . ';color:' . esc_attr( $look['text'] ) . ';text-decoration:none;white-space:nowrap;">' . esc_html( self::cased( 'buttons', $button['label'] ) ) . '</a>';
 				$out .= '</td></tr></table></td>';
@@ -2026,31 +2197,47 @@ class SB_EmailSig_Layout {
 			$out .= '</tr></table></td></tr>';
 		}
 
+		// The footer text's own box: padding, border and background, as a row's (Sam, 1 November 2026).
+		list( $tstyle, $tbg ) = self::box(
+			[
+				'padding'    => $layout['text_padding'] ?? [ 'top' => 'double' ],
+				'border'     => $layout['text_border'] ?? self::clean_border( [] ),
+				'background' => $layout['text_background'] ?? '',
+			]
+		);
+		$ttd = '<tr><td' . ( $tbg !== '' ? ' bgcolor="' . esc_attr( $tbg ) . '"' : '' ) . ' style="' . esc_attr( $tstyle ) . '">';
+
 		if ( ! $d['fine_print'] && self::preview() && ! $hide( 'text' ) ) {
-			$out .= '<tr><td style="padding:14px 0 0 0;">' . self::ph( 'footer text' ) . '</td></tr>';
+			$out .= $ttd . self::ph( 'footer text' ) . '</td></tr>';
 		}
 
 		// -webkit-text-size-adjust: iPhone Mail enlarges text under about 13px,
 		// so small footer text stays its own size there (Sam, 30 October 2026).
 		if ( $d['fine_print'] && ! $hide( 'text' ) ) {
-			$out .= '<tr><td style="padding:14px 0 0 0;"><div style="max-width:' . $width . 'px;-webkit-text-size-adjust:100%;' . esc_attr( $s['css']['fine_print'] ?? '' ) . '">' . wp_kses( self::cased( 'fine_print', $d['fine_print'] ), [ 'br' => [] ] ) . '</div></td></tr>';
+			$out .= $ttd . '<div style="max-width:' . $width . 'px;-webkit-text-size-adjust:100%;' . esc_attr( $s['css']['fine_print'] ?? '' ) . '">' . wp_kses( self::cased( 'fine_print', $d['fine_print'] ), [ 'br' => [] ] ) . '</div></td></tr>';
 		}
 
 		if ( $d['campaign'] && ! $hide( 'campaign' ) ) {
 			$cw   = min( (int) $d['campaign']['width'], $width );
 			$img  = '<img src="' . esc_url( $d['campaign']['image'] ) . '" width="' . $cw . '" alt="" style="display:block;width:100%;max-width:' . $cw . 'px;height:auto;border:0;outline:none;" />';
-			$out .= '<tr><td style="padding:16px 0 0 0;">' . self::a( $d['campaign']['link'], $img ) . '</td></tr>';
+			$out .= '<tr><td style="' . $pad( 'campaign' ) . '">' . self::a( $d['campaign']['link'], $img ) . '</td></tr>';
 		}
 
 		if ( ! $d['banners'] && self::preview() && ! $hide( 'banners' ) ) {
-			$out .= '<tr><td style="padding:16px 0 0 0;">' . self::ph( 'banners', 'display:block;width:' . min( 600, $width ) . 'px;max-width:100%;padding:24px 0;text-align:center;box-sizing:border-box;' ) . '</td></tr>';
+			$out .= '<tr><td style="' . $pad( 'banners' ) . '">' . self::ph( 'banners', 'display:block;width:' . min( 600, $width ) . 'px;max-width:100%;padding:24px 0;text-align:center;box-sizing:border-box;' ) . '</td></tr>';
 		}
 
-		foreach ( $hide( 'banners' ) ? [] : $d['banners'] as $i => $banner ) {
+		$banners = $hide( 'banners' ) ? [] : array_values( $d['banners'] );
+		$last    = count( $banners ) - 1;
+
+		foreach ( $banners as $i => $banner ) {
 			list( $bw, $bh ) = SB_EmailSig_Data::fit( $banner['image'], $width );
 
 			$img  = '<img src="' . esc_url( SB_EmailSig_Data::src( $banner['image'], $bw ) ) . '" width="' . (int) $bw . '"' . ( $bh ? ' height="' . (int) $bh . '"' : '' ) . ' alt="' . esc_attr( $banner['image']['alt'] ) . '" style="display:block;width:100%;max-width:' . (int) $bw . 'px;height:auto;border:0;outline:none;" />';
-			$out .= '<tr><td style="padding:' . ( $i ? '10' : '16' ) . 'px 0 0 0;">' . self::a( $banner['link'], $img ) . '</td></tr>';
+			// Banners Padding above the first and below the last; Space between (Sam, 1 November 2026; 10px before) between two.
+			$top  = $i ? self::px( $layout['banners_gap'] ?? 'double' ) : self::px( $layout['banners_top'] ?? 'double' );
+			$bot  = $i === $last ? self::px( $layout['banners_bottom'] ?? 0 ) : 0;
+			$out .= '<tr><td style="padding:' . $top . 'px 0 ' . $bot . 'px 0;">' . self::a( $banner['link'], $img ) . '</td></tr>';
 		}
 
 		return $out;

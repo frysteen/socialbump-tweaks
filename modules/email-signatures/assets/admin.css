@@ -1356,6 +1356,18 @@ body .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-person__who a.sb-em
 .sb-emailsig-layout__row-head .sb-emailsig-layout__bar .sb-emailsig-field__label { white-space: nowrap; }
 .sb-emailsig-layout__row-name { align-self: center; min-width: 52px; font-size: 13px; font-weight: 600; color: var(--sbui-text, #1d2327); }
 .sb-emailsig-layout__row-name small { display: block; color: var(--sbui-text-3, #787c82); font-size: 11px; font-weight: 400; }
+.sb-emailsig-layout__row-sum { flex: 1 1 auto; min-width: 0; color: var(--sbui-text-3, #787c82); font-size: 11px; }
+.sb-emailsig-layout__col-name small { white-space: normal; overflow: visible; }
+.sb-tweaks-dialog__field > .sb-emailsig-layout__width { display: flex; align-items: center; gap: 6px; color: var(--sbui-text-2, #50575e); }
+.sb-tweaks-dialog__field > .sb-emailsig-layout__width input { flex: 1 1 auto; width: auto; min-width: 0; }
+.sb-emailsig-layout__box + .sb-emailsig-layout__box { margin-top: 14px; } /* Footer Divider's spacing row (Sam, 31 October 2026). */
+[data-sb-emailsig-layout-footer] > .sb-emailsig-item:first-child { padding-top: 0; border-top: 0; }
+[data-sb-emailsig-layout-footer] .sb-emailsig-layout__box .is-locked { opacity: 0.55; }
+.sb-emailsig-layout__padrow .sb-emailsig-layout__step select { width: 128px; min-width: 0; } /* Four sides on one line (Sam, 1 November 2026). */
+.sb-emailsig-layout__resets { display: grid; gap: 10px; margin-top: 4px; } /* Reset Template's picks (Sam, 1 November 2026). */
+.sb-emailsig-layout__resets .sb-tweaks-dialog__check { margin: 0; }
+.sb-emailsig-layout__resets small { display: block; margin-top: 2px; color: var(--sbui-text-3, #787c82); font-size: 12px; font-weight: 400; }
+.sb-emailsig-layout__resets input:disabled + span { opacity: 0.6; }
 .sb-emailsig-layout__row-grip { align-self: center; color: var(--sbui-text-3, #787c82); cursor: grab; }
 .sb-emailsig-layout__row-tools { display: flex; gap: 4px; align-self: center; margin-left: auto; }
 .sb-emailsig-layout__rowgap { display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 8px; background: none; border: 0; border-radius: 4px; cursor: pointer; }
@@ -1418,3 +1430,4 @@ body .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-person__who a.sb-em
 .sb-emailsig-limit-lock .button.disabled, .sb-emailsig-limit-lock .button.disabled:hover { pointer-events: none; opacity: 0.5; }
 /* With no count heading above them now, the Companies and Templates grids keep their space below the bar (Sam, 31 October 2026). */
 .sb-ui-bar.sb-emailsig-bar + .sb-emailsig-people { margin-top: 28px; }
+.sb-emailsig-layout__padgrid.is-one { grid-template-columns: minmax(0, 1fr); }

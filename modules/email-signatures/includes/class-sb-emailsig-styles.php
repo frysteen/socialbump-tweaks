@@ -1213,7 +1213,7 @@ class SB_EmailSig_Styles {
 			self::number_field( 'Ratio width', 's[photo][ratio_w]', $p['ratio_w'], $dp['ratio_w'], 1, 99, '' );
 			self::number_field( 'Ratio height', 's[photo][ratio_h]', $p['ratio_h'], $dp['ratio_h'], 1, 99, '' );
 			echo '</div>';
-			self::number_field( 'Width', 's[photo][width]', $p['width'], $dp['width'], 40, 300, 'px' );
+			self::number_field( 'Max width', 's[photo][width]', $p['width'], $dp['width'], 40, 300, 'px' ); // At most: the photo shrinks to fit (Sam, 31 October 2026).
 			echo '</div>';
 			// A ring drawn into the photo itself, so every mail app shows it
 			// (Sam, 30 October 2026), on a row of its own. People can have

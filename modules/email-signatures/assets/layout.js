@@ -50,10 +50,13 @@
 	var uid = 0;
 	var sortables = [];
 	/* The Container border's lock: one width for all four sides (null: worked out when it's drawn). */
-	var borderLocked = null;
 	var writing = false;
 
-	var SHORT = { info_person: 'Person items' };
+	var SHORT = { info_person: 'Person items', vcard: 'Save contact' };
+	/* Footer parts with their own spacing (Footer Settings), in the order they draw. */
+	var FOOT_PARTS = [['buttons', 'Buttons'], ['text', 'Footer Text'], ['campaign', 'Campaign Banner'], ['banners', 'Banners']];
+	/* Footer parts with a Space between two (Sam, 1 November 2026). */
+	var FOOT_GAPS = { buttons: true, banners: true };
 	var HIDES = [['buttons', 'Hide Buttons'], ['banners', 'Hide Banners'], ['campaign', 'Hide Campaign Banner'], ['text', 'Hide Footer Text']];
 	var texts = cfg.texts || {};
 	var VALIGNS = { top: 'Top', middle: 'Middle', bottom: 'Bottom' };
@@ -73,24 +76,30 @@
 		return Math.max(min, Math.min(max, int(v, d)));
 	}
 
-	function canonItems(list) {
+	/** An Info List's items (Layout::clean_items()); company: the Company Additional Info List Items block's, the company's only, new ones ticked (clean_company_items()). */
+	function canonItems(list, company) {
 		var out = [];
 		var got = {};
+		var mine = function (k) { return !!cfg.items[k] && (!company || k.indexOf('c:') === 0); };
 		(list || []).forEach(function (it) {
-			if (it && cfg.items[it.key] && !got[it.key]) {
+			if (it && mine(it.key) && !got[it.key]) {
 				got[it.key] = true;
 				out.push({ key: it.key, on: it.on ? 1 : 0 });
 			}
 		});
 		Object.keys(cfg.items).forEach(function (k) {
-			if (!got[k]) out.push({ key: k, on: 0 });
+			if (!got[k] && mine(k)) out.push({ key: k, on: company ? 1 : 0 });
 		});
 		return out;
 	}
 
+	/** Blocks drawn as an Info List: its layout, spacing and icon display (Sam, 31 October 2026). */
+	var LISTS = ['info', 'company_info', 'person_info'];
+
 	/* Spacing steps (parts of the Default Spacing) and lines (the Default Line Width or px). */
-	var STEPS = { 'default': 1, double: 2, half: 0.5, quarter: 0.25, eighth: 0.125 };
-	var STEP_NAMES = { 'default': 'Default', double: 'Double', half: 'Half', quarter: 'Quarter', eighth: 'Eighth' };
+	/* Layout::STEPS, on an 8px Default Spacing (Sam, 31 October 2026): offered smallest first; Eighth only where saved. */
+	var STEPS = { quarter: 0.25, half: 0.5, 'default': 1, one_half: 1.5, double: 2, triple: 3, quadruple: 4, eighth: 0.125 };
+	var STEP_NAMES = { quarter: 'Quarter', half: 'Half', 'default': 'Default', one_half: 'One and a half', double: 'Double', triple: 'Triple', quadruple: 'Quadruple' };
 
 	/** A space as the server keeps it: a step, or px (0 for none). Blank is d; -1 (before steps) the default. */
 	function spaceVal(v, d) {
@@ -124,7 +133,7 @@
 
 	/** A space in px now. */
 	function px(v) {
-		if (typeof v === 'string' && STEPS.hasOwnProperty(v)) return Math.round(int(state.block_gap, 12) * STEPS[v]);
+		if (typeof v === 'string' && STEPS.hasOwnProperty(v)) return Math.round(int(state.block_gap, 8) * STEPS[v]);
 		return Math.max(0, int(v, 0));
 	}
 
@@ -138,7 +147,7 @@
 		var out = { type: b.type };
 		if (multi.indexOf(b.type) !== -1) out.id = int(b.id, 1);
 		out.align = ALIGNS.indexOf(b.align) !== -1 ? b.align : 'left';
-		out.space = spaceVal(b.space, 'default');
+		out.space = spaceVal(b.space, 'double');
 		Object.keys(d).forEach(function (k) {
 			if (k === 'type' || k === 'id' || k === 'align' || k === 'space') return;
 			var v = b[k] === undefined ? d[k] : b[k];
@@ -151,7 +160,7 @@
 			} else if (k === 'line_style') {
 				out[k] = styleVal(v);
 			} else if (k === 'items') {
-				out[k] = canonItems(v);
+				out[k] = canonItems(v, b.type === 'company_info');
 			} else if (k === 'colours') {
 				out[k] = canonColours(v, d[k]);
 			} else if (/^(title|text)_size$/.test(k)) {
@@ -203,7 +212,9 @@
 	/** A gap as the server keeps it (between columns, or rows): d when it has no space. */
 	function canonGap(g, d, ld) {
 		g = g || {};
-		return { space: spaceVal(g.space, d), line: lineVal(g.line, ld === undefined ? 0 : ld), line_style: styleVal(g.line_style), colour: colour(g.colour) };
+		var first = spaceVal(g.space, d);
+		// The other side of a line (Sam, 31 October 2026): missing is the same as space.
+		return { space: first, space_after: spaceVal(g.space_after, first), line: lineVal(g.line, ld === undefined ? 0 : ld), line_style: styleVal(g.line_style), colour: colour(g.colour) };
 	}
 
 	var SIDES4 = ['top', 'right', 'bottom', 'left'];
@@ -239,7 +250,7 @@
 			// them, their default align and its own box.
 			rows: s.rows.map(function (r) {
 				var gaps = [];
-				for (var gi = 0; gi < gapCount(Math.max(1, r.columns.length)); gi++) gaps.push(canonGap((r.gaps || [])[gi], 'double', 'default'));
+				for (var gi = 0; gi < gapCount(Math.max(1, r.columns.length)); gi++) gaps.push(canonGap((r.gaps || [])[gi], 'triple', 'default'));
 				return {
 					columns: (r.columns.length ? r.columns : [newColumn()]).map(function (c) {
 						return {
@@ -260,8 +271,8 @@
 					colours: canonColours(r.colours, ROW_COLOURS)
 				};
 			}),
-			row_gaps: s.rows.slice(1).map(function (r, i) { return canonGap((s.row_gaps || [])[i], 'double', 'default'); }),
-			block_gap: clamp(s.block_gap, 0, 40, 12),
+			row_gaps: s.rows.slice(1).map(function (r, i) { return canonGap((s.row_gaps || [])[i], 'triple', 'default'); }),
+			block_gap: clamp(s.block_gap, 0, 40, 8),
 			line_width: clamp(s.line_width, 1, MAX_LINE, 1),
 			line_style: STYLES.hasOwnProperty(s.line_style) ? s.line_style : 'solid',
 			padding: spaceVal(s.padding, 0),
@@ -270,7 +281,20 @@
 			line_below: lineVal(s.line_below, 'default'),
 			line_below_style: styleVal(s.line_below_style),
 			line_colour: colour(s.line_colour),
-			line_space: spaceVal(s.line_space, 24),
+			line_space: spaceVal(s.line_space, 'double'),
+			line_space_bottom: spaceVal(s.line_space_bottom, 0),
+			buttons_top: spaceVal(s.buttons_top, 'double'),
+			buttons_bottom: spaceVal(s.buttons_bottom, 0),
+			buttons_gap: spaceVal(s.buttons_gap, 'default'),
+			// The footer text's own box (Sam, 1 November 2026); text_top and text_bottom before.
+			text_padding: canonPad(s.text_padding && typeof s.text_padding === 'object' ? s.text_padding : { top: spaceVal(s.text_top, 'double'), bottom: spaceVal(s.text_bottom, 0) }),
+			text_border: canonBorder(s.text_border),
+			text_background: colour(s.text_background),
+			campaign_top: spaceVal(s.campaign_top, 'double'),
+			campaign_bottom: spaceVal(s.campaign_bottom, 0),
+			banners_top: spaceVal(s.banners_top, 'double'),
+			banners_bottom: spaceVal(s.banners_bottom, 0),
+			banners_gap: spaceVal(s.banners_gap, 'double'),
 			hide_buttons: s.hide_buttons ? 1 : 0,
 			hide_banners: s.hide_banners ? 1 : 0,
 			hide_campaign: s.hide_campaign ? 1 : 0,
@@ -326,15 +350,27 @@
 		while (s.row_gaps.length < s.rows.length - 1) s.row_gaps.push(newRowGap());
 		s.hold.forEach(tag);
 		state = s;
+		// Footer settings a layout saved before them hasn't got: as canon() reads them.
+		var full = canon(state);
+		['line_space_bottom', 'buttons_top', 'buttons_bottom', 'buttons_gap', 'text_padding', 'text_border', 'text_background', 'campaign_top', 'campaign_bottom', 'banners_top', 'banners_bottom', 'banners_gap'].forEach(function (k) {
+			if (state[k] === undefined || state[k] === null) state[k] = full[k];
+		});
 	}
 
 	function newColumn() {
 		// Double top and bottom, as the design's columns (Sam, 31 October 2026).
-		return { width: 0, valign: '', padding: canonPad({ top: 'double', bottom: 'double' }), border: canonBorder({}), background: '', colours: canonColours({}, ROW_COLOURS), blocks: [] };
+		return { width: 0, valign: '', padding: canonPad({ top: 'triple', bottom: 'triple' }), border: canonBorder({}), background: '', colours: canonColours({}, ROW_COLOURS), blocks: [] };
+	}
+
+	/** A gap's px for the canvas: one number, or both sides of its line when they differ. */
+	function gapText(g) {
+		var a = px(g.space);
+		var b = px(g.space_after === undefined ? g.space : g.space_after);
+		return lpx(g.line) > 0 && a !== b ? a + '/' + b : String(a);
 	}
 
 	function newRowGap() {
-		return { space: 'double', line: 'default', line_style: 'default', colour: '' }; // Double, with the Default Line Width, unless set (Sam, 31 October 2026).
+		return { space: 'triple', space_after: 'triple', line: 'default', line_style: 'default', colour: '' }; // Triple (24px), with the Default Line Width, unless set (Sam, 31 October 2026).
 	}
 
 	function newRow() {
@@ -372,9 +408,9 @@
 
 	function summary(b) {
 		var bits = [];
-		if (b.type === 'info') {
+		if (LISTS.indexOf(b.type) !== -1) {
 			if (b.style === 'row') bits.push('One row');
-			if (!(b.items || []).some(function (it) { return it.on; })) bits.push('Empty');
+			if (b.type !== 'person_info' && !(b.items || []).some(function (it) { return it.on; })) bits.push('Empty');
 		} else if (b.type === 'name') {
 			if (b.format && b.format !== 'full' && cfg.nameFormats && cfg.nameFormats[b.format]) bits.push(String(cfg.nameFormats[b.format]).replace(/^.*\((.*)\)$/, '$1'));
 			bits.push(b.style === 'row' ? 'One row' : 'Stacked');
@@ -513,6 +549,21 @@
 	}
 
 	/**
+	 * What a row's or column's settings change from the design's (what its
+	 * Reset would put back), named short for under its name (Sam, 31
+	 * October 2026): '' when nothing.
+	 */
+	function custom(now, def) {
+		var NAMES = { padding: 'Padding', border: 'Border', background: 'Background', colours: 'Colours' };
+		var out = [];
+		var diff = function (k) { return JSON.stringify(now[k]) !== JSON.stringify(def[k]); };
+		if ('width' in now && diff('width')) out.push(now.width ? now.width + 'px wide' : 'Auto width');
+		if ('valign' in now && diff('valign')) out.push(now.valign ? VALIGNS[now.valign] : 'Row align');
+		Object.keys(NAMES).forEach(function (k) { if (diff(k)) out.push(NAMES[k]); });
+		return out.length ? 'Custom: ' + out.join(' · ') : '';
+	}
+
+	/**
 	 * With the preview beside the editor, the popup sits over the editor's
 	 * column and the preview stays clear, so changes can be watched (Sam,
 	 * 29 October 2026). Stacked on a narrow screen, it stays centred.
@@ -573,8 +624,10 @@
 	 */
 	function spaceControl(label, value, cls) {
 		var choices = {};
-		Object.keys(STEP_NAMES).forEach(function (k) {
-			choices[k] = STEP_NAMES[k] + ' (' + Math.round(int(state.block_gap, 12) * STEPS[k]) + 'px)';
+		var names = $.extend({}, STEP_NAMES);
+		if (value === 'eighth') names = $.extend({ eighth: 'Eighth' }, names);
+		Object.keys(names).forEach(function (k) {
+			choices[k] = names[k] + ' (' + Math.round(int(state.block_gap, 8) * STEPS[k]) + 'px)';
 		});
 		choices.none = 'None';
 		choices.custom = 'Custom';
@@ -918,7 +971,7 @@
 			get.format = function () { return $fmt.val(); };
 		}
 
-		if (b.type === 'name' || b.type === 'info') {
+		if (b.type === 'name' || LISTS.indexOf(b.type) !== -1) {
 			var $style = select({ stack: 'Stacked', row: 'On one row' }, b.style);
 			var $sep = select(cfg.seps, b.sep);
 			var $sepRow = fieldRow('Separator', $sep);
@@ -930,28 +983,36 @@
 			get.spacing = function () { return $spacing.get(); };
 		}
 
-		if (b.type === 'info') {
+		if (LISTS.indexOf(b.type) !== -1) {
 			// What starts each line: the Info List Styles card's, or this list's own.
 			var $lead = select({ '': 'Default', icon: 'Icon', letter: 'First letter', label: 'Full label', none: 'None' }, b.lead || '');
 			$body.append(fieldRow('Icon display', $lead));
 			get.lead = function () { return $lead.val(); };
+		}
+
+		// The items: an Info List's, or the company's alone in their own block.
+		if (b.type === 'info' || b.type === 'company_info') {
+			var company = b.type === 'company_info';
 
 			// The items: drag to order, tick to show.
 			var $list = $('<ul class="sb-emailsig-layout__items"></ul>');
 			var others = {};
 			allCols().forEach(function (c) {
 				c.blocks.forEach(function (o) {
-					if (o.type !== 'info' || o._uid === b._uid) return;
+					if (o._uid === b._uid) return;
+					if (o.type === 'person_info') (others.info_person = others.info_person || []).push(name(o));
+					if (o.type !== 'info' && o.type !== 'company_info') return;
 					(o.items || []).forEach(function (it) {
 						if (it.on) (others[it.key] = others[it.key] || []).push(name(o));
 					});
 				});
 			});
-			canonItems(b.items).forEach(function (it) {
+			canonItems(b.items, company).forEach(function (it) {
 				var $li = $('<li></li>').attr('data-key', it.key);
 				$li.append('<span class="sb-emailsig-layout__grip dashicons dashicons-menu" aria-hidden="true"></span>');
 				$li.append(check(cfg.items[it.key], it.on));
-				if (texts[it.key]) $li.append($('<small class="sb-emailsig-layout__text"></small>').text('Company item: ' + texts[it.key]));
+				if (texts[it.key] && !company) $li.append($('<small class="sb-emailsig-layout__text"></small>').text('Company item: ' + texts[it.key]));
+				if (texts[it.key] && company) $li.append($('<small class="sb-emailsig-layout__text"></small>').text(texts[it.key]));
 				if (others[it.key]) $li.append($('<small class="sb-emailsig-layout__also"></small>').text('Also in ' + others[it.key].join(', ')));
 				$list.append($li);
 			});
@@ -1163,7 +1224,8 @@
 		var pad = paddingSection(c.padding);
 		var border = borderSection(c.border);
 		var $body = $('<div class="sb-emailsig-layout__pop"></div>').append(
-			fieldRow('Width (px)', $width),
+			// px beside the box, as Custom spaces have (Sam, 31 October 2026).
+			fieldRow('Width', $('<span class="sb-emailsig-layout__width"></span>').append($width, '<span>px</span>')),
 			fieldRow('Vertical align', $valign),
 			pad.$el,
 			border.$el
@@ -1182,15 +1244,47 @@
 		}, { pick: columnPick, def: columnPick(((designLayout().rows[r] || {}).columns || [])[i] || newColumn()), reopen: function () { columnPopup(r, i); } });
 	}
 
-	/** A gap's popup: def is its design settings, space the default space for its kind, reopen opens it again. */
-	function gapPopup(g, title, def, space, reopen) {
-		var $space = spaceControl('Space (each side of a line)', g.space);
+	/** A gap's popup: def is its design settings, space the default space for its kind, reopen opens it again, rows for between rows. */
+	function gapPopup(g, title, def, space, reopen, rows) {
+		// Each side of the line (Sam, 31 October 2026): Left and Right
+		// between columns, Top and Bottom between rows, locked together
+		// while they match. With no line there's one space.
+		var SIDE = rows ? ['Top spacing', 'Bottom spacing'] : ['Left spacing', 'Right spacing'];
+		var $space = spaceControl(SIDE[0], g.space);
+		var $after = spaceControl(SIDE[1], g.space_after === undefined ? g.space : g.space_after);
+		var locked = String($space.get()) === String($after.get());
+		var $lock = $('<button type="button" class="sb-emailsig-layout__lock"><span class="dashicons" aria-hidden="true"></span></button>');
+		var $grid = $('<div class="sb-emailsig-layout__padgrid"></div>').append($space, $after);
+		var $spacing = $('<div class="sb-emailsig-layout__padsection"></div>').append(
+			$('<div class="sb-emailsig-layout__padhead"></div>').append('<span class="sb-emailsig-layout__pop-sub">Spacing</span>', $lock),
+			$grid
+		);
+		var mirror = function () {
+			if (!locked) return;
+			$after.num.val($space.num.val());
+			$after.sel.val($space.sel.val()).trigger('change');
+		};
+		var paintLock = function () {
+			var t = locked ? 'Set each side' : 'Same both sides';
+			$after.sel.prop('disabled', locked);
+			$after.num.prop('disabled', locked);
+			$after.toggleClass('is-locked', locked);
+			$lock.attr({ 'aria-pressed': locked ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.find('.dashicons').toggleClass('dashicons-lock', locked).toggleClass('dashicons-unlock', !locked);
+		};
+		$space.on('input change', 'select, input', mirror);
+		$lock.on('click', function () {
+			locked = !locked;
+			mirror();
+			paintLock();
+		});
+		paintLock();
 		var $line = lineControl('Line Width', g.line, true);
 		var $dash = styleControl('Line style', g.line_style);
 		// Its own colour, as a Divider has (Sam, 31 October 2026); blank is the lines colour.
 		var gtint = g.colour || '';
 		var $gcol = colourField('Colour', gtint, 'Lines colour', cfg.lines || '', function (v) { gtint = v; });
-		var $body = $('<div class="sb-emailsig-layout__pop"></div>').append($space, $line, $dash, $gcol);
+		var $body = $('<div class="sb-emailsig-layout__pop"></div>').append($spacing, $line, $dash, $gcol);
 		var gforce = forceDouble($line, $dash);
 		$body.on('change', 'select, input', gforce);
 		gforce();
@@ -1202,8 +1296,20 @@
 		showWhen($dash, $line.sel, widths);
 		showWhen($gcol, $line.sel, widths);
 
+		// No line: one space between them, named for what it is.
+		var sides = function () {
+			var on = widths.indexOf($line.sel.val()) !== -1;
+			$after.toggle(on);
+			$spacing.children('.sb-emailsig-layout__padhead').toggle(on);
+			$grid.toggleClass('is-one', !on);
+			$space.children('span').first().text(on ? SIDE[0] : 'Space between ' + (rows ? 'the rows' : 'the columns'));
+		};
+		$line.sel.on('change', sides);
+		sides();
+
 		popup(title, $body, g, function () {
 			g.space = $space.get();
+			g.space_after = locked ? g.space : $after.get();
 			g.line = $line.get();
 			g.line_style = $dash.get();
 			g.colour = colour(gtint);
@@ -1260,7 +1366,8 @@
 		$b.append($name, $tools);
 		if (sum) $b.append($('<small class="sb-emailsig-layout__sum"></small>').text(sum).attr('title', sum));
 		// An Info List shows what it holds, one per line, so what's on is easy to read.
-		if (b.type === 'info') {
+		// Not in Use: just its name (Sam, 31 October 2026).
+		if ((b.type === 'info' || b.type === 'company_info') && !held) {
 			var $ul = $('<ul class="sb-emailsig-layout__sum-list"></ul>');
 			(b.items || []).forEach(function (it) {
 				if (it.on) $ul.append($('<li></li>').text(SHORT[it.key] || cfg.items[it.key] || it.key));
@@ -1366,6 +1473,166 @@
 	}
 
 	/** A step field on a card: the layout follows as it changes. */
+	/**
+	 * Padding on four sides in a card (the footer text's box, Sam, 1
+	 * November 2026): Padding top, right, bottom and left, with a lock that
+	 * makes the other three follow top. Unlocked to start (footLocks).
+	 */
+	function cardPadRow(id, pad) {
+		var NAMES = { top: 'Padding top', right: 'Padding right', bottom: 'Padding bottom', left: 'Padding left' };
+		var f = {};
+		var $row = $('<div class="sb-emailsig-fields sb-emailsig-layout__box sb-emailsig-layout__padrow"></div>');
+		SIDES4.forEach(function (sd) {
+			f[sd] = cardStep(spaceControl(NAMES[sd], pad[sd], 'sb-emailsig-field'), function (v) { pad[sd] = v; });
+			$row.append(f[sd]);
+		});
+		var key = 'pad_' + id;
+		var $lock = $('<button type="button" class="sb-emailsig-layout__lock"><span class="dashicons" aria-hidden="true"></span></button>');
+		var mirror = function () {
+			if (!footLocks[key]) return;
+			SIDES4.slice(1).forEach(function (sd) {
+				f[sd].num.val(f.top.num.val());
+				f[sd].sel.val(f.top.sel.val()).trigger('change');
+				pad[sd] = pad.top;
+			});
+			write();
+		};
+		var paint = function () {
+			var on = !!footLocks[key];
+			var t = on ? 'Set each side' : 'Same padding all round';
+			SIDES4.slice(1).forEach(function (sd) {
+				f[sd].sel.prop('disabled', on);
+				f[sd].num.prop('disabled', on);
+				f[sd].toggleClass('is-locked', on);
+			});
+			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.find('.dashicons').toggleClass('dashicons-lock', on).toggleClass('dashicons-unlock', !on);
+		};
+		f.top.on('input change', 'select, input', mirror);
+		$lock.on('click', function () {
+			footLocks[key] = !footLocks[key];
+			mirror();
+			paint();
+		});
+		paint();
+		return $row.append($('<div class="sb-emailsig-field sb-emailsig-layout__lockfield"></div>').append('<span class="sb-emailsig-field__label" aria-hidden="true">&nbsp;</span>', $lock));
+	}
+
+	/* Each card border's lock: one Line Width for all four sides, or each its own. */
+	var borderLocks = {};
+
+	/**
+	 * A border in a card (the Container's, the footer text's): Line Width
+	 * for all four sides, or one per side with the lock open, then Style and
+	 * Colour. Locked to start when all four match. bd is the border kept.
+	 */
+	function cardBorderRow(bd, key) {
+		var $row2 = $('<div class="sb-emailsig-fields sb-emailsig-layout__box"></div>');
+		var SIDES = { top: 'Top', right: 'Right', bottom: 'Bottom', left: 'Left' };
+		var $sides = {};
+		var $sideFields = $();
+		Object.keys(SIDES).forEach(function (side) {
+			$sides[side] = live(pxSelect(bd[side], true).addClass('sb-emailsig-layout__px'), function (v) { bd[side] = clamp(v, 0, MAX_LINE, 0); });
+			$sideFields = $sideFields.add(labelled(SIDES[side], $sides[side]));
+		});
+		if (borderLocks[key] === undefined || borderLocks[key] === null) borderLocks[key] = bd.top === bd.right && bd.top === bd.bottom && bd.top === bd.left;
+		var $all = live(pxSelect(bd.top, true).addClass('sb-emailsig-layout__px'), function (v) {
+			var n = clamp(v, 0, MAX_LINE, 0);
+			Object.keys(SIDES).forEach(function (side) {
+				bd[side] = n;
+				$sides[side].val(n);
+			});
+		});
+		var $allField = labelled(key === 'text' ? 'Border width' : 'Line Width', $all);
+		var $lock = $('<button type="button" class="sb-emailsig-layout__lock"><span class="dashicons" aria-hidden="true"></span></button>');
+		var lockPaint = function () {
+			var on = borderLocks[key];
+			var t = on ? 'Set each side' : 'Same width all round';
+			$allField.toggle(on);
+			$sideFields.toggle(!on);
+			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.find('.dashicons').toggleClass('dashicons-lock', on).toggleClass('dashicons-unlock', !on);
+		};
+		$lock.on('click', function () {
+			borderLocks[key] = !borderLocks[key];
+			if (borderLocks[key]) $all.val(int($sides.top.val(), 0)).trigger('change');
+			lockPaint();
+		});
+		lockPaint();
+		$row2.append($allField, $sideFields, $('<div class="sb-emailsig-field sb-emailsig-layout__lockfield"></div>').append('<span class="sb-emailsig-field__label" aria-hidden="true">&nbsp;</span>', $lock));
+		var $bstyle = cardStep(styleControl(key === 'text' ? 'Border style' : 'Style', bd.line_style, 'sb-emailsig-field'), function (v) { bd.line_style = v; });
+		$row2.append($bstyle);
+		$row2.append(colourField(key === 'text' ? 'Border colour' : 'Colour', bd.colour, 'Lines colour', cfg.lines || '', function (v) { bd.colour = v; }));
+		// A Double border: a side of 1 or 2 goes to DOUBLE_MIN (0 is no border on that side).
+		var bforce = function (quiet) {
+			var st = $bstyle.get();
+			var dbl = (st === 'default' ? state.line_style : st) === 'double';
+			pxDouble($all, dbl);
+			Object.keys($sides).forEach(function (side) { pxDouble($sides[side], dbl); });
+			if (!dbl) return;
+			if (borderLocks[key]) {
+				var a = int($all.val(), 0);
+				if (a > 0 && a < DOUBLE_MIN) {
+					$all.val(DOUBLE_MIN);
+					if (quiet !== true) $all.trigger('change');
+				}
+				return;
+			}
+			Object.keys($sides).forEach(function (side) {
+				var p = int($sides[side].val(), 0);
+				if (p > 0 && p < DOUBLE_MIN) {
+					$sides[side].val(DOUBLE_MIN);
+					if (quiet !== true) $sides[side].trigger('change');
+				}
+			});
+		};
+		$row2.on('change', 'select, input', bforce);
+		bforce(true);
+		return $row2;
+	}
+
+	/* Footer Settings' top and bottom locks, kept while the page is open (Sam, 31 October 2026: unlocked to start). */
+	var footLocks = {};
+
+	/**
+	 * Spacing top and bottom for a footer part, with a lock: locked, the
+	 * bottom follows the top and is greyed out.
+	 */
+	function spacePair(id, topKey, bottomKey) {
+		// Padding, as the footer text's box calls it (Sam, 1 November 2026: Spacing before).
+		var $top = cardStep(spaceControl('Padding top', state[topKey], 'sb-emailsig-field'), function (v) { state[topKey] = v; });
+		var $bot = cardStep(spaceControl('Padding bottom', state[bottomKey], 'sb-emailsig-field'), function (v) { state[bottomKey] = v; });
+		var $lock = $('<button type="button" class="sb-emailsig-layout__lock"><span class="dashicons" aria-hidden="true"></span></button>');
+		var mirror = function () {
+			if (!footLocks[id]) return;
+			$bot.num.val($top.num.val());
+			$bot.sel.val($top.sel.val()).trigger('change');
+			state[bottomKey] = state[topKey];
+			write();
+		};
+		var paint = function () {
+			var on = !!footLocks[id];
+			var t = on ? 'Set top and bottom apart' : 'Same top and bottom';
+			$bot.sel.prop('disabled', on);
+			$bot.num.prop('disabled', on);
+			$bot.toggleClass('is-locked', on);
+			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.find('.dashicons').toggleClass('dashicons-lock', on).toggleClass('dashicons-unlock', !on);
+		};
+		$top.on('input change', 'select, input', mirror);
+		$lock.on('click', function () {
+			footLocks[id] = !footLocks[id];
+			mirror();
+			paint();
+		});
+		paint();
+		return $('<div class="sb-emailsig-fields sb-emailsig-layout__box"></div>').append(
+			$top,
+			$bot,
+			$('<div class="sb-emailsig-field sb-emailsig-layout__lockfield"></div>').append('<span class="sb-emailsig-field__label" aria-hidden="true">&nbsp;</span>', $lock)
+		);
+	}
+
 	function cardStep($field, set) {
 		$field.on('input change', 'select, input', function () {
 			set($field.get());
@@ -1401,20 +1668,22 @@
 					$('<button type="button" class="sb-emailsig-layout__rowgap"></button>')
 						.toggleClass('is-line', lpx(rg.line) > 0)
 						.attr({ 'data-rowgap': r - 1, title: 'Space between rows ' + r + ' and ' + (r + 1) + (lpx(rg.line) ? ', with a ' + lpx(rg.line) + 'px line' : '') })
-						.append('<span class="sb-emailsig-layout__rowgap-line"></span>', $('<span class="sb-emailsig-layout__gap-px"></span>').text(px(rg.space)))
+						.append('<span class="sb-emailsig-layout__rowgap-line"></span>', $('<span class="sb-emailsig-layout__gap-px"></span>').text(gapText(rg)))
 				);
 			}
 
 			var $row = $('<div class="sb-emailsig-layout__row"></div>').attr('data-row', r);
-			var boxed = SIDES4.some(function (sd) { return px(canonPad(row.padding)[sd]) > 0; }) || row.background || ['top', 'right', 'bottom', 'left'].some(function (sd) { return row.border[sd] > 0; });
 			var $rhead = $('<div class="sb-emailsig-layout__row-head"></div>');
 			if (many) $rhead.append($('<span class="sb-emailsig-layout__row-grip dashicons dashicons-move" title="Drag to move this row" aria-hidden="true"></span>'));
-			$rhead.append($('<span class="sb-emailsig-layout__row-name"></span>').text('Row ' + (r + 1)).append(boxed ? $('<small></small>').text('Own box') : ''));
+			$rhead.append($('<span class="sb-emailsig-layout__row-name"></span>').text('Row ' + (r + 1)));
 
 			// Columns and their default align, for this row.
 			var $bar = $('<div class="sb-emailsig-fields sb-emailsig-layout__bar"></div>');
 			$bar.append(labelled('Vertical align', live(select(VALIGNS, row.valign), function (v) { row.valign = v; })));
 			$rhead.append($bar);
+			// What its settings change from the design's, after Vertical align (Sam, 31 October 2026).
+			var rsum = custom(rowPick(row), rowPick(designLayout().rows[r] || newRow()));
+			if (rsum) $rhead.append($('<span class="sb-emailsig-layout__row-sum"></span>').text(rsum).attr('title', rsum + ' (the row\'s settings; Reset there puts back the template\'s)'));
 
 			var $rtools = $('<span class="sb-emailsig-layout__row-tools"></span>');
 			if (window.SBTweaksConfirm) $rtools.append(tool('admin-generic', 'Row ' + (r + 1) + ' settings', '').attr('data-row-edit', r));
@@ -1431,14 +1700,15 @@
 						$('<button type="button" class="sb-emailsig-layout__gap"></button>')
 							.toggleClass('is-line', lpx(g.line) > 0)
 							.attr({ 'data-gap': r + ':' + (i - 1), title: 'Space between columns ' + i + ' and ' + (i + 1) + (lpx(g.line) ? ', with a ' + lpx(g.line) + 'px line' : '') })
-							.append('<span class="sb-emailsig-layout__gap-line"></span>', $('<span class="sb-emailsig-layout__gap-px"></span>').text(px(g.space)))
+							.append('<span class="sb-emailsig-layout__gap-line"></span>', $('<span class="sb-emailsig-layout__gap-px"></span>').text(gapText(g)))
 					);
 				}
-				var bits = [c.width ? c.width + 'px' : 'Auto', VALIGNS[c.valign || row.valign]];
+				// Under its name, what its settings change from the design's (Sam, 31 October 2026).
+				var csum = custom(columnPick(c), columnPick(((designLayout().rows[r] || {}).columns || [])[i] || newColumn()));
 				// Dragged by its grip, along the row or into another (Sam, 31 October 2026).
 				var $head = $('<div class="sb-emailsig-layout__col-head"></div>')
 					.append(lone ? '' : $('<span class="sb-emailsig-layout__col-grip dashicons dashicons-move" title="Drag to move this column" aria-hidden="true"></span>'))
-					.append($('<span class="sb-emailsig-layout__col-name"></span>').text('Column ' + (i + 1)).append($('<small></small>').text(bits.join(' · '))));
+					.append($('<span class="sb-emailsig-layout__col-name"></span>').text('Column ' + (i + 1)).append(csum ? $('<small></small>').text(csum).attr('title', csum) : ''));
 				var $ctools = $('<span class="sb-emailsig-layout__col-tools"></span>');
 				if (window.SBTweaksConfirm) $ctools.append(tool('admin-generic', 'Column ' + (i + 1) + ' settings', '').attr('data-col', r + ':' + i));
 				if (row.columns.length > 1) $ctools.append(tool('no-alt', 'Remove column ' + (i + 1), 'sb-emailsig-layout__remove').attr('data-col-remove', r + ':' + i));
@@ -1462,7 +1732,7 @@
 
 		// The holding area and adding blocks.
 		var $hold = $('<div class="sb-emailsig-layout__hold"></div>')
-			.append('<div class="sb-emailsig-layout__hold-head">Not in Use <small>drag blocks here to hide them</small></div>', list('hold', state.hold));
+			.append('<div class="sb-emailsig-layout__hold-head">Not in Use <small>drag widgets here to hide them</small></div>', list('hold', state.hold));
 		$root.append($hold);
 
 		// New blocks: dragged on to the layout, where they're wanted (Sam, 30 October 2026).
@@ -1484,76 +1754,14 @@
 		var $row2 = $('<div class="sb-emailsig-fields sb-emailsig-layout__box"></div>');
 		$row1.append(cardStep(spaceControl('Padding', state.padding, 'sb-emailsig-field'), function (v) { state.padding = v; }));
 		$row1.append(colourField('Background colour', state.background, 'None', '', function (v) { state.background = v; }));
-		var SIDES = { top: 'Top', right: 'Right', bottom: 'Bottom', left: 'Left' };
-		var $sides = {};
-		var $sideFields = $();
-		Object.keys(SIDES).forEach(function (side) {
-			$sides[side] = live(pxSelect(state.border[side], true).addClass('sb-emailsig-layout__px'), function (v) { state.border[side] = clamp(v, 0, MAX_LINE, 0); });
-			$sideFields = $sideFields.add(labelled(SIDES[side], $sides[side]));
-		});
-		// Locked: one Width for all four sides; the lock opens them up (Sam,
-		// 31 October 2026). Locked to start with when all four are the same,
-		// and locking again sets them all to Top's.
-		var bd = state.border;
-		if (borderLocked === null) borderLocked = bd.top === bd.right && bd.top === bd.bottom && bd.top === bd.left;
-		var $all = live(pxSelect(bd.top, true).addClass('sb-emailsig-layout__px'), function (v) {
-			var n = clamp(v, 0, MAX_LINE, 0);
-			Object.keys(SIDES).forEach(function (side) {
-				state.border[side] = n;
-				$sides[side].val(n);
-			});
-		});
-		var $allField = labelled('Line Width', $all);
-		var $lock = $('<button type="button" class="sb-emailsig-layout__lock"><span class="dashicons" aria-hidden="true"></span></button>');
-		var lockPaint = function () {
-			var t = borderLocked ? 'Set each side' : 'Same width all round';
-			$allField.toggle(borderLocked);
-			$sideFields.toggle(!borderLocked);
-			$lock.attr({ 'aria-pressed': borderLocked ? 'true' : 'false', 'aria-label': t, title: t });
-			$lock.find('.dashicons').toggleClass('dashicons-lock', borderLocked).toggleClass('dashicons-unlock', !borderLocked);
-		};
-		$lock.on('click', function () {
-			borderLocked = !borderLocked;
-			if (borderLocked) $all.val(int($sides.top.val(), 0)).trigger('change');
-			lockPaint();
-		});
-		lockPaint();
-		$row2.append($allField, $sideFields, $('<div class="sb-emailsig-field sb-emailsig-layout__lockfield"></div>').append('<span class="sb-emailsig-field__label" aria-hidden="true">&nbsp;</span>', $lock));
-		var $bstyle = cardStep(styleControl('Style', state.border.line_style, 'sb-emailsig-field'), function (v) { state.border.line_style = v; });
-		$row2.append($bstyle);
-		$row2.append(colourField('Colour', state.border.colour, 'Lines colour', cfg.lines || '', function (v) { state.border.colour = v; }));
-		// The border's row under a small heading, like the parts on Edit styles' Text card.
+		// The border's row: Line Width (or each side), its lock, Style and Colour (cardBorderRow()).
+		$row2 = cardBorderRow(state.border, 'box');
 		// Then Hide Sign-off, for the sign-off above it all (Sam, 30 October 2026).
 		var $sign = check('Hide Sign-off', state.hide_signoff);
 		$sign.find('input').on('change', function () {
 			state.hide_signoff = this.checked ? 1 : 0;
 			write();
 		});
-		// A Double border: a side of 1 or 2 goes to DOUBLE_MIN (0 is no border on that side).
-		var bforce = function (quiet) {
-			var s = $bstyle.get();
-			var dbl = (s === 'default' ? state.line_style : s) === 'double';
-			pxDouble($all, dbl);
-			Object.keys($sides).forEach(function (side) { pxDouble($sides[side], dbl); });
-			if (!dbl) return;
-			if (borderLocked) {
-				var a = int($all.val(), 0);
-				if (a > 0 && a < DOUBLE_MIN) {
-					$all.val(DOUBLE_MIN);
-					if (quiet !== true) $all.trigger('change');
-				}
-				return;
-			}
-			Object.keys($sides).forEach(function (side) {
-				var p = int($sides[side].val(), 0);
-				if (p > 0 && p < DOUBLE_MIN) {
-					$sides[side].val(DOUBLE_MIN);
-					if (quiet !== true) $sides[side].trigger('change');
-				}
-			});
-		};
-		$row2.on('change', 'select, input', bforce);
-		bforce(true);
 		$box.append($row1, $('<div class="sb-emailsig-item__name sb-emailsig-layout__sub">Border</div>'), $row2,
 			$('<div class="sb-emailsig-item__name sb-emailsig-layout__sub">Sign-off</div>'),
 			$('<div class="sb-emailsig-layout__controls"></div>').append($sign));
@@ -1573,17 +1781,43 @@
 			});
 			$controls.append($c);
 		});
-		$foot.append(
-			$('<div class="sb-emailsig-item__name sb-emailsig-layout__sub sb-emailsig-layout__sub--first">Footer Divider</div>'),
+		// Each group in a section of its own with a line between, as the
+		// Type card on Edit styles (Sam, 31 October 2026).
+		var group = function (name) {
+			var $g = $('<div class="sb-emailsig-item"></div>').append($('<div class="sb-emailsig-item__name"></div>').text(name));
+			$foot.append($g);
+			return $g;
+		};
+		group('Footer Divider').append(
 			$('<div class="sb-emailsig-fields sb-emailsig-layout__box"></div>').append(
 				$fwidth,
 				$fstyle,
-				colourField('Colour', state.line_colour, 'Lines colour', cfg.lines || '', function (v) { state.line_colour = v; }),
-				cardStep(spaceControl('Spacing above', state.line_space, 'sb-emailsig-field'), function (v) { state.line_space = v; })
+				colourField('Colour', state.line_colour, 'Lines colour', cfg.lines || '', function (v) { state.line_colour = v; })
 			).on('change', 'select, input', fforce),
-			$('<div class="sb-emailsig-item__name sb-emailsig-layout__sub">Footer Controls</div>'),
-			$controls
+			// Its spacing on a row of its own, as the parts below (Sam, 31 October 2026).
+			spacePair('divider', 'line_space', 'line_space_bottom')
 		);
+		// Each part's space above and below (Sam, 31 October 2026).
+		FOOT_PARTS.forEach(function (fp) {
+			var $g = group(fp[1]);
+			if (fp[0] === 'text') {
+				// Its own box: padding on four sides, a background and a border (Sam, 1 November 2026).
+				$g.append(
+					cardPadRow('text', state.text_padding),
+					$('<div class="sb-emailsig-fields sb-emailsig-layout__box"></div>').append(
+						colourField('Background colour', state.text_background, 'None', '', function (v) { state.text_background = v; })
+					),
+					cardBorderRow(state.text_border, 'text')
+				);
+				return;
+			}
+			var $pair = spacePair(fp[0], fp[0] + '_top', fp[0] + '_bottom');
+			if (FOOT_GAPS[fp[0]]) {
+				$pair.find('.sb-emailsig-layout__lockfield').after(cardStep(spaceControl('Space between', state[fp[0] + '_gap'], 'sb-emailsig-field'), function (v) { state[fp[0] + '_gap'] = v; }));
+			}
+			$g.append($pair);
+		});
+		group('Footer Controls').append($controls);
 		fforce(true);
 
 		if (window.Sortable) {
@@ -1818,7 +2052,7 @@
 		var $box = $('[data-sb-emailsig-layout-settings]').empty();
 		// Every space, line and style left at Default follows these; a change
 		// redraws, so the px shown beside each step stay right.
-		var $gap = live(numberInput(state.block_gap, 0, 40), function (v) { state.block_gap = clamp(v, 0, 40, 12); });
+		var $gap = live(numberInput(state.block_gap, 0, 40), function (v) { state.block_gap = clamp(v, 0, 40, 8); });
 		var $width = live(pxSelect(state.line_width, false).addClass('sb-emailsig-layout__px'), function (v) { state.line_width = clamp(v, 1, MAX_LINE, 1); });
 		var $style = live(select(STYLES, styleVal(state.line_style) === 'double' ? 'double' : 'solid'), function (v) { state.line_style = v; });
 		// Double: the Default Line Width is DOUBLE_MIN or more (Sam, 31 October 2026).
@@ -1984,7 +2218,7 @@
 						if (!v && rk) v = rc[rk] || '';
 						return v ? hex6(hex(v)) : '';
 					};
-					if ((b.type === 'info' || b.type === 'vcard') && c) {
+					if ((LISTS.indexOf(b.type) !== -1 || b.type === 'vcard') && c) {
 						var ic = pick('icons', 'icons');
 						if (ic) {
 							var cbg = c.background ? hex6(c.bg || p) : '';
@@ -2076,7 +2310,7 @@
 
 	var PARTS = {
 		box: ['padding', 'border', 'background', 'hide_signoff'],
-		footer: ['line_below', 'line_below_style', 'line_colour', 'line_space', 'hide_buttons', 'hide_banners', 'hide_campaign', 'hide_text']
+		footer: ['line_below', 'line_below_style', 'line_colour', 'line_space', 'line_space_bottom', 'buttons_top', 'buttons_bottom', 'buttons_gap', 'text_padding', 'text_border', 'text_background', 'campaign_top', 'campaign_bottom', 'banners_top', 'banners_bottom', 'banners_gap', 'hide_buttons', 'hide_banners', 'hide_campaign', 'hide_text']
 	};
 
 	function partEdited(part, d) {
@@ -2192,16 +2426,49 @@
 		$('.sb-emailsig-layout__reset-all').prop('disabled', !resettable());
 	}
 
-	/** Reset Template: the layout and Layout Settings back to the design. */
-	function resetAll() {
-		field.value = field.getAttribute('data-default') || field.value;
+	/**
+	 * Reset Template's picks (Sam, 1 November 2026): layout (rows, columns,
+	 * gaps and blocks as the design has them), settings (each row, column,
+	 * gap and block's settings, in place), defaults (Layout Settings), box
+	 * (Container Settings) and footer (Footer Settings). Edit styles is the
+	 * form's own (resetOther).
+	 */
+	function resetPicked(pick) {
+		var d = designDefaults();
+		var dl = designLayout();
+		var L = canon(state);
+		var copy = function (v) { return JSON.parse(JSON.stringify(v)); };
+		if (pick.layout) {
+			L.rows = copy(d.rows || L.rows);
+			L.row_gaps = copy(d.row_gaps || L.row_gaps);
+			L.hold = copy(d.hold || L.hold);
+		} else if (pick.settings) {
+			L.rows.forEach(function (row, r) {
+				var dr = dl.rows[r] || newRow();
+				$.extend(row, rowPick(dr), { valign: VALIGNS[dr.valign] ? dr.valign : 'top' });
+				row.columns.forEach(function (c, i) {
+					$.extend(c, columnPick(((dr.columns || [])[i]) || newColumn()));
+					c.blocks = c.blocks.map(function (b) { return $.extend(b, blockDefault(b)); });
+				});
+				row.gaps = row.gaps.map(function (g, i) { return canonGap(((dr.gaps || [])[i]) || newGap(), 'triple', 'default'); });
+			});
+			L.row_gaps = L.row_gaps.map(function (g, i) { return canonGap((dl.row_gaps || [])[i] || newRowGap(), 'triple', 'default'); });
+			L.hold = L.hold.map(function (b) { return $.extend(b, blockDefault(b)); });
+		}
+		if (pick.defaults) DEFAULTS.forEach(function (k) { if (d.hasOwnProperty(k)) L[k] = d[k]; });
+		['box', 'footer'].forEach(function (part) {
+			if (pick[part]) PARTS[part].forEach(function (k) { if (d.hasOwnProperty(k)) L[k] = copy(d[k]); });
+		});
+		field.value = JSON.stringify(canon(L));
 		field.dispatchEvent(new Event('input', { bubbles: true }));
 		field.dispatchEvent(new Event('change', { bubbles: true }));
-		$('[data-sb-emailsig-layout-settings-card] [name][data-default]').each(function () {
-			$(this).val(this.getAttribute('data-default') || '');
-			this.dispatchEvent(new Event('input', { bubbles: true }));
-			this.dispatchEvent(new Event('change', { bubbles: true }));
-		});
+		if (pick.defaults) {
+			$('[data-sb-emailsig-layout-settings-card] [name][data-default]').each(function () {
+				$(this).val(this.getAttribute('data-default') || '');
+				this.dispatchEvent(new Event('input', { bubbles: true }));
+				this.dispatchEvent(new Event('change', { bubbles: true }));
+			});
+		}
 		paintSettings();
 		markSettings();
 		markParts();
@@ -2211,7 +2478,7 @@
 	 * up to MAX_COLS in a row. Gap i sits between columns i and i + 1. */
 
 	function newGap() {
-		return { space: 'double', line: 'default', line_style: 'default', colour: '' }; // Double, with the Default Line Width, unless set (Sam, 31 October 2026).
+		return { space: 'triple', space_after: 'triple', line: 'default', line_style: 'default', colour: '' }; // Triple (24px), with the Default Line Width, unless set (Sam, 31 October 2026).
 	}
 
 	/** A row's gaps to the count its columns need, padded or trimmed. */
@@ -2312,7 +2579,7 @@
 		choices.hold = 'Not in Use';
 		var $to = select(choices, pick || 'hold');
 		var $body = $('<div class="sb-emailsig-layout__pop"></div>').append(
-			$('<p></p>').text('Column ' + (i + 1) + ' has ' + inside.length + ' ' + (inside.length === 1 ? 'block' : 'blocks') + ' in it. Where should ' + (inside.length === 1 ? 'it' : 'they') + ' go?'),
+			$('<p></p>').text('Column ' + (i + 1) + ' has ' + inside.length + ' ' + (inside.length === 1 ? 'widget' : 'widgets') + ' in it. Where should ' + (inside.length === 1 ? 'it' : 'they') + ' go?'),
 			fieldRow('Move to', $to)
 		);
 		window.SBTweaksConfirm.open({ title: 'Remove Column ' + (i + 1), body: $body, action: 'Remove column', tone: 'danger' }, function () { drop($to.val()); });
@@ -2364,7 +2631,7 @@
 		choices.hold = 'Not in Use';
 		var $to = select(choices, 'hold');
 		var $body = $('<div class="sb-emailsig-layout__pop"></div>').append(
-			$('<p></p>').text('Row ' + (r + 1) + ' has ' + inside.length + ' ' + (inside.length === 1 ? 'block' : 'blocks') + ' in it. Where should ' + (inside.length === 1 ? 'it' : 'they') + ' go?'),
+			$('<p></p>').text('Row ' + (r + 1) + ' has ' + inside.length + ' ' + (inside.length === 1 ? 'widget' : 'widgets') + ' in it. Where should ' + (inside.length === 1 ? 'it' : 'they') + ' go?'),
 			fieldRow('Move to', $to)
 		);
 		window.SBTweaksConfirm.open({ title: 'Remove Row ' + (r + 1), body: $body, action: 'Remove row', tone: 'danger' }, function () { drop($to.val()); });
@@ -2433,7 +2700,7 @@
 		$root.on('click', '[data-rowgap]', function () {
 			var i = int($(this).attr('data-rowgap'), 0);
 			var open = function () {
-				if (state.row_gaps[i]) gapPopup(state.row_gaps[i], 'Between rows ' + (i + 1) + ' and ' + (i + 2), canonGap(designLayout().row_gaps[i], 'double', 'default'), 'double', open);
+				if (state.row_gaps[i]) gapPopup(state.row_gaps[i], 'Between rows ' + (i + 1) + ' and ' + (i + 2), canonGap(designLayout().row_gaps[i], 'triple', 'default'), 'triple', open, true);
 			};
 			open();
 		});
@@ -2487,7 +2754,7 @@
 			var i = int(at[1], 0);
 			var open = function () {
 				var row = state.rows[r];
-				if (row && row.gaps[i]) gapPopup(row.gaps[i], 'Between columns ' + (i + 1) + ' and ' + (i + 2), canonGap(((designLayout().rows[r] || {}).gaps || [])[i], 'double', 'default'), 'double', open);
+				if (row && row.gaps[i]) gapPopup(row.gaps[i], 'Between columns ' + (i + 1) + ' and ' + (i + 2), canonGap(((designLayout().rows[r] || {}).gaps || [])[i], 'triple', 'default'), 'triple', open);
 			};
 			open();
 		});
@@ -2589,16 +2856,35 @@
 		$(document).on('click', '.sb-emailsig-layout__reset-all', function (e) {
 			e.preventDefault();
 			if (!window.SBTweaksConfirm) return;
-			window.SBTweaksConfirm.open({
+			// Pick what to reset, nothing ticked to start (Sam, 1 November 2026).
+			var CHOICES = [
+				['layout', 'Layout', 'Rows, columns and where each widget sits, with their settings.'],
+				['settings', 'Row, column and widget settings', 'Each one\'s settings only. Extra rows, columns and widgets stay where they are.'],
+				['defaults', 'Layout Settings', ''],
+				['box', 'Container Settings', ''],
+				['footer', 'Footer Settings', ''],
+				['styles', 'Edit styles', 'Sizes, photo, text, Info List Styles, social icons and buttons. Saves straight away, with this page.']
+			];
+			var $body = $('<div class="sb-emailsig-layout__resets"></div>');
+			var boxes = {};
+			CHOICES.forEach(function (c) {
+				var $l = $('<label class="sb-tweaks-dialog__check"><input type="checkbox"><span></span></label>');
+				$l.find('span').append($('<strong></strong>').text(c[1]), c[2] ? $('<small></small>').text(c[2]) : '');
+				boxes[c[0]] = $l.find('input');
+				$body.append($l);
+			});
+			var $modal = window.SBTweaksConfirm.open({
 				title: 'Reset Template',
-				message: 'Put the layout, Layout Settings, Container Settings and Footer Settings back to how the design has them. Nothing is saved until you click Save changes, and Undo brings your changes back.',
-				check: 'Reset Edit styles too (sizes, photo, text, Info List Styles, social icons and buttons). With this ticked, both save straight away.',
+				message: 'Put back how the design has them. Nothing is saved until you click Save changes, and Undo brings your changes back.',
+				body: $body,
 				action: 'Reset Template',
 				tone: 'danger'
-			}, function (checked) {
-				resetAll();
+			}, function () {
+				var pick = {};
+				Object.keys(boxes).forEach(function (k) { pick[k] = boxes[k].prop('checked'); });
+				resetPicked(pick);
 				var flag = form ? form.querySelector('[data-sb-emailsig-reset-other]') : null;
-				if (!checked || !flag) return;
+				if (!pick.styles || !flag) return;
 				resetOther = true;
 				flag.name = 'sb_emailsig_reset_other';
 				if (form.requestSubmit) {
@@ -2607,6 +2893,16 @@
 					form.dispatchEvent(new Event('submit', { cancelable: true }));
 				}
 			});
+			var $go = $modal ? $modal.find('.sb-tweaks-dialog__go') : $();
+			var tick = function () {
+				// Layout includes every row, column and block's settings.
+				var whole = boxes.layout.prop('checked');
+				if (whole) boxes.settings.prop('checked', true);
+				boxes.settings.prop('disabled', whole);
+				$go.prop('disabled', !Object.keys(boxes).some(function (k) { return boxes[k].prop('checked'); }));
+			};
+			$body.on('change', 'input', tick);
+			tick();
 		});
 		$(document).on('click', '[data-history]', function (e) {
 			e.preventDefault();
