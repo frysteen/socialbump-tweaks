@@ -1693,7 +1693,9 @@ already filling that, a wider column has nowhere to grow. Measured on
 template 544 (31 October 2026): column 2 at Auto 142px, 80 stayed 142,
 150 gave 174 (150 plus its 24px padding), 400 only reached 241.
 
-Photo Max width (Sam, 31 October 2026): the photo's Width in Edit styles is
+Photo Max width (Sam, 31 October 2026; undone 1 November 2026: Apple
+Mail left the photo out, its cell having no width for 100% to fill, so
+the photo is a fixed width again and the field is Width): the photo's Width in Edit styles is
 now Max width. The img is width:100% with max-width at that size (as the
 banners), so it shrinks in a narrow column or a squeezed signature; the
 width attribute stays for Outlook for Windows, which ignores both and

@@ -1706,11 +1706,11 @@ class SB_EmailSig_Layout {
 		$round = $shape === 'circle' ? '50%' : ( $shape === 'rounded' ? (int) ( $photo['radius'] ?? $s['photo']['radius'] ) . 'px' : '0' );
 
 		if ( $photo ) {
-			// Its width at most, so it can shrink in a narrow column (Sam, 31
-			// October 2026): width 100% up to max-width, as the banners. The
-			// width attribute stays for Outlook for Windows, which ignores both.
+			// A fixed width (Sam, 1 November 2026): width 100% with max-width
+			// (31 October) left the photo out in Apple Mail, whose cell had no
+			// width to be 100% of.
 			$w   = (int) $photo['width'];
-			$img = '<img src="' . esc_url( $photo['url'] ) . '" width="' . $w . '" alt="' . esc_attr( $d['name'] ) . '" style="' . self::img_display( $align ) . 'width:100%;max-width:' . $w . 'px;height:auto;border:0;outline:none;' . ( $photo['baked'] ? '' : 'border-radius:' . esc_attr( $round ) . ';' ) . '" />';
+			$img = '<img src="' . esc_url( $photo['url'] ) . '" width="' . $w . '" alt="' . esc_attr( $d['name'] ) . '" style="' . self::img_display( $align ) . 'width:' . $w . 'px;height:auto;border:0;outline:none;' . ( $photo['baked'] ? '' : 'border-radius:' . esc_attr( $round ) . ';' ) . '" />';
 
 			return self::a( $d['profile_link'], $img );
 		}
