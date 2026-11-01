@@ -214,6 +214,9 @@ class SB_Tweaks_Push {
 			if ( ! self::can_beta( $sites[ $host ] ) ) {
 				return [ 'ok' => false, 'message' => __( 'This site cannot take a beta until it has a release with the newer reporter.', 'sb-tweaks' ) ];
 			}
+		} elseif ( $action === 'install' ? ! self::can_install( $sites[ $host ] ) : ! self::can_push( $sites[ $host ] ) ) {
+			// Checked here too, not only by which buttons the Installs page shows.
+			return [ 'ok' => false, 'message' => __( 'This site cannot take this until it has a release with the newer reporter.', 'sb-tweaks' ) ];
 		}
 
 		$job     = [

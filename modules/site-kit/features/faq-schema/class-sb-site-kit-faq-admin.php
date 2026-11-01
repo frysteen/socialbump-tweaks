@@ -96,7 +96,6 @@ class SB_Site_Kit_FAQ_Admin {
 		}
 
 		$chosen  = isset( $_POST['items'] ) ? (array) wp_unslash( $_POST['items'] ) : [];
-		$cleared = 0;
 		$posts   = 0;
 
 		// The settings as they stand on screen are saved first. Deleting acts on
@@ -131,7 +130,6 @@ class SB_Site_Kit_FAQ_Admin {
 			list( $post_id, $field ) = array_pad( explode( '|', $item, 2 ), 2, '' );
 
 			if ( SB_Site_Kit_FAQ::forget( $post_id, $field ) > 0 ) {
-				$cleared++;
 				$posts++;
 			}
 		}
@@ -371,7 +369,14 @@ class SB_Site_Kit_FAQ_Admin {
 			var $list = $( '#sb-site-kit-faq-sources' );
 
 			$( '#sb-site-kit-faq-add' ).on( 'click', function () {
-				var next = $list.find( '.sb-site-kit-faq-source' ).length;
+				// One past the highest number in use, so a row removed earlier can't leave two the same.
+				var next = 0;
+				$list.find( '.sb-site-kit-faq-source' ).each( function () {
+					var n = parseInt( $( this ).attr( 'data-index' ), 10 );
+					if ( ! isNaN( n ) && n >= next ) {
+						next = n + 1;
+					}
+				} );
 				var html = $( '#tmpl-sb-site-kit-faq-source' ).html().split( '__i__' ).join( next );
 
 				$list.append( html );
@@ -518,7 +523,7 @@ class SB_Site_Kit_FAQ_Admin {
 				}
 
 				if ( ! popup.confirmed( this ) ) {
-					popup.ask( this, { title: 'Delete FAQ content', message: message, action: 'Delete' } );
+					popup.ask( this, { title: 'Delete FAQ content', message: message, action: 'Delete', tone: 'danger' } );
 					return;
 				}
 
@@ -530,12 +535,20 @@ class SB_Site_Kit_FAQ_Admin {
 					if ( ! response || ! response.success ) {
 						$button.prop( 'disabled', false );
 
+						if ( window.SBTweaksUI ) {
+							window.SBTweaksUI.toast( 'Not deleted. Try again.', 'danger' );
+						}
+
 						return;
 					}
 
 					// Saved along with the delete, so the page is no longer dirty
 					// and the leave-page warning has nothing to warn about.
 					$clean.data( 'saved', settings );
+
+					if ( window.SBTweaksUI ) {
+						window.SBTweaksUI.toast( 'FAQ content deleted from ' + response.data.posts + ' post' + ( response.data.posts === 1 ? '' : 's' ), 'ok' );
+					}
 					$( 'form[data-sb-dirty]' ).each( function () {
 						this.dispatchEvent( new Event( 'sb:saved' ) );
 					} );
@@ -625,7 +638,7 @@ class SB_Site_Kit_FAQ_Admin {
 				} );
 
 				$clean.find( '.sb-site-kit-faq-clean__list, .sb-site-kit-faq-clean__foot' ).prop( 'hidden', showing < 1 );
-				$clean.find( '.sb-site-kit-faq-clean__summary' ).text( showing + ' post type' + ( showing === 1 ? '' : 's' ) + ' have left over FAQ content.' );
+				$clean.find( '.sb-site-kit-faq-clean__summary' ).text( showing + ' post type' + ( showing === 1 ? ' has' : 's have' ) + ' left over FAQ content.' );
 
 				if ( showing < 1 ) {
 					$clean.find( '.sb-site-kit-faq-clean__summary' ).text( 'Nothing left over.' );

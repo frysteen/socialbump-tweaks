@@ -375,7 +375,7 @@ class SB_Tweaks_Installs {
 		}
 
 		$cards  = '';
-		$counts = [ 'all' => 0, 'behind' => 0, 'beta' => 0, 'es' => 0 ];
+		$counts = [ 'all' => 0, 'behind' => 0, 'beta' => 0 ];
 		$format = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
 
 		foreach ( $sites as $host => $site ) {
@@ -485,7 +485,6 @@ class SB_Tweaks_Installs {
 		$tweaks = $site['plugins']['socialbump-tweaks'] ?? null;
 		$policy = ( $tweaks && $tweaks['active'] && $push && class_exists( 'SB_Tweaks_Policy' ) ) ? SB_Tweaks_Push::policy_for( $host ) : null;
 
-		$counts['es'] += ( $policy && ! empty( $policy['modules']['email_signatures'] ) ) ? 1 : 0;
 		$counts['all']++;
 		$counts['behind'] += $due > 0 ? 1 : 0;
 		$counts['beta']   += $on_beta ? 1 : 0;
@@ -630,6 +629,7 @@ class SB_Tweaks_Installs {
 			/* translators: 1: position, 2: total */
 			'step'         => __( 'Updating %1$s of %2$s', 'sb-tweaks' ),
 			'complete'     => __( 'Updates complete', 'sb-tweaks' ),
+				'stopped'      => __( 'Stopped after %1$s of %2$s', 'sb-tweaks' ),
 			/* translators: 1: number updated, 2: number failed */
 			'mixed'        => __( '%1$s updated, %2$s failed', 'sb-tweaks' ),
 			'working'      => __( 'Updating...', 'sb-tweaks' ),
@@ -663,7 +663,7 @@ class SB_Tweaks_Installs {
 			'hide'         => __( 'Hide', 'sb-tweaks' ),
 			'all_on'       => __( 'all allowed', 'sb-tweaks' ),
 			'all_off'      => __( 'all hidden', 'sb-tweaks' ),
-			'mixed'        => __( 'mixed', 'sb-tweaks' ),
+			'some_on'      => __( 'mixed', 'sb-tweaks' ),
 			'es'           => __( 'Email Signatures', 'sb-tweaks' ),
 			'sigs'         => __( 'Signatures', 'sb-tweaks' ),
 			'change_limits' => __( 'Change limits', 'sb-tweaks' ),
@@ -1129,12 +1129,17 @@ class SB_Tweaks_Installs {
 				running = true;
 				refresh();
 
-				var job  = window.SBTweaksProgress.open( text.title );
+				var job  = window.SBTweaksProgress.open( text.title, { stop: jobs.length > 1 } );
 				var good = 0;
 				var bad  = 0;
 
 				jobs.reduce( function ( chain, item, i ) {
 					return chain.then( function () {
+						// Stop pressed: nothing after the site in hand starts.
+						if ( job.stopping() ) {
+							return;
+						}
+
 						var what = item.card.dataset.name + ': ' + item.button.closest( '.sb-installs-card__plugin' ).dataset.label;
 
 						job.step( i, jobs.length, what );
@@ -1155,6 +1160,13 @@ class SB_Tweaks_Installs {
 				}, Promise.resolve() ).then( function () {
 					running = false;
 					refresh();
+
+					if ( job.stopping() && good + bad < jobs.length ) {
+						job.finish( text.stopped.replace( '%1$s', good + bad ).replace( '%2$s', jobs.length ) );
+
+						return;
+					}
+
 					job.finish( bad ? text.mixed.replace( '%1$s', good ).replace( '%2$s', bad ) : text.complete );
 				} );
 			}
@@ -1273,13 +1285,18 @@ class SB_Tweaks_Installs {
 				running = true;
 				refresh();
 
-				var job  = window.SBTweaksProgress.open( title );
+				var job  = window.SBTweaksProgress.open( title, { stop: items.length > 1 } );
 				var good = 0;
 				var bad  = 0;
 				var last = '';
 
 				items.reduce( function ( chain, item, i ) {
 					return chain.then( function () {
+						// Stop pressed: nothing after the site in hand starts.
+						if ( job.stopping() ) {
+							return;
+						}
+
 						var name = item.card.dataset.name;
 
 						// step() first: busy() then turns a spinner in place of the bar until the answer.
@@ -1322,6 +1339,12 @@ class SB_Tweaks_Installs {
 				}, Promise.resolve() ).then( function () {
 					running = false;
 					apply();
+
+					if ( job.stopping() && good + bad < items.length ) {
+						job.finish( text.stopped.replace( '%1$s', good + bad ).replace( '%2$s', items.length ), function () {} );
+
+						return;
+					}
 
 					if ( items.length === 1 && bad ) {
 						job.fail( last );
@@ -1380,7 +1403,7 @@ class SB_Tweaks_Installs {
 						row.appendChild( label );
 					} else {
 						var head = el( 'label', 'sb-installs__bulk-module' );
-						var now  = on === list.length ? text.all_on : ( on === 0 ? text.all_off : text.mixed );
+						var now  = on === list.length ? text.all_on : ( on === 0 ? text.all_off : text.some_on );
 
 						control = el( 'select' );
 						control.dataset.module = m[0];

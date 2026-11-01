@@ -131,7 +131,7 @@ class SB_Tweaks_Release {
 					'Accept'               => 'application/vnd.github+json',
 					'Authorization'        => 'Bearer ' . $token,
 					'X-GitHub-Api-Version' => '2022-11-28',
-					'User-Agent'           => 'SocialBUMP-Bricks-Tweaks',
+					'User-Agent'           => 'SocialBUMP-Tweaks',
 				],
 				$headers
 			),
@@ -500,7 +500,7 @@ class SB_Tweaks_Release {
 				'timeout' => 10,
 				'headers' => [
 					'Accept'     => 'application/vnd.github+json',
-					'User-Agent' => 'SocialBUMP-Bricks-Tweaks',
+					'User-Agent' => 'SocialBUMP-Tweaks',
 				],
 			]
 		);
@@ -695,14 +695,14 @@ class SB_Tweaks_Release {
 		$readme_original = $this->update_readme( $version, $notes );
 
 		if ( ! $this->lint_ok( SB_TWEAKS_FILE ) ) {
-			$this->abort( __( 'The main plugin file failed a PHP syntax check after the version change.', 'sb-tweaks' ), $original );
+			$this->abort( __( 'The main plugin file failed a PHP syntax check after the version change.', 'sb-tweaks' ), $original, '', '', 0, $readme_original );
 		}
 
 		// 2. Build the zip.
 		$zip = $this->build_zip();
 
 		if ( is_wp_error( $zip ) ) {
-			$this->abort( $zip->get_error_message(), $original );
+			$this->abort( $zip->get_error_message(), $original, '', '', 0, $readme_original );
 		}
 
 		// 3. Copy the plugin files into the repo's Code tab.
@@ -1053,7 +1053,7 @@ class SB_Tweaks_Release {
 				'timeout' => 15,
 				'headers' => [
 					'Accept'     => 'application/vnd.github+json',
-					'User-Agent' => 'SocialBUMP-Bricks-Tweaks',
+					'User-Agent' => 'SocialBUMP-Tweaks',
 				],
 			]
 		);

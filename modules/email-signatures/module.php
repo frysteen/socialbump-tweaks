@@ -32,7 +32,7 @@ return [
 	'ui_ready'    => true,
 
 	// Pages rather than switchable features: no Features page, and the nav
-	// reads Signatures, Companies, Reports, Templates, Settings.
+	// reads Signatures, Companies, Templates, Reports, Activity, Settings.
 	'groups'      => [
 		'signatures' => [
 			'title'       => 'Signatures',
@@ -56,7 +56,7 @@ return [
 		],
 		'settings'  => [
 			'title'       => 'Settings',
-			'description' => 'Team pages, tracking codes and emails, for every company.',
+			'description' => 'Branding, notifications, signature emails and tracking, for every company.',
 		],
 	],
 

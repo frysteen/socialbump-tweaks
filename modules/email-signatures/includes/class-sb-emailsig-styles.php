@@ -794,7 +794,6 @@ class SB_EmailSig_Styles {
 				'pad_y'   => max( 2, (int) round( $fsize * 0.4 ) ),
 				'pad_x'   => (int) round( $fsize * 1.15 ),
 				'weight'  => $b['weight'] ?? '400',
-				'gap'     => 8,
 			];
 			$out['case']['buttons'] = $b['case'] ?? 'none';
 		}
@@ -808,9 +807,21 @@ class SB_EmailSig_Styles {
 
 		switch ( $s['case'][ $item ] ?? 'none' ) {
 			case 'uppercase':
-				return mb_strtoupper( $text, 'UTF-8' );
 			case 'lowercase':
-				return mb_strtolower( $text, 'UTF-8' );
+				// The words only: an entity such as &nbsp; stays as it is (&NBSP; shows as typed).
+				$up = ( $s['case'][ $item ] ?? '' ) === 'uppercase';
+
+				return preg_replace_callback(
+					'/&#?[a-z0-9]+;|[^&]+|&/i',
+					function ( $m ) use ( $up ) {
+						if ( strlen( $m[0] ) > 1 && $m[0][0] === '&' ) {
+							return $m[0];
+						}
+
+						return $up ? mb_strtoupper( $m[0], 'UTF-8' ) : mb_strtolower( $m[0], 'UTF-8' );
+					},
+					$text
+				);
 			case 'capitalize':
 				// Like CSS: the first letter of each word up, the rest as typed.
 				return preg_replace_callback(
@@ -1055,6 +1066,10 @@ class SB_EmailSig_Styles {
 				[
 					'blocks' => SB_EmailSig_Layout::blocks(),
 					'items'  => SB_EmailSig_Layout::items(),
+					// Where the Company Email is set, for Person Email's note: the
+					// previewed person's company (company= added by layout.js), on its Company tab.
+					'companyEmail' => add_query_arg( array( 'sb_tab' => 'company', 'sb_field' => 'company_email' ), SB_EmailSig_Companies::url() ),
+					'defaultCompany' => (int) SB_EmailSig_Company::default_id(),
 					'texts'  => array_combine(
 						array_map(
 							function ( $ref ) {
@@ -1074,6 +1089,7 @@ class SB_EmailSig_Styles {
 					'ajax'   => admin_url( 'admin-ajax.php' ),
 					'nonce'  => wp_create_nonce( 'sb_emailsig_preview' ),
 					'tpl'    => $tpl['id'],
+					'tplName' => $tpl['name'], // Where a copied look came from (Copy and Paste).
 					// The colour fields: the theme colours menu, and what a blank one shows.
 					'palette' => self::editor_palette(),
 					'colours' => self::colours(),
@@ -1341,10 +1357,8 @@ class SB_EmailSig_Styles {
 	 * script keeps it in step with the Save at the foot).
 	 */
 	private static function editor_bar( array $tpl, $view, $form ) {
-		// Main for any company (Sam, 31 October 2026: was the default company's only).
-		$of     = SB_EmailSig_Templates::companies_of( $tpl['id'] );
-		$multi  = count( SB_EmailSig_Company::all() ) > 1;
-		$main   = $multi ? (bool) $of['main'] : $tpl['id'] === SB_EmailSig_Templates::current();
+		// The companies using it, its default ones first (Sam, 1 November 2026).
+		$uses   = SB_EmailSig_Templates::uses( $tpl['id'] );
 		$layout = isset( self::defaults( $tpl )['layout'] );
 
 		echo '<div class="sb-ui-bar sb-emailsig-bar sb-emailsig-editbar">';
@@ -1360,11 +1374,22 @@ class SB_EmailSig_Styles {
 			);
 		}
 		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Template</span>' . SB_EmailSig_Admin::goto_menu( $here, $tpl['name'], $items, 'Edit another template' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in goto_menu().
-
-		if ( $main ) {
-			echo '<span class="sb-emailsig-template__badge" data-sb-tip="' . esc_attr( $multi ? 'Main for ' . implode( ', ', $of['main'] ) : 'Everyone\'s, unless their own says otherwise' ) . '">Main</span>';
+		echo '</div>';
+		// How many companies use it, as a pill (Sam, 1 November 2026). Hovering
+		// shows them, one a line, each a link to edit it (a tip can't hold links).
+		$users = array_values( array_unique( array_merge( $uses['default'], $uses['available'] ) ) );
+		$count = count( $users );
+		$pill  = 'In use by <b>' . (int) $count . '</b> ' . ( $count === 1 ? 'company' : 'companies' );
+		$edit  = current_user_can( 'manage_options' );
+		$list  = '';
+		foreach ( $users as $co ) {
+			$name  = SB_EmailSig_Company::name( $co );
+			$list .= $edit ? '<a href="' . esc_url( SB_EmailSig_Companies::url( $co ) ) . '">' . esc_html( $name ) . '</a>' : '<span>' . esc_html( $name ) . '</span>';
 		}
-
+		echo '<div class="sb-ui-bar__group sb-emailsig-editbar__uses">';
+		echo $count
+			? '<span class="sb-emailsig-uses-pop"><span class="sb-emailsig-chip sb-emailsig-uses-pill" tabindex="0">' . $pill . '</span><span class="sb-emailsig-uses-pop__list">' . $list . '</span></span>' // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
+			: '<span class="sb-emailsig-chip sb-emailsig-uses-pill" tabindex="0" data-sb-tip="No company uses it yet">' . $pill . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup.
 		echo '</div>';
 
 		if ( $layout ) {
@@ -1425,8 +1450,8 @@ class SB_EmailSig_Styles {
 		echo '<div class="sb-tweaks-card sb-emailsig-editor__card"><div class="sb-tweaks-card__head"><h3>' . esc_html( $tpl['name'] ) . ' layout</h3>';
 		// Reset Template: everything on this page back to the design, after asking (Sam, 29 October 2026).
 		echo '<button type="button" class="button button-small sb-tweaks-button--danger sb-emailsig-layout__reset-all">Reset Template</button>';
-		echo '<span class="sb-emailsig-layout__history"><button type="button" class="button button-small" data-history="undo" title="Undo" aria-label="Undo" disabled><span class="dashicons dashicons-undo" aria-hidden="true"></span></button>';
-		echo '<button type="button" class="button button-small" data-history="redo" title="Redo" aria-label="Redo" disabled><span class="dashicons dashicons-redo" aria-hidden="true"></span></button></span>';
+		echo '<span class="sb-emailsig-layout__history"><button type="button" class="button button-small" data-history="undo" data-sb-tip="Undo" aria-label="Undo" disabled><span class="dashicons dashicons-undo" aria-hidden="true"></span></button>';
+		echo '<button type="button" class="button button-small" data-history="redo" data-sb-tip="Redo" aria-label="Redo" disabled><span class="dashicons dashicons-redo" aria-hidden="true"></span></button></span>';
 		echo '<button type="button" class="sb-emailsig-card-reset" disabled>Reset</button></div>';
 		echo '<input type="hidden" name="s[layout]" value="' . esc_attr( wp_json_encode( $v['layout'], $flags ) ) . '" data-default="' . esc_attr( wp_json_encode( $d['layout'], $flags ) ) . '" data-sb-emailsig-layout-field>';
 		echo '<div class="sb-emailsig-layout" data-sb-emailsig-layout></div>';
@@ -1550,7 +1575,7 @@ class SB_EmailSig_Styles {
 		echo '<span class="sb-tweaks-colour sb-emailsig-colour" data-fallback="' . esc_attr( $fallback ) . '">';
 		echo '<input type="color" class="sb-tweaks-colour__swatch" value="#ffffff" aria-label="' . esc_attr( $label ) . '">';
 		echo '<input type="text" class="sb-tweaks-colour__value code" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" data-default="' . esc_attr( $default ) . '" placeholder="' . esc_attr( $placeholder ) . '" spellcheck="false" autocomplete="off">';
-		echo '<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" title="Theme colours" hidden><span class="dashicons dashicons-art" aria-hidden="true"></span></button>';
+		echo '<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" hidden><span class="dashicons dashicons-art" aria-hidden="true"></span></button>';
 		echo '</span></div>';
 	}
 

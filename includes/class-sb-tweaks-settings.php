@@ -160,17 +160,17 @@ class SB_Tweaks_Settings {
 			$lit += ( SB_Tweaks_Modules::instance()->is_enabled( $id ) && ! SB_Tweaks_Modules::instance()->missing( $id ) && ! isset( $failed[ $id ] ) ) ? 1 : 0;
 		}
 
-		// The bar: Reorder and the collapse buttons, then Save changes. The
-		// cards sit on the page below it (Sam, 29 October 2026).
+		// The bar: how many are on with Enable all and Disable all, the
+		// collapse buttons, then Save changes. The cards sit below it and drag
+		// by their handles (Sam, 1 November 2026).
 		echo SB_Tweaks_UI::bar( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
 			[
-				[ __( 'Cards', 'sb-tweaks' ), SB_Tweaks_Cards::toolbar( SB_TWEAKS_OPTION, 'reorder' ) . SB_Tweaks_Cards::toolbar( SB_TWEAKS_OPTION, 'links' ) ],
+				[ __( 'Modules', 'sb-tweaks' ), SB_Tweaks_Cards::switches( SB_TWEAKS_OPTION, $lit, $shown ) ],
+				[ __( 'Cards', 'sb-tweaks' ), SB_Tweaks_Cards::toolbar( SB_TWEAKS_OPTION ) ],
 			],
 			SB_Tweaks_UI::save_button( $form )
 		);
 
-		/* translators: %d: how many are switched on */
-		echo SB_Tweaks_UI::heading( __( 'Modules', 'sb-tweaks' ), $shown, sprintf( __( '%d on', 'sb-tweaks' ), $lit ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside.
 		echo '<div class="sb-tweaks-grid"' . SB_Tweaks_Cards::container_attributes( SB_TWEAKS_OPTION ) . '>';
 
 		foreach ( $ordered as $id ) {
@@ -259,7 +259,8 @@ class SB_Tweaks_Settings {
 
 		$posted = isset( $_POST['sb_tweaks_module_states'] ) ? (array) wp_unslash( $_POST['sb_tweaks_module_states'] ) : [];
 		$saved  = (array) get_option( SB_TWEAKS_OPTION, [] );
-		$states = [];
+		// A module the hub doesn't allow here isn't on the page: its saved switch stays as it was.
+		$states = $saved;
 
 		foreach ( SB_Tweaks_Modules::instance()->all() as $id => $def ) {
 			/**
@@ -527,23 +528,6 @@ class SB_Tweaks_Settings {
 
 		echo '<style>' . $item . ' div.wp-menu-image.svg{opacity:0.6;transition:opacity .1s ease-in-out;}';
 		echo $item . ':hover div.wp-menu-image.svg,' . $item . '.wp-has-current-submenu div.wp-menu-image.svg,' . $item . '.current div.wp-menu-image.svg{opacity:1;}</style>';
-	}
-	/** How strongly coloured a hex value is, from 0 (grey) to 1. */
-	private static function saturation( $hex ) {
-		$raw = ltrim( (string) $hex, '#' );
-
-		if ( strlen( $raw ) === 3 ) {
-			$raw = $raw[0] . $raw[0] . $raw[1] . $raw[1] . $raw[2] . $raw[2];
-		}
-
-		if ( strlen( $raw ) !== 6 ) {
-			return 0;
-		}
-
-		$rgb = [ hexdec( substr( $raw, 0, 2 ) ), hexdec( substr( $raw, 2, 2 ) ), hexdec( substr( $raw, 4, 2 ) ) ];
-		$max = max( $rgb );
-
-		return $max > 0 ? ( $max - min( $rgb ) ) / $max : 0;
 	}
 
 	/** The admin colour scheme accent, from the framework's shared copy. */

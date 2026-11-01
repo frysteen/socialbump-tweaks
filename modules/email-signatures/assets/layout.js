@@ -8,10 +8,10 @@
  * changes check treat it like any other field. Nothing drawn here has a name,
  * so only that field counts as a change.
  *
- * Rows (Sam, 31 October 2026), each with its own columns (1 to 5), box and
+ * Rows (Sam, 31 October 2026), each with its own columns (1 to 12), box and
  * default align, stacked with a gap (and any line) between them, moved by
  * their grip; a removed row's blocks go where its popup says. Columns and
- * the holding area are lists of blocks dragged with SortableJS. Each block's settings, a column's and a gap's open in the
+ * Not in Use are lists of blocks dragged with SortableJS. Each block's settings, a column's and a gap's open in the
  * framework's popup (SBTweaksConfirm): the preview follows as they change,
  * Save keeps the change, and Cancel, the X, Escape or a click outside put
  * it back. The page draws its own preview (wp_ajax_sb_emailsig_preview with
@@ -33,6 +33,13 @@
  * something differs from the design, and its popup's tick resets Edit styles
  * too, which saves straight away (with the icons drawn as the design has
  * them).
+ *
+ * Copy and Paste (Sam, 1 November 2026), beside Reset in a widget's, row's,
+ * column's or gap's popup: Copy keeps that one's look (not an Info List's
+ * items, a Text widget's words, a column's width or a row's columns) in this
+ * browser for this site; Paste puts it on another of the same kind, on any
+ * template, as Reset does (nothing keeps until Save). The three Info Lists
+ * are one kind, and so are the gaps between columns and between rows.
  */
 (function ($) {
 	'use strict';
@@ -40,7 +47,7 @@
 	var cfg = window.sbEmailsigLayout || {};
 	var blocks = cfg.blocks || {};
 	var multi = cfg.multi || [];
-	// Columns a layout can have (up to 5, Sam, 30 October 2026).
+	// Columns a row can have (Layout::MAX_COLUMNS).
 	var MAX_COLS = cfg.maxCols || 12;
 	/** Gaps kept for a row: one between each column, and never fewer than 4 (as before columns could be added). */
 	var GAP_PAD = 4;
@@ -369,8 +376,9 @@
 		return lpx(g.line) > 0 && a !== b ? a + '/' + b : String(a);
 	}
 
+	/** A new gap between rows: as one between columns. */
 	function newRowGap() {
-		return { space: 'triple', space_after: 'triple', line: 'default', line_style: 'default', colour: '' }; // Triple (24px), with the Default Line Width, unless set (Sam, 31 October 2026).
+		return newGap();
 	}
 
 	function newRow() {
@@ -480,13 +488,53 @@
 				render();
 				reset.reopen();
 			});
-			$modal.find('.sb-tweaks-dialog__buttons').prepend($reset);
 		}
+
+		// Copy and Paste, beside Reset (Sam, 1 November 2026).
+		var $left = $('<div class="sb-emailsig-layout__left"></div>').append($reset);
+		if (reset && reset.copy) {
+			var kind = reset.copy.kind;
+			var look = reset.copy.look;
+			// Both words in the button, one hidden, so it keeps its width (Sam, 1 November 2026).
+			var $copy = $('<button type="button" class="button sb-emailsig-layout__copy"><span class="sb-emailsig-layout__copy-word">Copy</span><span class="sb-emailsig-layout__copied-word" aria-hidden="true">Copied</span></button>').attr('title', 'Copy these settings to paste into another of the same kind');
+			var $paste = $('<button type="button" class="button sb-emailsig-layout__paste">Paste</button>');
+			var paintPaste = function () {
+				var got = clipGet(kind);
+				var now = look(obj);
+				$paste.prop('disabled', !got || JSON.stringify(lookOnto(now, got.look)) === JSON.stringify(now))
+					.attr('data-sb-tip', got ? 'Paste the settings copied from ' + got.from : 'Copy the settings of another of these first');
+			};
+			$copy.on('click', function () {
+				apply();
+				clipSet(kind, { look: look(obj), from: title + (cfg.tplName ? ' (' + cfg.tplName + ')' : '') });
+				$copy.addClass('is-copied').attr('aria-label', 'Copied');
+				clearTimeout($copy.data('t'));
+				$copy.data('t', setTimeout(function () { $copy.removeClass('is-copied').removeAttr('aria-label'); }, 1500));
+				paintPaste();
+			});
+			$paste.on('click', function () {
+				var got = clipGet(kind);
+				if (!got) return;
+				var next = lookOnto(look(obj), got.look);
+				Object.keys(next).forEach(function (k) { obj[k] = next[k]; });
+				handed = true;
+				carried = before;
+				window.SBTweaksConfirm.close();
+				write();
+				render();
+				reset.reopen();
+			});
+			paintPaste();
+			// Says what Copy and Paste take: the look, not what's in it (Sam, 1 November 2026).
+			$left.append('<span class="sb-emailsig-layout__clip-label">Layout:</span>', $copy, $paste);
+		}
+		if ($left.children().length) $modal.find('.sb-tweaks-dialog__buttons').prepend($left);
 
 		$body.on('input change', function () {
 			apply();
 			write();
 			if (reset) $reset.prop('disabled', JSON.stringify(reset.pick(obj)) === JSON.stringify(reset.def));
+			if (paintPaste) paintPaste();
 		});
 		dock($modal);
 
@@ -509,6 +557,70 @@
 
 	/** What a popup reopened by Reset puts back on Cancel. */
 	var carried = null;
+
+	/* Copy and Paste: one copied look for each kind, in this browser (Sam, 1 November 2026). */
+	var CLIP = 'sbEmailsigLayoutCopy';
+	var clipMem = {};
+
+	function clipAll() {
+		try {
+			var v = JSON.parse(window.localStorage.getItem(CLIP) || '{}');
+			return v && typeof v === 'object' ? v : {};
+		} catch (e) {
+			return {};
+		}
+	}
+
+	function clipGet(kind) {
+		var v = clipAll()[kind] || clipMem[kind];
+		return v && v.look && typeof v.look === 'object' ? v : null;
+	}
+
+	function clipSet(kind, v) {
+		clipMem[kind] = v;
+		var all = clipAll();
+		all[kind] = v;
+		try {
+			window.localStorage.setItem(CLIP, JSON.stringify(all));
+		} catch (e) { /* This page still has it. */ }
+	}
+
+	/** now's keys, each from from where it has one (a set inside a set the same way). */
+	function lookOnto(now, from) {
+		var out = {};
+		Object.keys(now).forEach(function (k) {
+			if (!from || !(k in from)) {
+				out[k] = now[k];
+			} else if ($.isPlainObject(now[k]) && $.isPlainObject(from[k])) {
+				out[k] = lookOnto(now[k], from[k]);
+			} else if ($.isPlainObject(now[k]) !== $.isPlainObject(from[k]) || Array.isArray(now[k]) !== Array.isArray(from[k])) {
+				out[k] = now[k];
+			} else {
+				out[k] = JSON.parse(JSON.stringify(from[k]));
+			}
+		});
+		return out;
+	}
+
+	/** Not part of a widget's look: an Info List's items, a Text widget's words. */
+	var NOT_LOOK = ['items', 'title', 'text'];
+
+	function blockKind(b) {
+		return LISTS.indexOf(b.type) !== -1 ? 'list' : 'block:' + b.type;
+	}
+
+	function blockLook(b) {
+		var o = blockPick(b);
+		NOT_LOOK.forEach(function (k) { delete o[k]; });
+		return o;
+	}
+
+	/** A column's look: not its width, which goes with the others in its row. */
+	function columnLook(c) {
+		var o = columnPick(c);
+		delete o.width;
+		return o;
+	}
 
 	/** The design's layout (what Reset Template goes back to), in rows. */
 	function designLayout() {
@@ -752,7 +864,7 @@
 	}
 
 	/** The merge tags a Text block fills in (Layout::TAGS). */
-	var TEXT_TAGS = ['first_name', 'last_name', 'name', 'job_title', 'qualifications', 'company', 'phone', 'mobile', 'email', 'website'];
+	var TEXT_TAGS = ['first_name', 'last_name', 'name', 'job_title', 'qualifications', 'company', 'phone', 'mobile', 'email', 'company_email', 'website'];
 
 	/**
 	 * A Text block's popup (Sam, 31 October 2026): the title and text, Link
@@ -1013,6 +1125,14 @@
 				$li.append(check(cfg.items[it.key], it.on));
 				if (texts[it.key] && !company) $li.append($('<small class="sb-emailsig-layout__text"></small>').text('Company item: ' + texts[it.key]));
 				if (texts[it.key] && company) $li.append($('<small class="sb-emailsig-layout__text"></small>').text(texts[it.key]));
+				// Person Email falls back to the company's, linked to where it's set (Sam, 1 November 2026).
+				if (it.key === 'email') {
+					// The previewed person's company (the Preview as menu), else the default one.
+					var $who = $('.sb-emailsig-editor__person option:selected');
+					var co = parseInt($who.attr('data-company'), 10) || cfg.defaultCompany || 0;
+					var $mail = cfg.companyEmail && co ? $('<a target="_blank" rel="noopener"></a>').attr('href', cfg.companyEmail + '&company=' + co).text('Company Email') : $('<span></span>').text('Company Email');
+					$li.append($('<small class="sb-emailsig-layout__text"></small>').append('Uses default ', $mail, ' (if available) if person email not set.'));
+				}
 				if (others[it.key]) $li.append($('<small class="sb-emailsig-layout__also"></small>').text('Also in ' + others[it.key].join(', ')));
 				$list.append($li);
 			});
@@ -1085,7 +1205,7 @@
 			b.align = $align.val();
 			b.space = $space.get();
 			Object.keys(get).forEach(function (k) { b[k] = get[k](); });
-		}, { pick: blockPick, def: blockDefault(b), reopen: function () { blockPopup(b); } });
+		}, { pick: blockPick, def: blockDefault(b), reopen: function () { blockPopup(b); }, copy: { kind: blockKind(b), look: blockLook } });
 	}
 
 	/**
@@ -1118,7 +1238,7 @@
 				f[sd].num.prop('disabled', locked);
 				f[sd].toggleClass('is-locked', locked);
 			});
-			$lock.attr({ 'aria-pressed': locked ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.attr({ 'aria-pressed': locked ? 'true' : 'false', 'aria-label': t, 'data-sb-tip': t });
 			$lock.find('.dashicons').toggleClass('dashicons-lock', locked).toggleClass('dashicons-unlock', !locked);
 		};
 		f.top.on('input change', 'select, input', mirror);
@@ -1166,7 +1286,7 @@
 			var t = locked ? 'Set each side' : 'Same width all round';
 			$allField.toggle(locked);
 			$sideFields.toggle(!locked);
-			$lock.attr({ 'aria-pressed': locked ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.attr({ 'aria-pressed': locked ? 'true' : 'false', 'aria-label': t, 'data-sb-tip': t });
 			$lock.find('.dashicons').toggleClass('dashicons-lock', locked).toggleClass('dashicons-unlock', !locked);
 		};
 		$all.on('change', function () {
@@ -1241,7 +1361,7 @@
 			c.border = border.get();
 			c.background = cols.background();
 			c.colours = cols.colours();
-		}, { pick: columnPick, def: columnPick(((designLayout().rows[r] || {}).columns || [])[i] || newColumn()), reopen: function () { columnPopup(r, i); } });
+		}, { pick: columnPick, def: columnPick(((designLayout().rows[r] || {}).columns || [])[i] || newColumn()), reopen: function () { columnPopup(r, i); }, copy: { kind: 'column', look: columnLook } });
 	}
 
 	/** A gap's popup: def is its design settings, space the default space for its kind, reopen opens it again, rows for between rows. */
@@ -1269,7 +1389,7 @@
 			$after.sel.prop('disabled', locked);
 			$after.num.prop('disabled', locked);
 			$after.toggleClass('is-locked', locked);
-			$lock.attr({ 'aria-pressed': locked ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.attr({ 'aria-pressed': locked ? 'true' : 'false', 'aria-label': t, 'data-sb-tip': t });
 			$lock.find('.dashicons').toggleClass('dashicons-lock', locked).toggleClass('dashicons-unlock', !locked);
 		};
 		$space.on('input change', 'select, input', mirror);
@@ -1313,7 +1433,7 @@
 			g.line = $line.get();
 			g.line_style = $dash.get();
 			g.colour = colour(gtint);
-		}, { pick: function (x) { return canonGap(x, space); }, def: def, reopen: reopen });
+		}, { pick: function (x) { return canonGap(x, space); }, def: def, reopen: reopen, copy: { kind: 'gap', look: function (x) { return canonGap(x, space); } } });
 	}
 
 	/** A row's settings (Sam, 31 October 2026): its own padding, border, background and colours. */
@@ -1332,7 +1452,7 @@
 			row.border = border.get();
 			row.background = cols.background();
 			row.colours = cols.colours();
-		}, { pick: rowPick, def: rowPick(designLayout().rows[r] || newRow()), reopen: function () { rowPopup(r); } });
+		}, { pick: rowPick, def: rowPick(designLayout().rows[r] || newRow()), reopen: function () { rowPopup(r); }, copy: { kind: 'row', look: rowPick } });
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -1342,7 +1462,7 @@
 	function tool(icon, label, cls) {
 		return $('<button type="button" class="sb-emailsig-layout__tool"></button>')
 			.addClass(cls || '')
-			.attr({ title: label, 'aria-label': label })
+			.attr({ 'data-sb-tip': label, 'aria-label': label })
 			.append($('<span class="dashicons" aria-hidden="true"></span>').addClass('dashicons-' + icon));
 	}
 
@@ -1364,7 +1484,7 @@
 		}
 
 		$b.append($name, $tools);
-		if (sum) $b.append($('<small class="sb-emailsig-layout__sum"></small>').text(sum).attr('title', sum));
+		if (sum) $b.append($('<small class="sb-emailsig-layout__sum"></small>').text(sum).attr('data-sb-tip', sum));
 		// An Info List shows what it holds, one per line, so what's on is easy to read.
 		// Not in Use: just its name (Sam, 31 October 2026).
 		if ((b.type === 'info' || b.type === 'company_info') && !held) {
@@ -1453,7 +1573,7 @@
 		var $wrap = $('<span class="sb-tweaks-colour sb-emailsig-colour"></span>');
 		var $swatch = $('<input type="color" class="sb-tweaks-colour__swatch">').attr('aria-label', label);
 		var $text = $('<input type="text" class="sb-tweaks-colour__value code" spellcheck="false" autocomplete="off">').attr('placeholder', empty).val(value || '');
-		var $theme = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" title="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>');
+		var $theme = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>');
 		var paint = function () {
 			var own = hex($text.val());
 			$wrap.toggleClass('is-inherited', !own);
@@ -1505,7 +1625,7 @@
 				f[sd].num.prop('disabled', on);
 				f[sd].toggleClass('is-locked', on);
 			});
-			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, 'data-sb-tip': t });
 			$lock.find('.dashicons').toggleClass('dashicons-lock', on).toggleClass('dashicons-unlock', !on);
 		};
 		f.top.on('input change', 'select, input', mirror);
@@ -1550,7 +1670,7 @@
 			var t = on ? 'Set each side' : 'Same width all round';
 			$allField.toggle(on);
 			$sideFields.toggle(!on);
-			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, 'data-sb-tip': t });
 			$lock.find('.dashicons').toggleClass('dashicons-lock', on).toggleClass('dashicons-unlock', !on);
 		};
 		$lock.on('click', function () {
@@ -1616,7 +1736,7 @@
 			$bot.sel.prop('disabled', on);
 			$bot.num.prop('disabled', on);
 			$bot.toggleClass('is-locked', on);
-			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, title: t });
+			$lock.attr({ 'aria-pressed': on ? 'true' : 'false', 'aria-label': t, 'data-sb-tip': t });
 			$lock.find('.dashicons').toggleClass('dashicons-lock', on).toggleClass('dashicons-unlock', !on);
 		};
 		$top.on('input change', 'select, input', mirror);
@@ -1667,14 +1787,14 @@
 				$rows.append(
 					$('<button type="button" class="sb-emailsig-layout__rowgap"></button>')
 						.toggleClass('is-line', lpx(rg.line) > 0)
-						.attr({ 'data-rowgap': r - 1, title: 'Space between rows ' + r + ' and ' + (r + 1) + (lpx(rg.line) ? ', with a ' + lpx(rg.line) + 'px line' : '') })
+						.attr({ 'data-rowgap': r - 1, 'data-sb-tip': 'Space between rows ' + r + ' and ' + (r + 1) + (lpx(rg.line) ? ', with a ' + lpx(rg.line) + 'px line' : '') })
 						.append('<span class="sb-emailsig-layout__rowgap-line"></span>', $('<span class="sb-emailsig-layout__gap-px"></span>').text(gapText(rg)))
 				);
 			}
 
 			var $row = $('<div class="sb-emailsig-layout__row"></div>').attr('data-row', r);
 			var $rhead = $('<div class="sb-emailsig-layout__row-head"></div>');
-			if (many) $rhead.append($('<span class="sb-emailsig-layout__row-grip dashicons dashicons-move" title="Drag to move this row" aria-hidden="true"></span>'));
+			if (many) $rhead.append($('<span class="sb-emailsig-layout__row-grip dashicons dashicons-move" data-sb-tip="Drag to move this row" aria-hidden="true"></span>'));
 			$rhead.append($('<span class="sb-emailsig-layout__row-name"></span>').text('Row ' + (r + 1)));
 
 			// Columns and their default align, for this row.
@@ -1683,7 +1803,7 @@
 			$rhead.append($bar);
 			// What its settings change from the design's, after Vertical align (Sam, 31 October 2026).
 			var rsum = custom(rowPick(row), rowPick(designLayout().rows[r] || newRow()));
-			if (rsum) $rhead.append($('<span class="sb-emailsig-layout__row-sum"></span>').text(rsum).attr('title', rsum + ' (the row\'s settings; Reset there puts back the template\'s)'));
+			if (rsum) $rhead.append($('<span class="sb-emailsig-layout__row-sum"></span>').text(rsum).attr('data-sb-tip', rsum + ' (the row\'s settings; Reset there puts back the template\'s)'));
 
 			var $rtools = $('<span class="sb-emailsig-layout__row-tools"></span>');
 			if (window.SBTweaksConfirm) $rtools.append(tool('admin-generic', 'Row ' + (r + 1) + ' settings', '').attr('data-row-edit', r));
@@ -1699,7 +1819,7 @@
 					$board.append(
 						$('<button type="button" class="sb-emailsig-layout__gap"></button>')
 							.toggleClass('is-line', lpx(g.line) > 0)
-							.attr({ 'data-gap': r + ':' + (i - 1), title: 'Space between columns ' + i + ' and ' + (i + 1) + (lpx(g.line) ? ', with a ' + lpx(g.line) + 'px line' : '') })
+							.attr({ 'data-gap': r + ':' + (i - 1), 'data-sb-tip': 'Space between columns ' + i + ' and ' + (i + 1) + (lpx(g.line) ? ', with a ' + lpx(g.line) + 'px line' : '') })
 							.append('<span class="sb-emailsig-layout__gap-line"></span>', $('<span class="sb-emailsig-layout__gap-px"></span>').text(gapText(g)))
 					);
 				}
@@ -1707,8 +1827,8 @@
 				var csum = custom(columnPick(c), columnPick(((designLayout().rows[r] || {}).columns || [])[i] || newColumn()));
 				// Dragged by its grip, along the row or into another (Sam, 31 October 2026).
 				var $head = $('<div class="sb-emailsig-layout__col-head"></div>')
-					.append(lone ? '' : $('<span class="sb-emailsig-layout__col-grip dashicons dashicons-move" title="Drag to move this column" aria-hidden="true"></span>'))
-					.append($('<span class="sb-emailsig-layout__col-name"></span>').text('Column ' + (i + 1)).append(csum ? $('<small></small>').text(csum).attr('title', csum) : ''));
+					.append(lone ? '' : $('<span class="sb-emailsig-layout__col-grip dashicons dashicons-move" data-sb-tip="Drag to move this column" aria-hidden="true"></span>'))
+					.append($('<span class="sb-emailsig-layout__col-name"></span>').text('Column ' + (i + 1)).append(csum ? $('<small></small>').text(csum).attr('data-sb-tip', csum) : ''));
 				var $ctools = $('<span class="sb-emailsig-layout__col-tools"></span>');
 				if (window.SBTweaksConfirm) $ctools.append(tool('admin-generic', 'Column ' + (i + 1) + ' settings', '').attr('data-col', r + ':' + i));
 				if (row.columns.length > 1) $ctools.append(tool('no-alt', 'Remove column ' + (i + 1), 'sb-emailsig-layout__remove').attr('data-col-remove', r + ':' + i));
@@ -1718,7 +1838,7 @@
 			// Add a column, at the end of the row.
 			var full = row.columns.length >= MAX_COLS;
 			$board.append($('<button type="button" class="sb-emailsig-layout__add-col"></button>')
-				.attr({ 'data-col-add': r, title: full ? 'The most a row can have' : 'Add a column', 'aria-label': 'Add a column to row ' + (r + 1) })
+				.attr({ 'data-col-add': r, 'data-sb-tip': full ? 'The most a row can have' : 'Add a column', 'aria-label': 'Add a column to row ' + (r + 1) })
 				.prop('disabled', full)
 				.append('<span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span>'));
 
@@ -1740,7 +1860,7 @@
 		multi.forEach(function (type) {
 			var full = count(type) >= (cfg.max || 6);
 			$('<div class="sb-emailsig-layout__block sb-emailsig-layout__new-block"></div>')
-				.attr({ 'data-new': type, title: full ? 'The most there can be' : 'Drag on to the layout' })
+				.attr({ 'data-new': type, 'data-sb-tip': full ? 'The most there can be' : 'Drag on to the layout' })
 				.toggleClass('is-full', full)
 				.append($('<span class="sb-emailsig-layout__name"></span>').text('New ' + blocks[type]))
 				.appendTo($new);
@@ -1969,8 +2089,18 @@
 	}
 
 	/** The card shows its Reset, and the accent border, once the layout isn't the design's. */
+	/** The layout card's own part: rows, columns, gaps and widgets (not Container, Footer or Layout Settings). */
+	function layoutOnly(json) {
+		try {
+			var v = JSON.parse(json || '{}');
+			return JSON.stringify([v.rows || null, v.row_gaps || null, v.hold || null]);
+		} catch (e) {
+			return '';
+		}
+	}
+
 	function mark() {
-		var edited = field.value !== (field.getAttribute('data-default') || '');
+		var edited = layoutOnly(field.value) !== layoutOnly(field.getAttribute('data-default'));
 		$(field).closest('.sb-emailsig-editor__card').toggleClass('is-edited', edited).find('.sb-emailsig-card-reset').prop('disabled', !edited);
 	}
 
@@ -2801,9 +2931,8 @@
 				resetPart(part);
 				return;
 			}
-			field.value = field.getAttribute('data-default') || field.value;
-			field.dispatchEvent(new Event('input', { bubbles: true }));
-			field.dispatchEvent(new Event('change', { bubbles: true }));
+			// The layout card: its rows, columns and widgets only (Sam, 1 November 2026).
+			resetPicked({ layout: true });
 		});
 
 		shownCompany = personCompany();

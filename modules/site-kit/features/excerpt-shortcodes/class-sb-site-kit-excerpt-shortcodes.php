@@ -10,13 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * shows as plain text. This runs them.
  *
  * Priority 11 keeps it after wp_trim_excerpt, which is what builds an excerpt
- * from the content when the field is empty. Anything that brings its own
+ * from the content when the field is empty. Only get_the_excerpt: the_excerpt()
+ * reads it, so filtering both ran every shortcode twice. Anything that brings its own
  * placeholder syntax, such as Dynamic Shortcodes, handles its own tags.
  */
 class SB_Site_Kit_Excerpt_Shortcodes {
 
 	public static function boot() {
-		add_filter( 'the_excerpt', 'do_shortcode', 11 );
 		add_filter( 'get_the_excerpt', 'do_shortcode', 11 );
 
 		if ( ! SB_Site_Kit::setting( 'excerpt-shortcodes', 'seo' ) ) {

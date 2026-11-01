@@ -36,8 +36,13 @@ class SB_Images_Tools {
 		add_action( 'add_meta_boxes_attachment', [ __CLASS__, 'meta_box' ] );
 	}
 
-	private static function guard() {
-		if ( ! current_user_can( 'upload_files' ) || ! check_ajax_referer( 'sb_images', 'nonce', false ) ) {
+	/**
+	 * Who may run an action: one image's ($site false) for anyone who can
+	 * upload (each checks edit_post too); the site wide ones (counts, builds,
+	 * clears, scans and deletes) for administrators only (1 November 2026).
+	 */
+	private static function guard( $site = true ) {
+		if ( ! current_user_can( $site ? 'manage_options' : 'upload_files' ) || ! check_ajax_referer( 'sb_images', 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Not allowed.', 'sb-tweaks' ) ], 403 );
 		}
 	}
@@ -844,7 +849,7 @@ class SB_Images_Tools {
 	}
 	/** The sizes list for one image, for a pane that has just opened. */
 	public static function ajax_panel() {
-		self::guard();
+		self::guard( false );
 
 		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 
@@ -965,25 +970,6 @@ class SB_Images_Tools {
 		);
 	}
 
-	/** The note above a refreshed list saying what was left alone and why. */
-	public static function deep_skipped( array $skipped ) {
-		if ( ! $skipped ) {
-			return '';
-		}
-
-		$html = '<div class="sb-images-deep__skipped"><p>' . esc_html( sprintf( _n( '%s file was left alone:', '%s files were left alone:', count( $skipped ), 'sb-tweaks' ), number_format_i18n( count( $skipped ) ) ) ) . '</p><ul>';
-
-		foreach ( array_slice( $skipped, 0, 20 ) as $skip ) {
-			$html .= '<li><code>' . esc_html( $skip['name'] ) . '</code> <span>' . esc_html( $skip['why'] ) . '</span></li>';
-		}
-
-		if ( count( $skipped ) > 20 ) {
-			$html .= '<li class="sb-images-deep__more">' . esc_html( sprintf( __( 'and %s more', 'sb-tweaks' ), number_format_i18n( count( $skipped ) - 20 ) ) ) . '</li>';
-		}
-
-		return $html . '</ul></div>';
-	}
-
 	/** The cross that closes the leftovers panel, same place as the progress one. */
 	private static function deep_close() {
 		return '<button type="button" class="sb-images-deep__close" aria-label="' . esc_attr__( 'Close', 'sb-tweaks' ) . '">&times;</button>';
@@ -1024,7 +1010,7 @@ class SB_Images_Tools {
 			$html .= '<li>';
 			$html .= '<div class="sb-images-deep__row"><label><input type="checkbox" class="sb-images-deep-choice" value="' . esc_attr( $dims ) . '"> ';
 			$html .= '<code>' . esc_html( str_replace( 'x', ' x ', $dims ) ) . '</code> ';
-			$html .= '<span>' . esc_html( sprintf( _n( '%s file', '%s files', $group['count'], 'sb-tweaks' ), number_format_i18n( $group['count'] ) ) ) . ', ' . esc_html( size_format( $group['bytes'] ) ) . '</span></label>';
+			$html .= '<span data-count="' . (int) $group['count'] . '">' . esc_html( sprintf( _n( '%s file', '%s files', $group['count'], 'sb-tweaks' ), number_format_i18n( $group['count'] ) ) ) . ', ' . esc_html( size_format( $group['bytes'] ) ) . '</span></label>';
 			$html .= '<button type="button" class="button-link sb-images-deep-show">' . esc_html__( 'Show files', 'sb-tweaks' ) . '</button>';
 			$html .= '</div>';
 
@@ -1065,7 +1051,7 @@ class SB_Images_Tools {
 	}
 
 	public static function ajax_fix() {
-		self::guard();
+		self::guard( false );
 		self::job_gate();
 
 		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
@@ -1085,7 +1071,7 @@ class SB_Images_Tools {
 	}
 
 	public static function ajax_single() {
-		self::guard();
+		self::guard( false );
 
 		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 
@@ -1434,7 +1420,7 @@ class SB_Images_Tools {
 				$pill  = '';
 
 				if ( $owner ) {
-					$pill = ' <a class="sb-images-report__id" href="' . esc_url( get_edit_post_link( $owner['id'] ) ) . '" title="' . esc_attr( $owner['title'] !== '' ? $owner['title'] : __( 'Open in the media library', 'sb-tweaks' ) ) . '">#' . (int) $owner['id'] . '</a>';
+					$pill = ' <a class="sb-images-report__id" href="' . esc_url( get_edit_post_link( $owner['id'] ) ) . '" data-sb-tip="' . esc_attr( $owner['title'] !== '' ? $owner['title'] : __( 'Open in the media library', 'sb-tweaks' ) ) . '">#' . (int) $owner['id'] . '</a>';
 				}
 
 				$thumb = '<a class="sb-images-report__thumb" href="' . esc_url( $url ) . '" target="_blank" rel="noopener"><img src="' . esc_url( $url ) . '" alt="" loading="lazy"></a>';
@@ -1509,8 +1495,10 @@ class SB_Images_Tools {
 		if ( ! is_array( $paths ) ) {
 			$found = SB_Images_Orphans::find();
 			$paths = wp_list_pluck( $found['files'], 'path' );
-			set_transient( $key, $paths, 10 * MINUTE_IN_SECONDS );
 		}
+
+		// Held for ten minutes from each batch, so a long run keeps the same list to the end.
+		set_transient( $key, $paths, 10 * MINUTE_IN_SECONDS );
 
 		$total = count( $paths );
 		$batch = array_slice( $paths, $offset, self::ORPHAN_BATCH );

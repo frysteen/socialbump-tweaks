@@ -313,7 +313,7 @@ class SB_Site_Kit_Robots {
 		echo '<template id="sb-site-kit-rule-template">' . self::rule_row( 'disallow', '' ) . '</template>'; // phpcs:ignore WordPress.Security.EscapeOutput
 		echo '<div class="sb-site-kit-width-actions">';
 		echo '<button type="button" class="button" id="sb-site-kit-add-rule">' . esc_html__( 'Add a rule', 'sb-tweaks' ) . '</button>';
-		echo '<button type="submit" class="button sb-tweaks-button--danger" id="sb-site-kit-reset-rules" name="sb_site_kit_reset_robots" value="1" data-sb-always-on' . ( self::rules() === self::defaults() ? ' disabled' : '' ) . '>' . esc_html__( 'Reset to default rules', 'sb-tweaks' ) . '</button>';
+		echo '<button type="submit" class="button sb-tweaks-button--danger" id="sb-site-kit-reset-rules" name="sb_site_kit_reset_robots" value="1" data-sb-always-on data-sb-tweaks-confirm="' . esc_attr__( 'The rules go back to the defaults. Your extra lines are kept.', 'sb-tweaks' ) . '"' . ( self::rules() === self::defaults() ? ' disabled' : '' ) . '>' . esc_html__( 'Reset to default rules', 'sb-tweaks' ) . '</button>';
 		echo '<script>window.sbSiteKitRobotsDefaults = ' . wp_json_encode( self::defaults() ) . ';</script>';
 		echo '</div>';
 		echo '</section>';

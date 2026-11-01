@@ -31,9 +31,10 @@ class SB_Woo_Cart_Both_Prices {
 			return $price_html;
 		}
 
+		// With or without tax as the cart shows prices, not the shop (WooCommerce 7.6 and up).
 		return wc_format_sale_price(
-			wc_price( wc_get_price_to_display( $product, [ 'price' => $regular ] ) ),
-			wc_price( wc_get_price_to_display( $product, [ 'price' => $sale ] ) )
+			wc_price( wc_get_price_to_display( $product, [ 'price' => $regular, 'display_context' => 'cart' ] ) ),
+			wc_price( wc_get_price_to_display( $product, [ 'price' => $sale, 'display_context' => 'cart' ] ) )
 		);
 	}
 }

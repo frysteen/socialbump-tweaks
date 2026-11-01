@@ -21,14 +21,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * same design and styles, to change from there.
  *
  * Which templates people use:
- * - The company's main template (sb_tweaks_email_signatures_template, set
- *   on Settings, Company tab) is everyone's unless their own says otherwise.
- * - The company set (ACF option sb_emailsig_templates) is the templates
- *   everyone can pick on their signature page; the main one always is.
- * - A person can have their own main template (sb_emailsig_template) and
- *   extra ones (sb_emailsig_templates_extra). Their own main counts as
- *   available to them even if it isn't in the set. A template deleted or
- *   left out falls back to the company's main.
+ * - The company's Default Template (company meta sb_emailsig_main_template,
+ *   set on the company's Company tab) is everyone's in that company.
+ * - The company's set (company meta sb_emailsig_templates) is the templates
+ *   its people can pick on their signature page; the default one always is.
+ * - People use their company's templates only (Sam, 1 November 2026): no
+ *   main or extra templates of their own any more. What was kept for them
+ *   (sb_emailsig_template, sb_emailsig_templates_extra) is deleted once
+ *   (forget_person_picks()). They still pick one of the company's on their
+ *   signature page, the company's default first.
  *
  * Templates page (Sam, 29 October 2026): the framework's bar (Settings,
  * Import, Add template) and a small card per template, like the people
@@ -81,7 +82,7 @@ class SB_EmailSig_Templates {
 	const FILE_TYPE   = 'sb-email-signature-template';
 	const FILE_FORMAT = 2; // 2 (29 October 2026): the layout is in the styles. A format 1 file has none, so it starts with its design's.
 
-	/** ACF fields on a person: their main template and extra ones. */
+	/** What a person's own template picks were kept as, before 1 November 2026: only forget_person_picks() uses them. */
 	const PERSON_MAIN  = 'sb_emailsig_template';
 	const PERSON_EXTRA = 'sb_emailsig_templates_extra';
 
@@ -99,6 +100,7 @@ class SB_EmailSig_Templates {
 		add_action( 'admin_post_sb_emailsig_export_template', [ __CLASS__, 'export' ] );
 		add_action( 'admin_post_sb_emailsig_import_template', [ __CLASS__, 'import' ] );
 		add_action( 'admin_post_sb_emailsig_add_template', [ __CLASS__, 'add' ] );
+		add_action( 'admin_init', [ __CLASS__, 'forget_person_picks' ] );
 	}
 
 	public static function register() {
@@ -300,24 +302,31 @@ class SB_EmailSig_Templates {
 	}
 
 	/**
-	 * The companies a template is the main one for, and the ones whose set it
-	 * is in: [ 'main' => names, 'set' => names ] (Sam, 31 October 2026: the
-	 * Templates page went by the default company's only).
+	 * The companies a template is the default for, and the others whose set
+	 * it is in: [ 'default' => ids, 'available' => ids ] (Sam, 1 November 2026).
 	 */
-	public static function companies_of( $tpl_id ) {
-		$out = [ 'main' => [], 'set' => [] ];
+	public static function uses( $tpl_id ) {
+		$out = [ 'default' => [], 'available' => [] ];
 
 		foreach ( class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::all() : [] as $co ) {
-			$name = SB_EmailSig_Company::name( $co );
-
 			if ( self::main_for( $co ) === (string) $tpl_id ) {
-				$out['main'][] = $name;
+				$out['default'][] = (int) $co;
 			} elseif ( in_array( (string) $tpl_id, self::set_for( $co ), true ) ) {
-				$out['set'][] = $name;
+				$out['available'][] = (int) $co;
 			}
 		}
 
 		return $out;
+	}
+
+	/** Companies as items for SB_EmailSig_Admin::name_list(): [ name, its page ]. */
+	public static function company_items( array $ids ) {
+		return array_map(
+			function ( $co ) {
+				return [ SB_EmailSig_Company::name( $co ), class_exists( 'SB_EmailSig_Companies' ) ? SB_EmailSig_Companies::url( $co ) : '' ];
+			},
+			$ids
+		);
 	}
 
 	/** Ids from a stored list that are still templates, without repeats. */
@@ -334,11 +343,6 @@ class SB_EmailSig_Templates {
 
 		// Keys like '12' come back as numbers: ids are strings throughout.
 		return array_map( 'strval', array_keys( $out ) );
-	}
-
-	/** The company set of the company being drawn: the templates its people can use, the main one first. */
-	public static function company_set() {
-		return self::set_for( class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::current() : 0 );
 	}
 
 	/** A company's set, its main first ($co 0: the one Settings kept). */
@@ -363,37 +367,48 @@ class SB_EmailSig_Templates {
 		return $out;
 	}
 
-	/**
-	 * A person's main template: their own pick if their company still lets
-	 * them use it, else the company's main (Sam, 30 October 2026: people pick
-	 * only from their company's templates).
-	 */
+	/** A person's template: their company's default (Sam, 1 November 2026: none of their own any more). */
 	public static function for_person( $post_id ) {
-		$co  = class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::of_person( $post_id ) : 0;
-		$set = self::set_for( $co );
-		$own = $post_id ? (string) get_post_meta( (int) $post_id, self::PERSON_MAIN, true ) : '';
-
-		return in_array( $own, $set, true ) ? $own : self::main_for( $co );
+		return self::main_for( class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::of_person( $post_id ) : 0 );
 	}
 
 	/**
-	 * The templates a person can use: their company's set, their main first.
-	 * $main and $co (the person page's unsaved picks: a template id or ''
-	 * for the company's main, and a company) stand in for the saved ones
-	 * when given. $extras is no longer used: people only get their company's.
+	 * The templates a person can use: their company's set, its default
+	 * first. $co (the person page's unsaved company) stands in for their
+	 * saved one when given.
 	 */
-	public static function available( $post_id, $main = null, $extras = null, $co = null ) {
-		$co  = $co !== null && class_exists( 'SB_EmailSig_Company' ) && SB_EmailSig_Company::valid( $co ) ? (int) $co : ( class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::of_person( $post_id ) : 0 );
-		$set = self::set_for( $co );
+	public static function available( $post_id, $co = null ) {
+		$co = $co !== null && class_exists( 'SB_EmailSig_Company' ) && SB_EmailSig_Company::valid( $co ) ? (int) $co : ( class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::of_person( $post_id ) : 0 );
 
-		if ( $main !== null ) {
-			$main = in_array( (string) $main, $set, true ) ? (string) $main : self::main_for( $co );
-		} else {
-			$main = $post_id ? self::for_person( $post_id ) : self::main_for( $co );
-			$main = in_array( $main, $set, true ) ? $main : self::main_for( $co );
+		return self::set_for( $co );
+	}
+
+	/** Set once people's own template picks have been deleted. */
+	const PICKS_GONE = 'sb_emailsig_person_templates_gone';
+
+	/** People's own main and extra templates, deleted once (Sam, 1 November 2026). */
+	public static function forget_person_picks() {
+		if ( get_option( self::PICKS_GONE ) ) {
+			return;
 		}
 
-		return self::ordered( $main, $set );
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- once.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE m FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE p.post_type = %s AND m.meta_key IN ( %s, %s, %s, %s )",
+				SB_EMAILSIG_CPT,
+				self::PERSON_MAIN,
+				'_' . self::PERSON_MAIN,
+				self::PERSON_EXTRA,
+				'_' . self::PERSON_EXTRA
+			)
+		);
+		if ( function_exists( 'wp_cache_flush_group' ) ) {
+			wp_cache_flush_group( 'post_meta' );
+		}
+		update_option( self::PICKS_GONE, 1, true );
 	}
 
 	/** An asset inside a template's design folder, such as icons/phone.png. */
@@ -619,7 +634,6 @@ class SB_EmailSig_Templates {
 
 		$all     = self::all();
 		$current = self::current();
-		$set     = self::company_set();
 		$multi   = class_exists( 'SB_EmailSig_Company' ) && count( SB_EmailSig_Company::all() ) > 1;
 		$notice  = isset( $_GET['template'] ) ? sanitize_key( wp_unslash( $_GET['template'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 		$records = self::has_records();
@@ -637,10 +651,22 @@ class SB_EmailSig_Templates {
 			echo '<div class="notice notice-' . esc_attr( $notices[ $notice ][0] ) . ' is-dismissible"><p>' . esc_html( $notices[ $notice ][1] ) . '</p></div>';
 		}
 
-		// The bar: where the main template is chosen, Import and Add template.
+		// Used by (Sam, 1 November 2026): the templates a company uses, or those none do.
+		$companies = class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::all() : [];
+		$used      = isset( $_GET['used'] ) ? sanitize_key( wp_unslash( $_GET['used'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		$used      = ( $used === 'none' || in_array( (int) $used, $companies, true ) ) ? $used : '';
+
+		// The bar: Used by, where each company's default is chosen, Import and Add template.
 		echo '<div class="sb-ui-bar sb-emailsig-bar">';
-		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Main template</span>';
-		echo '<a class="button button-small" href="' . esc_url( SB_EmailSig_Companies::url() ) . '" data-sb-tip="Each company\'s main template and the ones its people can pick">' . SB_EmailSig_Admin::icon( 'gear' ) . 'Companies</a>';
+		echo '<div class="sb-ui-bar__group"><label class="sb-ui-bar__label" for="sb-emailsig-used">Used by</label>';
+		echo '<select id="sb-emailsig-used" data-sb-emailsig-used="' . esc_url( self::page_url() ) . '"><option value="">All companies</option>';
+		foreach ( $companies as $co ) {
+			echo '<option value="' . (int) $co . '"' . selected( $used, (string) $co, false ) . '>' . esc_html( SB_EmailSig_Company::name( $co ) ) . '</option>';
+		}
+		echo '<option value="none"' . selected( $used, 'none', false ) . '>Not in use</option>';
+		echo '</select></div>';
+		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Default Template</span>';
+		echo '<a class="button button-small" href="' . esc_url( SB_EmailSig_Companies::url() ) . '" data-sb-tip="Each company\'s Default Template and the ones its people can pick">' . SB_EmailSig_Admin::icon( 'gear' ) . 'Companies</a>';
 		echo '</div>';
 
 		if ( $records ) {
@@ -682,18 +708,25 @@ class SB_EmailSig_Templates {
 		}
 
 		$using = self::use_counts();
+		$shown = 0;
 
 		echo '<div class="sb-emailsig-people sb-emailsig-templates">';
 
 		foreach ( $all as $id => $template ) {
 			$id      = (string) $id;
-			$of      = $multi ? self::companies_of( $id ) : null;
-			$is_main = $of ? (bool) $of['main'] : $id === $current;
-			$in_set  = $of ? (bool) $of['set'] : in_array( $id, $set, true );
+			$uses    = self::uses( $id );
+			$is_main = (bool) $uses['default'] || $id === $current;
+
+			// Used by: this company's (its default or one of its set), or no one's.
+			if ( $used === 'none' ? ( $uses['default'] || $uses['available'] ) : ( $used !== '' && ! in_array( (int) $used, array_merge( $uses['default'], $uses['available'] ), true ) ) ) {
+				continue;
+			}
+			$shown++;
+
 			$stats   = self::stats( $template );
 			$sig     = 'sb-emailsig-tpl-' . $id;
 			$edit    = self::edit_url( $id );
-			$uses    = $using[ $id ] ?? 0;
+			$people  = $using[ $id ] ?? 0;
 
 			echo '<article class="sb-tweaks-card sb-emailsig-template' . ( $is_main ? ' is-main' : '' ) . '">';
 
@@ -701,13 +734,6 @@ class SB_EmailSig_Templates {
 			echo '<div class="sb-emailsig-person__who">';
 			echo '<h3 class="sb-emailsig-person__name"><a href="' . esc_url( $edit ) . '">' . esc_html( $template['name'] ) . '</a></h3>';
 			echo '</div>';
-
-			if ( $is_main ) {
-				echo '<span class="sb-emailsig-template__badge" data-sb-tip="' . esc_attr( $of ? 'Main for ' . implode( ', ', $of['main'] ) : 'Everyone\'s, unless their own says otherwise' ) . '">Main</span>';
-			} elseif ( $in_set ) {
-				echo '<span class="sb-emailsig-template__badge sb-emailsig-template__badge--set" data-sb-tip="' . esc_attr( $of ? 'People at ' . implode( ', ', $of['set'] ) . ' can pick it' : 'Everyone can pick it on their signature page' ) . '">Company set</span>';
-			}
-
 			echo '</div>';
 
 			// Its own description, set on Edit styles.
@@ -715,29 +741,29 @@ class SB_EmailSig_Templates {
 				echo '<p class="sb-emailsig-template__note">' . esc_html( $template['note'] ) . '</p>';
 			}
 
-			// Which companies it's the main template for (Sam, 31 October 2026):
-			// two by name, more as "and 2 more" with the rest in its tip.
-			if ( $of && $of['main'] ) {
-				$names = $of['main'];
-				$line  = count( $names ) > 2
-					? esc_html( $names[0] ) . ' and <span class="sb-emailsig-template__more" data-sb-tip="' . esc_attr( implode( ', ', array_slice( $names, 1 ) ) ) . '">' . esc_html( ( count( $names ) - 1 ) . ' more' ) . '</span>'
-					: esc_html( implode( ' and ', $names ) );
-
-				echo '<p class="sb-emailsig-template__note sb-emailsig-template__mainfor"><strong>Main for:</strong> ' . $line . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
+			// The companies it's the Default Template for, and those that also
+			// offer it (Sam, 1 November 2026), or Not in use.
+			echo '<div class="sb-emailsig-template__uses">';
+			if ( $uses['default'] || $uses['available'] ) {
+				echo $uses['default'] ? SB_EmailSig_Admin::name_list( 'Default for:', self::company_items( $uses['default'] ) ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in name_list().
+				echo $uses['available'] ? SB_EmailSig_Admin::name_list( 'Available for:', self::company_items( $uses['available'] ) ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in name_list().
+			} else {
+				echo SB_EmailSig_Admin::name_list( 'Used by:', [], 'Not in use' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in name_list().
 			}
+			echo '</div>';
 
 			// What's in it, in numbers.
 			echo '<div class="sb-emailsig-template__stats">';
 
 			if ( $stats ) {
 				echo '<span><strong>' . (int) $stats['columns'] . '</strong> ' . esc_html( _n( 'column', 'columns', $stats['columns'] ) ) . '</span>';
-				echo '<span><strong>' . (int) $stats['blocks'] . '</strong> ' . esc_html( _n( 'block', 'blocks', $stats['blocks'] ) ) . '</span>';
+				echo '<span><strong>' . (int) $stats['blocks'] . '</strong> ' . esc_html( _n( 'widget', 'widgets', $stats['blocks'] ) ) . '</span>';
 
 				// Always shown, so the four sit two by two (Sam, 30 October 2026).
-				echo '<span data-sb-tip="In the holding area, not shown"><strong>' . (int) $stats['hidden'] . '</strong> hidden</span>';
+				echo '<span data-sb-tip="In Not in Use, so not shown"><strong>' . (int) $stats['hidden'] . '</strong> hidden</span>';
 			}
 
-			echo '<span data-sb-tip="People whose main template this is"><strong>' . (int) $uses . '</strong> ' . esc_html( _n( 'person', 'people', $uses ) ) . '</span>';
+			echo '<span data-sb-tip="People whose Default Template this is"><strong>' . (int) $people . '</strong> ' . esc_html( _n( 'person', 'people', $people ) ) . '</span>';
 			echo '</div>';
 
 			// Preview's footer (Sam, 31 October 2026): Edit styles and Edit Layout
@@ -768,7 +794,7 @@ class SB_EmailSig_Templates {
 				echo '</form>';
 
 				if ( ! $is_main ) {
-					self::icon_form( 'sb_emailsig_delete_template', $id, 'trash', 'Delete', 'Delete the ' . $template['name'] . ' template? Anyone using it goes back to the main template.' );
+					self::icon_form( 'sb_emailsig_delete_template', $id, 'trash', 'Delete', 'Delete the ' . $template['name'] . ' template? Anyone using it goes back to their company\'s Default Template.' );
 				}
 			}
 
@@ -782,6 +808,10 @@ class SB_EmailSig_Templates {
 		}
 
 		echo '</div>';
+
+		if ( ! $shown ) {
+			echo '<div class="sb-ui-empty"><p>' . esc_html( $used === 'none' ? 'Every template is in use.' : 'No templates for that company.' ) . '</p></div>';
+		}
 	}
 
 	/** A small form posting to admin-post.php, as an icon button with a tooltip. Asks first with $confirm. */

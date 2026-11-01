@@ -14,13 +14,12 @@ Site Kit's release notes, shown read only on the Documentation page.
 
 ## What it does
 
-Eighteen features in five groups. A group switched on gets its own page.
+Eleven features in four groups. A group switched on gets its own page.
 
 | Group | Features |
 | --- | --- |
 | Content | Excerpt Character Counter, Excerpts For Pages, Shortcodes In Excerpts, Force Gutenberg Page Refresh on Save |
-| FAQ Settings (off until switched on) | FAQ fields on posts, FAQ post types as a library, FAQPage schema |
-| WooCommerce | moved to the Woo Tweaks module (modules/woo-tweaks) in October 2026; Site Kit's saved woo-* switches and settings are left in its options |
+| FAQ Settings (off until switched on) | one feature (faq-schema, needs ACF): FAQ fields on posts, FAQ post types as a library, FAQPage schema |
 | SEO | Robots.txt |
 | Admin Settings | Block Admin Access, Hide Toolbar On The Front End, SocialBUMP Admin Colour Scheme, Fix ACF CPT SVG Icons, Post Types for Add-ons (always on, a wide card) |
 
@@ -29,6 +28,10 @@ their own page, so the group page is that page. The Robots.txt page shows
 whether or not the feature is on, with its own switch, which is the feature's
 switch; saving it on also switches the SEO group on.
 
+The WooCommerce group moved to the Woo Tweaks module (modules/woo-tweaks) in
+October 2026. Site Kit's saved woo-* switches and settings are left in its
+options; Woo Tweaks copied them once.
+
 Each feature's own entry in standalone-notes.md ("Every module in detail")
 still describes what it does and how.
 
@@ -36,7 +39,7 @@ still describes what it does and how.
 
 | Path | What it is |
 | --- | --- |
-| module.php | the declaration: groups, menu, bar, replaces, prompt, boot |
+| module.php | the declaration: groups, ui_ready, menu, bar, prompt, boot |
 | includes/class-sb-site-kit.php | SB_Site_Kit: settings, is_enabled and page slugs for the features |
 | features/<slug>/feature.php | one per feature, the framework's feature shape |
 | assets/css/site-kit.css | the FAQ Settings and Robots.txt pages' own styles |
@@ -44,9 +47,11 @@ still describes what it does and how.
 
 module.php defines SB_SITE_KIT_PATH and SB_SITE_KIT_URL and loads SB_Site_Kit.
 Its boot only adds site-kit.css on this module's pages; the framework's
-admin.css draws everything shared. A feature reads its card settings through
-SB_Site_Kit::setting( $id, $key ), which asks sb_tweaks_module( 'site_kit' ),
-and falls back to the saved option while the module is not booted.
+admin.css and the SocialBUMP UI (assets/css/ui.css, ui.js) draw everything
+shared. module.php sets 'ui_ready' => true, so all its pages, the FAQ
+Settings and Robots.txt pages included, follow the user's dark mode. A
+feature reads its card settings through SB_Site_Kit::setting( $id, $key ),
+which asks sb_tweaks_module( 'site_kit' ), and falls back to the saved option while the module is not booted.
 
 The menu slug stays sb-site-kit, below SB Bricks Tweaks, and group pages stay
 sb-site-kit-<group>, because bookmarks and Admin Site Enhancements' menu setup
@@ -62,12 +67,13 @@ sbsk/ filters to sb_site_kit/ (faq/schema, post_types/never, robots_txt,
 robots_txt/sitemap_url), sbsk_ functions to sb_site_kit_ (post_type_choices,
 post_types, admin_access_roles, front_toolbar_roles, robots_save), the
 admin-post and AJAX actions (sb_site_kit_faq_save, sb_site_kit_save_robots,
-sb_site_kit_faq_fields, sb_site_kit_faq_clean, sb_site_kit_analytics_csv and
-_all), form field names, script globals (sbSiteKitExcerptCounter,
-sbSiteKitRefreshOnSave, sbSiteKitAnalyticsCSV, sbSiteKitRobotsDefaults), CSS
+sb_site_kit_faq_fields, sb_site_kit_faq_clean), form field names, script globals
+(sbSiteKitExcerptCounter, sbSiteKitRefreshOnSave, sbSiteKitRobotsDefaults), CSS
 classes and handles from sbsk- to sb-site-kit-, and the text domain to
 sb-tweaks. Shared screen parts (cards, sections, switches, fields, popups) use
-the framework's sb-tweaks- classes.
+the framework's sb-tweaks- classes. The analytics CSV names moved on again
+with the WooCommerce features: they are sb_woo_analytics_csv and
+sbWooAnalyticsCSV in the Woo Tweaks module now.
 
 Kept, because posts have them saved: the FAQ fields' ACF keys,
 field_sbsk_faq_questions, field_sbsk_faq_question, field_sbsk_faq_answer and
@@ -85,19 +91,20 @@ the site moves over. Check each site's snippets for sbsk/ first.
 Every question goes through the framework's popup (SBTweaksConfirm, from
 confirm.js). Delete FAQ content on the FAQ Settings page used to fall back to
 the browser's own confirm when the popup had not loaded; it now does nothing
-instead, since confirm.js loads on every module page.
+instead, since confirm.js loads on every module page. Its result shows as a
+toast (SBTweaksUI.toast): the number of posts cleaned, or "Not deleted. Try
+again." on a failure.
 
 ## The standalone plugin
 
-The module replaces socialbump-site-kit/socialbump-site-kit.php. On a client
-site the framework switches the plugin off on the first load and keeps it off;
-on the hub it stays on, to publish it, and the module waits out any request it
-loaded in. Its admin bar entry (id site-kit) joins the SocialBUMP item while
-the module is on.
+The module replaced socialbump-site-kit/socialbump-site-kit.php. While both
+existed, the framework switched the plugin off on a client site and the module
+waited out any request it loaded in on the hub. That is history now (see the
+last section). The module's admin bar entry (id site-kit) joins the SocialBUMP
+item while the module is on.
 
-Its image code is the Image Management module, which waits for the plugin the
-same way (waits_for) and copies the image settings across once it is gone. See
-modules/images/docs/context.md.
+Its image code is the Image Management module, which copied the image settings
+across once. See modules/images/docs/context.md.
 
 Not ported, because the framework or the hub already does them: Publishing,
 the Documentation panel, Transfer, Updates, the shared admin bar, Overview and

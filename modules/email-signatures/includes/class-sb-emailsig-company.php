@@ -5,7 +5,8 @@
  * used to hold for the one company (Company, Branding, Social Media, Footer
  * and Campaign Banner, the same ACF fields), and its templates: the ones its
  * people can use and its main one. Every person belongs to one company.
- * Settings keeps what is the site's own (team pages, tracking, emails).
+ * Settings keeps what is the site's own (admin branding, notifications,
+ * signature emails, tracking).
  *
  * The company being drawn is a context: SB_EmailSig_Data::get() enters the
  * person's company while it reads, and everything that reads company fields
@@ -24,6 +25,9 @@ class SB_EmailSig_Company {
 	const PERSON_META    = 'sb_emailsig_company';
 	const MIGRATED       = 'sb_emailsig_companies_v1';
 	const TEAM_KEY       = 'sb_emailsig_team_key';
+
+	/** Every status a person can have, deleted (Trash) included: 'any' leaves Trash out. */
+	const STATUSES = array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' );
 
 	/** The ACF field groups a company is edited with. */
 	const GROUP = 'group_sb_emailsig_company';
@@ -97,7 +101,7 @@ class SB_EmailSig_Company {
 
 		set_transient( 'sb_emailsig_adopted', 1, 12 * HOUR_IN_SECONDS );
 
-		foreach ( get_posts( array( 'post_type' => SB_EMAILSIG_CPT, 'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' ), 'posts_per_page' => -1, 'fields' => 'ids' ) ) as $person ) {
+		foreach ( get_posts( array( 'post_type' => SB_EMAILSIG_CPT, 'post_status' => self::STATUSES, 'posts_per_page' => -1, 'fields' => 'ids' ) ) as $person ) {
 			self::adopt_one( $person );
 		}
 	}
@@ -250,6 +254,13 @@ class SB_EmailSig_Company {
 		return self::valid( $id ) ? $id : self::default_id();
 	}
 
+	/** A company's Email when it is a real address, else ''. Null for the company being drawn. */
+	public static function email( $id = null ) {
+		$v = trim( (string) get_field( 'sb_emailsig_company_email', $id === null ? self::source() : ( self::valid( (int) $id ) ? (int) $id : self::source() ) ) );
+
+		return is_email( $v ) ? $v : '';
+	}
+
 	/** Where the company fields are read: the company's post id, or 'option' before there are companies. */
 	public static function source() {
 		$id = self::current();
@@ -281,13 +292,13 @@ class SB_EmailSig_Company {
 		}
 	}
 
-	/** A company deleted for good: its people move to the default company. */
+	/** A company deleted for good: its people (deleted ones too) move to the default company. */
 	public static function deleting( $post_id ) {
 		if ( get_post_type( $post_id ) !== self::CPT ) {
 			return;
 		}
 
-		foreach ( get_posts( array( 'post_type' => SB_EMAILSIG_CPT, 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids', 'meta_key' => self::PERSON_META, 'meta_value' => (int) $post_id ) ) as $person ) { // phpcs:ignore WordPress.DB.SlowDBQuery
+		foreach ( get_posts( array( 'post_type' => SB_EMAILSIG_CPT, 'post_status' => self::STATUSES, 'posts_per_page' => -1, 'fields' => 'ids', 'meta_key' => self::PERSON_META, 'meta_value' => (int) $post_id ) ) as $person ) { // phpcs:ignore WordPress.DB.SlowDBQuery
 			delete_post_meta( $person, self::PERSON_META );
 		}
 	}

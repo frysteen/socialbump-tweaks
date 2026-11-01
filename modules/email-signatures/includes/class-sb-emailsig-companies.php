@@ -17,6 +17,16 @@ class SB_EmailSig_Companies {
 		add_action( 'admin_post_sb_emailsig_company_delete', array( __CLASS__, 'delete' ) );
 		add_action( 'wp_ajax_sb_emailsig_brand_save', array( __CLASS__, 'brand_save' ) );
 		add_action( 'wp_ajax_sb_emailsig_brand_icons', array( __CLASS__, 'brand_icons' ) );
+		add_filter( 'acf/pre_save_post', array( __CLASS__, 'limit_new' ), 5 );
+	}
+
+	/** A new company only while the site is under its limit, even from a page opened before it was reached. */
+	public static function limit_new( $post_id ) {
+		if ( $post_id === 'new_post' && self::is_edit() && SB_EmailSig_Limits::full( 'companies' ) ) {
+			wp_die( esc_html( SB_EmailSig_Limits::message( 'companies' ) ), '', array( 'back_link' => true ) );
+		}
+
+		return $post_id;
 	}
 
 	/**
@@ -96,14 +106,14 @@ class SB_EmailSig_Companies {
 		$clean = array();
 
 		foreach ( SB_EmailSig_Styles::BRAND as $key => $b ) {
-			$raw = trim( (string) ( $colours[ $key ] ?? '' ) );
-			$c   = SB_EmailSig_Styles::clean_colour( $raw );
+			$raw   = trim( (string) ( $colours[ $key ] ?? '' ) );
+			$valid = SB_EmailSig_Fields::brand_valid( true, $raw );
 
-			if ( $raw !== '' && ( $c === '' || strpos( $c, 'var(--sb-brand-' ) === 0 || SB_EmailSig_Styles::theme_hex( $c ) === '' ) ) {
-				wp_send_json_error( $b[0] . ': use a colour such as #098b97, or pick a theme colour.' );
+			if ( $valid !== true ) {
+				wp_send_json_error( $b[0] . ': ' . lcfirst( $valid ) );
 			}
 
-			$clean[ $key ] = $c;
+			$clean[ $key ] = SB_EmailSig_Styles::clean_colour( $raw );
 		}
 
 		foreach ( $clean as $key => $c ) {
@@ -241,17 +251,15 @@ class SB_EmailSig_Companies {
 		// Everyone's team page (administrators and editors): every company, grouped.
 		$team = SB_EmailSig_Page::list_url();
 
-		echo '<div class="sb-ui-bar sb-emailsig-bar">';
-		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Team page</span>';
-		echo '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $team ) . '" data-sb-tip="Copy link (every company, for those who manage)">' . SB_EmailSig_Admin::icon( 'link' ) . '</button>';
-		echo '<a class="button button-small" href="' . esc_url( $team ) . '" target="_blank" rel="noopener">' . SB_EmailSig_Admin::icon( 'open' ) . 'All companies</a>';
-		echo '</div>';
-		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Templates</span>';
-		echo '<a class="button button-small" href="' . esc_url( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-templates' ) ) . '">' . SB_EmailSig_Admin::icon( 'grid' ) . 'All templates</a>';
-		echo '</div>';
 		// How many, "Companies 1 of 1", and Add company greyed out at the limit (SB_EmailSig_Limits).
-		echo '<div class="sb-ui-bar__end">' . SB_EmailSig_Limits::count( 'companies' ) . SB_EmailSig_Limits::button( 'companies', '<a class="button button-primary" href="' . esc_url( self::url( 'new' ) ) . '">' . SB_EmailSig_Admin::icon( 'plus' ) . 'Add company</a>' ) . '</div>';
-		echo '</div>';
+		echo SB_Tweaks_UI::bar( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+			array(
+				array( 'Team page', '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $team ) . '" data-sb-tip="Copy link (every company, for those who manage)" aria-label="Copy link (every company, for those who manage)">' . SB_EmailSig_Admin::icon( 'link' ) . '</button><a class="button button-small" href="' . esc_url( $team ) . '" target="_blank" rel="noopener">' . SB_EmailSig_Admin::icon( 'open' ) . 'All companies</a>' ),
+				array( 'Templates', '<a class="button button-small" href="' . esc_url( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-templates' ) ) . '">' . SB_EmailSig_Admin::icon( 'grid' ) . 'All templates</a>' ),
+			),
+			SB_EmailSig_Limits::count( 'companies' ) . SB_EmailSig_Limits::button( 'companies', '<a class="button button-primary" href="' . esc_url( self::url( 'new' ) ) . '">' . SB_EmailSig_Admin::icon( 'plus' ) . 'Add company</a>' ),
+			'sb-emailsig-bar'
+		);
 
 		if ( ! $all ) {
 			echo '<div class="sb-ui-empty"><p>No companies yet.</p></div>';
@@ -276,12 +284,28 @@ class SB_EmailSig_Companies {
 		return $char !== '' ? ( function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $char ) : strtoupper( $char ) ) : '?';
 	}
 
-	/** One company's card: its logo and name, its numbers, Edit and Delete. */
+	/** A company's page on its Company tab, at one of its fields (settings.js opens them). */
+	public static function field_url( $id, $field ) {
+		return add_query_arg(
+			array(
+				'sb_tab'   => 'company',
+				'sb_field' => sanitize_key( $field ),
+			),
+			self::url( $id )
+		);
+	}
+
+	/**
+	 * One company's card (Sam, 1 November 2026): its logo, name and switch,
+	 * its brand colours, its Phone, Email, Address and Default Template, its
+	 * people and templates (links to them), then Edit and Delete. Its parts
+	 * line up with the other cards' in a row (subgrid, admin.css).
+	 */
 	private static function card( $id, $is_default ) {
 		$name    = SB_EmailSig_Company::name( $id );
 		$edit    = self::url( $id );
 		$site    = (string) get_post_meta( $id, 'sb_emailsig_website', true );
-		$host    = $site !== '' ? preg_replace( '#^(https?://)?(www\.)?#i', '', untrailingslashit( $site ) ) : '';
+		$host    = $site !== '' ? SB_EmailSig_Data::website_label( $site ) : '';
 		// The small logo, else the logo (Sam, 30 October 2026).
 		$logo    = (int) get_post_meta( $id, 'sb_emailsig_logo_small', true ) ?: (int) get_post_meta( $id, 'sb_emailsig_logo', true );
 		$set     = SB_EmailSig_Templates::set_for( $id );
@@ -330,22 +354,42 @@ class SB_EmailSig_Companies {
 		// Its brand colours, a click to change one (swatches()).
 		echo '<div class="sb-emailsig-company__brand">' . self::swatches( $id ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in swatches().
 
-		echo '<div class="sb-emailsig-template__stats">';
-		echo '<span data-sb-tip="Active people"><strong>' . (int) $people . '</strong> ' . esc_html( _n( 'person', 'people', $people ) ) . '</span>';
-		echo '<span data-sb-tip="Templates its people can use"><strong>' . count( $set ) . '</strong> ' . esc_html( _n( 'template', 'templates', count( $set ) ) ) . '</span>';
-		echo '</div>';
+		// Its Phone, Email, Address and Default Template (Sam, 1 November
+		// 2026), each always there: one not set says so, a link to its field.
+		$details = SB_EmailSig_Company::with(
+			$id,
+			function () use ( $id ) {
+				return array(
+					'phone'         => array( 'phone', trim( (string) get_field( 'sb_emailsig_phone', $id ) ) ),
+					'company_email' => array( 'mail', trim( (string) get_field( 'sb_emailsig_company_email', $id ) ) ),
+					'address'       => array( 'pin', implode( ', ', SB_EmailSig_Data::lines( (string) get_field( 'sb_emailsig_address', $id ) ) ) ),
+				);
+			}
+		);
+		$details['main_template'] = array( 'grid', $main ? 'Default Template: ' . $main['name'] : '' );
 
-		if ( $main ) {
-			echo '<p class="sb-emailsig-template__note">Main template: ' . esc_html( $main['name'] ) . '</p>';
+		echo '<ul class="sb-emailsig-company__details">';
+		foreach ( $details as $field => $row ) {
+			echo '<li>' . SB_EmailSig_Admin::icon( $row[0] ); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup.
+			echo $row[1] !== ''
+				? '<span data-sb-tip="' . esc_attr( $row[1] ) . '">' . esc_html( $row[1] ) . '</span>'
+				: '<a class="is-unset" href="' . esc_url( self::field_url( $id, $field ) ) . '">Not set</a>';
+			echo '</li>';
 		}
+		echo '</ul>';
+
+		// People and templates, to the Signatures and Templates pages for this company.
+		echo '<div class="sb-emailsig-template__stats">';
+		echo '<a href="' . esc_url( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures&company=' . (int) $id ) ) . '" data-sb-tip="See its people"><strong>' . (int) $people . '</strong> ' . esc_html( _n( 'person', 'people', $people ) ) . '</a>';
+		echo '<a href="' . esc_url( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-templates&used=' . (int) $id ) ) . '" data-sb-tip="See its templates"><strong>' . count( $set ) . '</strong> ' . esc_html( _n( 'template', 'templates', count( $set ) ) ) . '</a>';
+		echo '</div>';
 
 		echo '<div class="sb-emailsig-person__actions">';
 		echo '<a class="button button-small button-primary" href="' . esc_url( $edit ) . '">' . SB_EmailSig_Admin::icon( 'edit' ) . 'Edit</a>';
 
 		// Its team page: only its people (SB_EmailSig_Page::list_url()).
 		$team = SB_EmailSig_Page::list_url( $id );
-		echo '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $team ) . '" data-sb-tip="Copy team page link" aria-label="' . esc_attr( 'Copy ' . $name . '\'s team page link' ) . '">' . SB_EmailSig_Admin::icon( 'link' ) . '</button>';
-		echo '<a class="button button-small sb-emailsig-icon" href="' . esc_url( $team ) . '" target="_blank" rel="noopener" data-sb-tip="Open team page" aria-label="' . esc_attr( 'Open ' . $name . '\'s team page' ) . '">' . SB_EmailSig_Admin::icon( 'open' ) . '</a>';
+		echo SB_EmailSig_Admin::link_buttons( $team, 'Copy team page link', 'Open team page', 'Copy ' . $name . '\'s team page link', 'Open ' . $name . '\'s team page' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
 
 		if ( ! $is_default ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="sb-emailsig-person__delete">';
@@ -382,18 +426,13 @@ class SB_EmailSig_Companies {
 	 * another's page (settings.js; Sam, 30 October 2026). Else just the name.
 	 */
 	private static function switcher( $id, $name ) {
-		$all = $id ? SB_EmailSig_Company::all() : array();
+		$items = array();
 
-		if ( count( $all ) < 2 ) {
-			return '<span class="sb-ui-bar__title">' . esc_html( $name ) . '</span>';
+		foreach ( $id ? SB_EmailSig_Company::all() : array() as $co ) {
+			$items[] = array( self::url( $co ), SB_EmailSig_Company::name( $co ), '' );
 		}
 
-		$out = '<select class="sb-emailsig-bar__switch" data-sb-emailsig-switch aria-label="Edit another company">';
-		foreach ( $all as $co ) {
-			$out .= '<option value="' . esc_url( self::url( $co ) ) . '"' . selected( (int) $id, (int) $co, false ) . '>' . esc_html( SB_EmailSig_Company::name( $co ) ) . '</option>';
-		}
-
-		return $out . '</select>';
+		return SB_EmailSig_Admin::goto_menu( self::url( $id ), $name, $items, 'Edit another company' );
 	}
 
 	/** A company's page: back to the list, its name, then its fields. $id 0 for a new one. */
@@ -406,11 +445,15 @@ class SB_EmailSig_Companies {
 		}
 		// phpcs:enable
 
-		echo '<div class="sb-ui-bar sb-emailsig-bar">';
-		echo '<div class="sb-ui-bar__group"><a class="button button-small" href="' . esc_url( self::url() ) . '">' . SB_EmailSig_Admin::icon( 'grid' ) . 'All companies</a></div>';
 		// Its on or off switch beside it, as a person's Active switch on theirs (SB_EmailSig_Switch).
-		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">' . ( $id ? 'Company' : 'Add company' ) . '</span>' . self::switcher( $id, $name ) . ( $id ? SB_EmailSig_Switch::control( $id ) : '' ) . '</div>';
-		echo '</div>';
+		echo SB_Tweaks_UI::bar( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+			array(
+				array( '', '<a class="button button-small" href="' . esc_url( self::url() ) . '">' . SB_EmailSig_Admin::icon( 'grid' ) . 'All companies</a>' ),
+				array( $id ? 'Company' : 'Add company', self::switcher( $id, $name ) . ( $id ? SB_EmailSig_Switch::control( $id ) : '' ) ),
+			),
+			'',
+			'sb-emailsig-bar'
+		);
 
 		echo '<section class="sb-tweaks-section sb-emailsig-settings"><div class="sb-tweaks-section__body">';
 
@@ -446,7 +489,7 @@ class SB_EmailSig_Companies {
 		echo '</div></section>';
 	}
 
-	/** Delete a company for good: its people move to the default one first. */
+	/** Delete a company for good: its people move to the default one (SB_EmailSig_Company::deleting()). */
 	public static function delete() {
 		$id = isset( $_POST['company'] ) ? absint( $_POST['company'] ) : 0;
 
@@ -461,10 +504,6 @@ class SB_EmailSig_Companies {
 		if ( ! SB_EmailSig_Company::valid( $id ) || $id === $def ) {
 			wp_safe_redirect( add_query_arg( 'done', 'failed', self::url() ) );
 			exit;
-		}
-
-		foreach ( get_posts( array( 'post_type' => SB_EMAILSIG_CPT, 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids', 'meta_key' => SB_EmailSig_Company::PERSON_META, 'meta_value' => $id ) ) as $person ) { // phpcs:ignore WordPress.DB.SlowDBQuery
-			update_post_meta( $person, SB_EmailSig_Company::PERSON_META, $def );
 		}
 
 		$ok = wp_delete_post( $id, true );

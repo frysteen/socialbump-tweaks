@@ -19,6 +19,72 @@ class SB_EmailSig_Data {
 	 */
 	public static function init() {
 		add_filter( 'acf/format_value', array( __CLASS__, 'format_value' ), 20, 3 );
+		add_filter( 'acf/validate_value/key=field_sb_emailsig_company_email', array( __CLASS__, 'validate_company_email' ), 10, 2 );
+	}
+
+	/**
+	 * The Separator a person's Qualifications and Job Title lines are joined
+	 * with where a line break can't go (Sam, 1 November 2026): the merge
+	 * tags, a Name block on one line, the vCard, the cards and the people
+	 * file. key => [ label, joiner ].
+	 */
+	const JOINS = array(
+		'comma' => array( 'Comma', ', ' ),
+		'space' => array( 'Space', ' ' ),
+		'line'  => array( 'Line', ' | ' ),
+		'dot'   => array( 'Dot', ' · ' ),
+	);
+
+	/** The Separator field's choices: key => label. */
+	public static function join_choices() {
+		return array_map(
+			function ( $j ) {
+				return $j[0];
+			},
+			self::JOINS
+		);
+	}
+
+	/** Text's lines, trimmed, empty ones left out. */
+	public static function lines( $text ) {
+		return array_values( array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', (string) $text ) ), 'strlen' ) );
+	}
+
+	/** A website address as it is shown: no https:// or www., no trailing slash. */
+	public static function website_label( $url ) {
+		return preg_replace( '#^(https?://)?(www\.)?#i', '', untrailingslashit( (string) $url ) );
+	}
+
+	/** A person's Separator: its joiner. */
+	public static function joiner( $post_id ) {
+		$key = (string) get_field( 'sb_emailsig_join', (int) $post_id );
+
+		return self::JOINS[ $key ][1] ?? self::JOINS['comma'][1];
+	}
+
+	/** Text on one line: its lines joined with the person's Separator. */
+	public static function one_line( $text, $post_id ) {
+		return implode( self::joiner( $post_id ), self::lines( $text ) );
+	}
+
+	/** A person's Qualifications or Job Title ($what) on one line. */
+	public static function field_line( $post_id, $what ) {
+		return self::one_line( (string) get_field( 'sb_emailsig_' . $what, (int) $post_id ), $post_id );
+	}
+
+	/** The company's Email: an address, a shortcode or a Dynamic Shortcode, or nothing. */
+	public static function validate_company_email( $valid, $value ) {
+		if ( $valid !== true ) {
+			return $valid;
+		}
+
+		$value = trim( (string) $value );
+
+		if ( $value === '' || is_email( $value ) || strpos( $value, '[' ) !== false || strpos( $value, '{' ) !== false ) {
+			return true;
+		}
+
+		return 'Enter an email address.';
 	}
 
 	/** True while fields are read as typed, shortcodes and all (exporting and importing people). */
@@ -102,6 +168,15 @@ class SB_EmailSig_Data {
 		$phone  = trim( (string) get_field( 'sb_emailsig_phone', $o ) );
 		$mobile = trim( (string) get_field( 'sb_emailsig_mobile', $post_id ) );
 
+		// Their Email, else the company's, else none (Sam, 1 November 2026).
+		$own_email = trim( (string) get_field( 'sb_emailsig_email', $post_id ) );
+		$co_email  = SB_EmailSig_Company::email();
+
+		// Qualifications and Job Title: their lines (a <br> between each in
+		// the Name block), and on one line with their Separator.
+		$quals = (string) get_field( 'sb_emailsig_qualifications', $post_id );
+		$job   = (string) get_field( 'sb_emailsig_job_title', $post_id );
+
 		// Every link goes through SB_EmailSig_Tracking: a short link that
 		// counts the click, or the address with UTM codes.
 		$name    = trim( (string) get_field( 'sb_emailsig_name', $post_id ) );
@@ -124,9 +199,13 @@ class SB_EmailSig_Data {
 			'name'          => $name,
 			'first_name'    => trim( (string) get_field( 'sb_emailsig_first_name', $post_id ) ),
 			'last_name'     => trim( (string) get_field( 'sb_emailsig_last_name', $post_id ) ),
-			'qualifications' => trim( (string) get_field( 'sb_emailsig_qualifications', $post_id ) ),
-			'job_title'     => trim( (string) get_field( 'sb_emailsig_job_title', $post_id ) ),
-			'email'         => trim( (string) get_field( 'sb_emailsig_email', $post_id ) ),
+			'qualifications' => self::one_line( $quals, $post_id ),
+			'job_title'     => self::one_line( $job, $post_id ),
+			'qualifications_lines' => self::lines( $quals ),
+			'job_title_lines' => self::lines( $job ),
+			'email'         => $own_email !== '' ? $own_email : $co_email,
+			'email_own'     => $own_email,
+			'company_email' => $co_email,
 			'mobile'        => $mobile,
 			'mobile_link'   => self::tel( $mobile ),
 			'photo'         => null, // Made for the template by SB_EmailSig_Render.
@@ -136,7 +215,7 @@ class SB_EmailSig_Data {
 			'phone_link'    => self::tel( $phone ),
 			'website'       => $website, // As typed, for the vCard. Link with website_link.
 			'website_link'  => $go( 'w' ),
-			'website_label' => preg_replace( '#^(https?://)?(www\.)?#i', '', untrailingslashit( $website ) ),
+			'website_label' => self::website_label( $website ),
 			'address'       => $one,
 			'address_lines' => $lines,
 			'maps'          => $go( 'm' ),
@@ -168,7 +247,7 @@ class SB_EmailSig_Data {
 	private static function address_lines() {
 		$address = (string) self::expand( (string) get_field( 'sb_emailsig_address', self::co_src(), false ) );
 
-		return array_values( array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', $address ) ) ) );
+		return self::lines( $address );
 	}
 
 	/**
@@ -568,6 +647,7 @@ class SB_EmailSig_Data {
 			'qualifications' => '{Qualifications}',
 			'job_title'     => '{Job Title}',
 			'email'         => '{Email}',
+			'company_email' => '{Company Email}',
 			'mobile'        => '{Mobile}',
 			'mobile_link'   => '',
 			'photo'         => null,

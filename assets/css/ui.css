@@ -1809,48 +1809,6 @@ body.sb-ui .sb-tweaks-dialog__x:hover {
 	color: var(--sbui-text);
 }
 
-body.sb-ui .sb-reorder__item {
-	gap: 10px;
-	margin-bottom: 6px;
-	padding: 10px 12px;
-	border: 1px solid var(--sbui-border);
-	border-radius: var(--sbui-r);
-	background: var(--sbui-surface);
-	box-shadow: var(--sbui-shadow-1);
-	color: var(--sbui-text);
-	font-size: 13.5px;
-	font-weight: 500;
-	transition: border-color 0.15s, background 0.15s;
-}
-
-body.sb-ui .sb-reorder__item:hover {
-	border-color: var(--sbui-border-strong);
-	background: var(--sbui-surface-2);
-}
-
-body.sb-ui .sb-reorder__item.is-moving {
-	opacity: 1;
-	border: 1.5px dashed var(--sbui-green-line);
-	background: var(--sbui-green-soft);
-	box-shadow: none;
-	color: transparent;
-}
-
-body.sb-ui .sb-reorder__item.is-moving * {
-	visibility: hidden;
-}
-
-body.sb-ui .sb-reorder__ghost {
-	border-color: var(--sbui-green);
-	background: var(--sbui-surface);
-	box-shadow: var(--sbui-shadow-3);
-	transform: rotate(-1deg);
-}
-
-body.sb-ui .sb-reorder__grip {
-	color: var(--sbui-text-3);
-}
-
 body.sb-ui .sb-tweaks-job__track {
 	height: 8px;
 	background: var(--sbui-surface-3);
@@ -1984,3 +1942,24 @@ body.sb-ui-mode-dark .sb-ui-tip {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+/* Disable all turns red where Enable all turns green (Sam, 1 November 2026: green on, red off). */
+body.sb-ui .sb-tweaks-wrap .sb-cards__tools .button-link.sb-toggle[data-sb-cards-disable]:hover { border-color: var(--sbui-danger); background: var(--sbui-danger-soft); color: var(--sbui-danger); }
+
+/* A count in a toolbar, as a pill: 4 of 6 on. */
+body.sb-ui .sb-ui-pill { display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border: 1px solid var(--sbui-border); border-radius: 999px; background: var(--sbui-surface-2); color: var(--sbui-text-2); font-size: 12.5px; white-space: nowrap; }
+body.sb-ui .sb-ui-pill b { margin-right: 4px; color: var(--sbui-text); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* The switch sits at the end of the head, the drag handle after it. */
+body.sb-ui :is([data-sb-cards], .sb-card-ghost) .sb-tweaks-card__head { justify-content: flex-start; }
+body.sb-ui :is([data-sb-cards], .sb-card-ghost) .sb-tweaks-card__head .sb-tweaks-switch { margin-left: auto; }
+body.sb-ui .sb-card__grip { flex: none; display: grid; place-items: center; width: 22px; height: 28px; margin: 0 -8px 0 -4px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--sbui-text-3); cursor: grab; touch-action: none; }
+body.sb-ui .sb-card__grip::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='9' cy='6' r='1.6'/%3E%3Ccircle cx='15' cy='6' r='1.6'/%3E%3Ccircle cx='9' cy='12' r='1.6'/%3E%3Ccircle cx='15' cy='12' r='1.6'/%3E%3Ccircle cx='9' cy='18' r='1.6'/%3E%3Ccircle cx='15' cy='18' r='1.6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='9' cy='6' r='1.6'/%3E%3Ccircle cx='15' cy='6' r='1.6'/%3E%3Ccircle cx='9' cy='12' r='1.6'/%3E%3Ccircle cx='15' cy='12' r='1.6'/%3E%3Ccircle cx='9' cy='18' r='1.6'/%3E%3Ccircle cx='15' cy='18' r='1.6'/%3E%3C/svg%3E") center / contain no-repeat; }
+body.sb-ui .sb-card__grip:hover { background: var(--sbui-surface-3); color: var(--sbui-text); }
+body.sb-ui .sb-card__grip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--sbui-focus); }
+
+/* Dragging: the card stays as the gap it will drop into; a copy follows the pointer. */
+body.sb-ui [data-sb-card].is-moving { border: 1.5px dashed var(--sbui-green-line); background: var(--sbui-green-soft); box-shadow: none; }
+body.sb-ui [data-sb-card].is-moving > * { visibility: hidden; }
+body.sb-ui .sb-card-ghost { position: fixed; z-index: 100000; margin: 0; pointer-events: none; box-shadow: var(--sbui-shadow-3); transform: rotate(-1deg); }
+body.sb-ui.sb-cards-dragging, body.sb-ui.sb-cards-dragging * { cursor: grabbing !important; user-select: none; }

@@ -67,8 +67,8 @@ Built so far:
   module, so it follows the plugin being active rather than anything being
   switched on. The front end credit stays a WP CodeBox snippet,
   [social_bump_credit], and both links carry the same UTM parameters.
-- The framework, includes/framework/: Cards (drag to reorder and collapse,
-  kept per user), Bar (the shared SocialBUMP admin bar menu), Fields (the
+- The framework, includes/framework/: Cards (drag by the handle to reorder,
+  collapse, kept per user; Enable all and Disable all), Bar (the shared SocialBUMP admin bar menu), Fields (the
   setting field types), Save (one pair of admin-post handlers for every
   module's features and groups), Features (a module's feature loader and
   option reader), Screen (a module's menu, banner and pages), and Modules
@@ -273,16 +273,15 @@ bookmark breaks.
 | includes/class-sb-tweaks-updates.php | the Updates page: check, update, export and import, every site |
 | includes/class-sb-tweaks-installs.php | the Installs page and the check-in route, hub only |
 | includes/class-sb-tweaks-push.php | signed pushed updates and installs to sites, hub only |
-| includes/class-sb-tweaks-hub-publish.php | Publish from the Installs page, hub only |
 | includes/class-socialbump-reporter.php | the reporter, identical in every SocialBUMP plugin |
 | includes/framework/ | the seven classes the modules run on |
 | assets/js/framework.js | swatches, hide-when fields, switches, select all and none, saved notices fading |
 | assets/js/progress.js | the progress popup, SBTweaksProgress (see Popups) |
 | assets/js/confirm.js | the confirm popup, SBTweaksConfirm (see Popups) |
-| assets/js/module-cards.js | the cards that drag to reorder and collapse |
+| assets/js/module-cards.js | the cards: drag handle, collapse, Enable all and Disable all, the count pill |
 | modules/ | one folder per module, each with module.php and its own docs |
 | assets/css/admin.css | everything the admin pages look like |
-| assets/js/save-state.js | the unsaved changes reminder |
+| assets/js/save-state.js | the unsaved changes reminder (see Cards and the toolbar) |
 | vendor/plugin-update-checker | the updater library, left alone |
 
 The prefix is SB_TWEAKS_ and sb_tweaks_ throughout, classes are SB_Tweaks_,
@@ -326,9 +325,9 @@ the settings export and import live. Module banners carry no badge.
 
 ## Hub reporter
 
-includes/class-socialbump-reporter.php is shared by every SocialBUMP plugin (Site
-Kit, SEO for AI and SocialBUMP Tweaks, and standalone Bricks Tweaks before it
-was retired): the same file in each, kept
+includes/class-socialbump-reporter.php is shared by every SocialBUMP plugin (SocialBUMP
+Tweaks and SEO for AI, and standalone Site Kit and Bricks Tweaks before they
+were retired): the same file in each, kept
 identical like the shared admin bar, and guarded by class_exists so whichever
 loads first runs. It is required from the plugin's main file at the top level,
 not on plugins_loaded, so it is already listening when a plugin is activated.
@@ -338,7 +337,7 @@ deactivated plugin cannot speak for itself: site URL and name, each plugin's
 version and active state, WordPress and PHP versions. Nothing else. It posts to
 https://plugins.socialbump.com.au/wp-json/sb-tweaks/v1/checkin with the shared
 X-SB-Key header, and since reporter 1.2.1 waits up to 8 seconds for the hub to
-confirm (the Reporter 1.2.1 note further down).
+confirm (Reporter 1.2.1, below).
 It sends on activated_plugin and deactivated_plugin for one of ours, on an admin
 page load when the plugin list changed or a day has passed (option
 socialbump_reporter_last holds the time and a hash), and from the daily cron
@@ -355,6 +354,28 @@ Reporter 1.0.1: WordPress fires deactivated_plugin before it saves the new
 active_plugins list, so reading the list then still showed the plugin as active.
 deactivated() sends with that plugin forced inactive (send() takes an override).
 activated_plugin fires after the save, so activation needs no such help.
+
+### Reporter 1.2.1 (September 2026)
+
+Reports sent without waiting (blocking false)
+were being lost, most visibly straight after a push, when the hub is busy
+waiting on that same site, so the Install button never appeared for sites the
+hub still thought were on reporter 1.1.0. Now:
+- send() waits up to 8 seconds for the hub's answer and only records
+  socialbump_reporter_last once the hub confirms ok. A failure sets the
+  socialbump_reporter_retry transient (15 minutes) so maybe_send() retries on
+  a later admin page load without hammering an unreachable hub.
+- receive() no longer sends a report during a push. The answer carries the
+  site's report instead (with_report() / report()), and SB_Tweaks_Push::push()
+  records it with SB_Tweaks_Installs::record() when its url matches the host.
+- payload()'s reporter is running_version(): the VERSION of the copy that will
+  load first next request (first active tracked plugin with the file), read
+  from disk, because straight after an update the copy in memory is older.
+- The hub's check-in handler calls ignore_user_abort( true ).
+The Install button is generic: any site with a plugin that some module's
+replaces names, and no SocialBUMP Tweaks, gets it once its reporter is 1.2.0
+or later. (The Site Kit module no longer has replaces: standalone Site Kit
+was retired.)
 
 ## Installs page (hub only)
 
@@ -581,8 +602,8 @@ the Installs page. The top navigation shows when a plugin has changes waiting,
 and each plugin's Publishing page shows the hub and GitHub versions.
 render_hub(), hub_script(), live_version() and RELEASES went with it, and the
 hub itself is still left out of the cards. includes/class-sb-tweaks-hub-publish.php
-is still there, but nothing calls SB_Tweaks_Hub_Publish now; remove it or put
-it to use. The rest of this section is how it worked.
+was deleted on 1 November 2026, as nothing called it. The rest of this section
+is how it worked.
 
 includes/class-sb-tweaks-hub-publish.php, hub only. The hub table has a tick box
 per plugin with changes waiting (and select all), the waiting count opens a popup
@@ -657,6 +678,15 @@ How it looks and acts, and how every long action in these plugins should:
   else instead.
 - fail( message ) stops where it is, turns the bar red, shows the reason and
   offers Close.
+- Stop (Sam, 1 November 2026): open( title, { stop: true } ) adds a red Stop
+  button while it runs. Pressing it swaps the button for a grey note at the
+  same height, "Stopping after this step. Anything already done is kept.",
+  and job.stopping() turns true. Check it before each item and finish() when
+  it is: a finish short of the end says Stopped and leaves the bar where it
+  got to. stop can be a function instead, called once when pressed (to tell
+  a server to stop). Use it on any job of several items that is safe to end
+  between items. The Installs page's update and install runs on more than
+  one site have it, ending on "Stopped after 3 of 9".
 - Summaries: "Publishing complete" or "Updates complete" when everything
   worked, otherwise the counts, "2 published, 1 failed".
 - Keep the words short. No instructions, no explaining what the buttons do.
@@ -710,37 +740,11 @@ body, each as <label class="sb-tweaks-dialog__field"><span>Label</span>
 <input or textarea></label>: label above, full width box (Email
 Signatures' Email link popup is the first to use it).
 
-### Confirm popup (the waiting changes on the Installs page)
+### The Installs page's waiting changes popup (gone)
 
-For looking at something before acting on it. The same overlay and box (10px
-radius, 24px padding), the title top left, an X to close in the top right,
-Cancel on the left and the action on the right along the bottom, Escape and a
-click outside close it. Its action hands straight over to a progress popup.
-Markup and styles: .sb-hub__modal and .sb-hub__dialog in the Installs page.
-
-Module banners carry no version badge (SB_Tweaks_Screen::render_header): a
-module has no version of its own. The badge, linked to the Updates page, is
-only on SocialBUMP Tweaks' own pages (Modules, Updates, Installs, Publishing).
-
-Reporter 1.2.1 (September 2026): reports sent without waiting (blocking false)
-were being lost, most visibly straight after a push, when the hub is busy
-waiting on that same site, so the Install button never appeared for sites the
-hub still thought were on reporter 1.1.0. Now:
-- send() waits up to 8 seconds for the hub's answer and only records
-  socialbump_reporter_last once the hub confirms ok. A failure sets the
-  socialbump_reporter_retry transient (15 minutes) so maybe_send() retries on
-  a later admin page load without hammering an unreachable hub.
-- receive() no longer sends a report during a push. The answer carries the
-  site's report instead (with_report() / report()), and SB_Tweaks_Push::push()
-  records it with SB_Tweaks_Installs::record() when its url matches the host.
-- payload()'s reporter is running_version(): the VERSION of the copy that will
-  load first next request (first active tracked plugin with the file), read
-  from disk, because straight after an update the copy in memory is older.
-- The hub's check-in handler calls ignore_user_abort( true ).
-The Install button is generic: any site with a plugin that some module's
-replaces names, and no SocialBUMP Tweaks, gets it once its reporter is 1.2.0
-or later. When the Site Kit module lands with replaces set, Site Kit only sites
-get it with no further change.
+It went with the hub table on 31 October 2026 (see Publishing from the
+Installs page), and .sb-hub__modal with it. One .sb-hub__dialog rule is still
+in admin.css.
 
 ## Buttons
 
@@ -791,6 +795,9 @@ Outline colours, for a plain .button (never alongside button-primary):
 - Modules do not keep their own copies. Site Kit's sb-images-button--* and
   sb-site-kit-button--danger were moved onto these in October 2026, and the
   framework's old, unused sb-tweaks-button--deep became --quiet.
+- On SocialBUMP UI pages ui.css draws these from its tokens (--sbui-green,
+  --sbui-danger and so on), so the hex values above are only what shows
+  without body.sb-ui.
 ## Publish posts in the background (October 2026)
 
 The spinner Site Kit's Publish release shows sat still, because a normal form
@@ -814,8 +821,7 @@ the progress popup too, where before it had none.
 - back() still saves the notice, then, with sb_tweaks_background set, answers
   wp_send_json( { ok, message } ) instead of redirecting (message is the
   notice without its tags). Without the field it redirects as before, which
-  is what SB_Tweaks_Hub_Publish on the Installs page relies on; it never sends
-  the field.
+  is what SB_Tweaks_Hub_Publish relied on (deleted 1 November 2026).
 - The confirm on this page is still the browser's own confirm(), not the
   confirm popup. Left for Sam to decide.
 - Hub only in effect (client sites carry progress.js and the CSS but never
@@ -1435,11 +1441,21 @@ card. Changing data-sb-tip while it shows updates it in place (Copied). An
 element with no text and no aria-label gets the tip as its aria-label; the
 mode switch uses it too. SBTweaksUI.hideTip() hides it.
 
+A tip is plain text, never links. ui.js only takes the title off an element
+that has data-sb-tip, so other plugins' titles are left alone. For a list
+with links, such as the companies behind Email Signatures' In use by pill,
+use a hover popover instead: pure CSS, shown on :hover and :focus-within,
+with a see-through bridge so the pointer can cross the gap to it.
+
+Module banners carry no version badge (SB_Tweaks_Screen::render_header): a
+module has no version of its own. The badge, linked to the Updates page, is
+only on SocialBUMP Tweaks' own pages (Modules, Updates, Installs, Publishing).
+
 Toolbar (.sb-ui-bar): a page's links and actions in one panel above its
 cards. .sb-ui-bar__group holds a .sb-ui-bar__label (small capitals) and its
 buttons, with a divider between groups; .sb-ui-bar__end goes on the right,
-for the page's main button (Add person). .sb-ui-count is a count pill beside
-a heading; .sb-ui-empty is a dashed box for nothing here yet.
+for the page's main button (Add person). .sb-ui-pill is a count pill in the
+bar (ui.css); .sb-ui-count is a count pill beside a heading; .sb-ui-empty is a dashed box for nothing here yet.
 
 The unsaved pill (.sb-unsaved, the framework's dirty-form script) sits top
 right under the admin bar (Sam, 29 October 2026: where he looks to save),
@@ -1454,13 +1470,68 @@ one marked aria-current=page. .sb-ui-bar__title is a name in a bar.
 Page layout (Sam, 29 October 2026): a page's links and actions go in the
 bar at the top, its cards straight on the page below, never inside a
 panel. Build it with SB_Tweaks_UI::bar( [ [ label, html ], ... ], end html ),
-SB_Tweaks_UI::heading( title, count, note ) over the .sb-tweaks-grid and
-SB_Tweaks_UI::save_button( form id ) for Save changes in the bar (give the
-form an id; keep its own Save at the foot). The Features page of every
-module and the Modules page work this way: Cards (Reorder, Collapse all,
-Expand all, Collapse disabled) on the left, Save changes on the right.
+SB_Tweaks_UI::heading( title, count, note ) over the .sb-tweaks-grid where a
+page needs one, and SB_Tweaks_UI::save_button( form id ) for Save changes in
+the bar (give the form an id; keep its own Save at the foot). The Features
+page of every module and the Modules page work this way, with no heading
+over the grid: see Cards and the toolbar.
 
-Patterns added with Email Signatures (31 October 2026). Their styles live in
+### Cards and the toolbar (1 November 2026)
+
+The Features page of every module (SB_Tweaks_Screen) and the Modules page
+(SB_Tweaks_Settings) have the same bar:
+
+- Features (or Modules): SB_Tweaks_Cards::switches( key, on, total ). A
+  count pill (.sb-ui-pill, "4 of 6 on", the number bold) and a two part
+  button, Disable all on the left, Enable all on the right (Sam: off then
+  on). Enable all hovers green and Disable all red: green is on, red is off.
+  They flip every card switch that can change, as clicking each would, so
+  the cards go Unsaved and Save changes saves them. The pill follows the
+  switches as they change, counting cards that are on and available.
+- Cards: SB_Tweaks_Cards::toolbar( key ). Collapse all, Expand all,
+  Collapse disabled.
+- Save changes on the right.
+
+A two part button is .sb-cards__tools holding button-link sb-toggle
+buttons with a <span aria-hidden="true">|</span> between them.
+
+Dragging (module-cards.js, Sam, 1 November 2026, in place of the Reorder
+Cards dialogue, which is gone): each card on those two pages has a six dot
+handle (.sb-card__grip) right of its switch, tip "Drag to move". Drag it
+and a copy of the card follows the pointer (.sb-card-ghost, its fields
+stripped of names so the form ignores it) while the card itself shows as a
+dashed gap where it will land (.is-moving). The page scrolls near the top
+and bottom of the window. On drop the order saves straight away to the
+same per user endpoint as collapsing (sb_tweaks_cards), with an Order saved
+toast, or a red one if it failed; nothing to press. With a handle focused,
+the arrow keys move the card one place and save. Cards on a module's other
+pages do not drag. The menu and the admin bar follow the new order from the
+next page.
+
+Save changes (save-state.js): the button keeps its widest width so the bar
+never shifts, and has no title. The unsaved check ignores the order of
+fields with their own names, so dragging a card is never an unsaved change;
+lists (name[]) still count their order.
+
+### Rules for every page
+
+What Sam has asked for across October and November 2026:
+
+- Questions use the confirm popup and long jobs the progress popup, never
+  the browser's confirm() or alert(). A job of several items that is safe
+  to end between items gets Stop.
+- Messages after an action are toasts, not notices at the top of the page.
+- Icon buttons get a data-sb-tip, never a title.
+- Nothing moves when something changes: a button whose words change keeps
+  its width (Save changes, Copy), a Reset with nothing to reset is greyed
+  out rather than hidden, and Stop is swapped for a note of the same height.
+- Keep explanatory text on admin pages to a minimum: a short label or tip,
+  not a paragraph.
+- Green is on or go, red is off, delete or reset, amber is unsaved.
+
+### Patterns added with Email Signatures
+
+Added 31 October 2026. Their styles live in
 that module's assets/admin.css for now; move them into ui.css when a second
 module needs them.
 

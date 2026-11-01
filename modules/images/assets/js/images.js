@@ -747,7 +747,7 @@
 
 				$deep.find( '.sb-images-deep-choice:checked' ).each( function () {
 					dims.push( this.value );
-					files += parseInt( $( this ).closest( 'li' ).find( '.sb-images-deep__row span' ).text(), 10 ) || 0;
+					files += parseInt( $( this ).closest( 'li' ).find( '.sb-images-deep__row span' ).attr( 'data-count' ), 10 ) || 0; // The number itself: the text has thousands commas.
 				} );
 
 				if ( ! dims.length ) {
@@ -956,7 +956,7 @@
 			$panel.on( 'click', '.sb-images-report__add', function () {
 				var $button = $( this );
 
-				$button.prop( 'disabled', true ).text( 'Adding...' );
+				$button.css( 'min-width', $button.outerWidth() ).prop( 'disabled', true ).text( 'Adding...' );
 
 				$.post( ajaxurl, { action: 'sb_images_orphan_add', nonce: nonce, job: jobToken, file: $button.data( 'file' ) } ).done( function ( response ) {
 					if ( busyIn( response ) ) {
@@ -986,7 +986,7 @@
 					return;
 				}
 
-				$button.prop( 'disabled', true ).text( 'Deleting...' );
+				$button.prop( 'disabled', true );
 
 				$.post( ajaxurl, { action: 'sb_images_orphan_one', nonce: nonce, job: jobToken, file: file } ).done( function ( response ) {
 					if ( busyIn( response ) ) {
@@ -1319,7 +1319,7 @@
 			var $button = $( this );
 			var $panel  = $button.closest( '.sb-images-attachment-sizes' );
 
-			$button.prop( 'disabled', true ).text( 'Working...' );
+			$button.css( 'min-width', $button.outerWidth() ).prop( 'disabled', true ).text( 'Working...' );
 
 			$.post( ajaxurl, {
 				action: 'sb_images_single',

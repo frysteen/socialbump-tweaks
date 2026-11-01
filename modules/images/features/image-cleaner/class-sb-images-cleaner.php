@@ -364,11 +364,11 @@ class SB_Images_Cleaner {
 				$message .= ' ' . sprintf( _n( '%s was left out because it is registered again.', '%s were left out because they are registered again.', $refused, 'sb-tweaks' ), number_format_i18n( $refused ) );
 			}
 
-			echo '<div class="notice notice-success inline"><p>' . esc_html( $message ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
 		}
 
 		if ( isset( $_GET['sb_images_unadopted'] ) ) {
-			echo '<div class="notice notice-success inline"><p>' . esc_html__( 'That size will no longer be cleared.', 'sb-tweaks' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'That size will no longer be cleared.', 'sb-tweaks' ) . '</p></div>';
 		}
 
 		// Locked sizes (padlocks on SB Image Settings) are never removed: say which.

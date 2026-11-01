@@ -126,12 +126,18 @@ class SB_EmailSig_Page {
 		}
 	}
 
-	/** No caching, no indexing: the pages carry private links. */
-	private static function private_headers() {
+	/**
+	 * No page caching, no indexing: for anything carrying a private link
+	 * (these pages, tracked links, vCards, photos, the banner). $nocache false
+	 * leaves Cache-Control to the caller (a photo or banner sets its own).
+	 */
+	public static function private_headers( $nocache = true ) {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', true );
 		}
-		nocache_headers();
+		if ( $nocache ) {
+			nocache_headers();
+		}
 		header( 'X-Robots-Tag: noindex, nofollow', true );
 		header( 'X-LiteSpeed-Cache-Control: no-cache', true );
 	}
@@ -142,10 +148,16 @@ class SB_EmailSig_Page {
 
 		self::private_headers();
 
-		// The site's key: everyone. A company's: its people only.
-		$co = hash_equals( self::list_key(), $key ) ? 0 : SB_EmailSig_Company::by_team_key( $key );
+		// The site's key: everyone. A company's: its people only. Everyone's
+		// page with more than one company is for administrators and editors
+		// only (Sam, 30 October 2026): logged out, to the login and back.
+		$co = self::team_company( $key );
 
-		if ( $key === '' || ( ! $co && ! hash_equals( self::list_key(), $key ) ) ) {
+		if ( $co < 0 ) {
+			if ( $key !== '' && hash_equals( self::list_key(), $key ) && ! is_user_logged_in() ) {
+				auth_redirect();
+			}
+
 			status_header( 404 );
 			echo 'Page not found.';
 			exit;
@@ -153,25 +165,6 @@ class SB_EmailSig_Page {
 
 		$manage = SB_EmailSig_Admin::can_manage();
 		$all    = SB_EmailSig_Company::all();
-
-		// Everyone's page with more than one company: administrators and
-		// editors only (Sam, 30 October 2026). With one company it is that
-		// company's page, as it was before companies, so links already
-		// shared keep working.
-		if ( ! $co && ! $manage ) {
-			if ( count( $all ) > 1 ) {
-				// Logged out: to the login, then back. Logged in without the right: not here.
-				if ( ! is_user_logged_in() ) {
-					auth_redirect();
-				}
-
-				status_header( 404 );
-				echo 'Page not found.';
-				exit;
-			}
-
-			$co = $all ? $all[0] : 0;
-		}
 
 		// A company switched off (SB_EmailSig_Switch): its page is gone,
 		// except for those who manage, and comes back by itself when it's on.
@@ -198,9 +191,9 @@ class SB_EmailSig_Page {
 				'id'       => (int) $id,
 				'name'     => SB_EmailSig_Company::name( $id ),
 				'link'     => self::list_url( $id ),
-				'active'   => self::of_company( SB_EmailSig_Admin::people( array( 'publish' ) ), $id ),
-				'inactive' => $manage ? self::of_company( SB_EmailSig_Admin::people( array( 'draft' ) ), $id ) : array(),
-				'deleted'  => $manage ? self::of_company( SB_EmailSig_Admin::people( array( 'trash' ) ), $id ) : array(),
+				'active'   => SB_EmailSig_Admin::people( array( 'publish' ), $id ),
+				'inactive' => $manage ? SB_EmailSig_Admin::people( array( 'draft' ), $id ) : array(),
+				'deleted'  => $manage ? SB_EmailSig_Admin::people( array( 'trash' ), $id ) : array(),
 			);
 		}
 
@@ -274,22 +267,6 @@ class SB_EmailSig_Page {
 		exit;
 	}
 
-	/** People in company $co (all for 0). */
-	private static function of_company( array $ids, $co ) {
-		if ( ! $co ) {
-			return $ids;
-		}
-
-		return array_values(
-			array_filter(
-				$ids,
-				function ( $id ) use ( $co ) {
-					return SB_EmailSig_Company::of_person( $id ) === (int) $co;
-				}
-			)
-		);
-	}
-
 	public static function init() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 0 );
 	}
@@ -348,7 +325,7 @@ class SB_EmailSig_Page {
 				$sigs[ $tpl_id ] = array(
 					'name' => SB_EmailSig_Templates::get( $tpl_id )['name'],
 					'html' => $tpl_html,
-					'mark' => SB_EmailSig_Notify::mark( $post_id, SB_EmailSig_Notify::fingerprint( $tpl_html ), $tpl_id ),
+					'mark' => SB_EmailSig_Notify::mark( $post_id, $tpl_id ),
 				);
 			}
 		}

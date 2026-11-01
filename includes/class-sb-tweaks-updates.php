@@ -60,7 +60,8 @@ class SB_Tweaks_Updates {
 			return false;
 		}
 
-		return ! preg_match( '/github_token|pending_changes|latest_release|^sb_tweaks_installs$|^sb_tweaks_push_|_backup$/', $name );
+		// The hub's own, and what the hub sets for a site (its module policy and limits), never travel (1 November 2026).
+		return ! preg_match( '/github_token|pending_changes|latest_release|^sb_tweaks_installs$|^sb_tweaks_push_|^sb_tweaks_polic|^sb_tweaks_install_icons$|^sb_tweaks_beta|^sb_tweaks_next_version$|_backup$/', $name );
 	}
 
 	/** Every option that makes up this site's SocialBUMP Tweaks setup. */
@@ -184,7 +185,7 @@ class SB_Tweaks_Updates {
 		echo '<p>' . esc_html__( 'Delivered from the hub site through GitHub releases. WordPress checks twice a day on its own.', 'sb-tweaks' ) . '</p></div>';
 
 		if ( is_array( $notice ) ) {
-			echo '<div class="notice notice-' . ( $notice['type'] === 'success' ? 'success' : 'error' ) . ' inline"><p>' . esc_html( $notice['message'] ) . '</p></div>';
+			echo '<div class="notice notice-' . ( $notice['type'] === 'success' ? 'success' : 'error' ) . ' is-dismissible"><p>' . esc_html( $notice['message'] ) . '</p></div>';
 		}
 
 		echo '<div class="sb-tweaks-updates">';

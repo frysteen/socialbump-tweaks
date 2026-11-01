@@ -118,7 +118,7 @@
 
 		$wrap.append($swatch, $box);
 		if (palette.length) {
-			$('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" title="Theme colours"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')
+			$('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')
 				.on('click', function (e) {
 					e.preventDefault();
 					if ($menu) { closeMenu(); return; }
@@ -143,15 +143,19 @@
 		$go.prop('disabled', true).text('Saving…');
 		$msg.text('').removeClass('is-error');
 
+		var saved = false;
 		post({ action: 'sb_emailsig_brand_save', nonce: cfg.nonce, co: co, colours: JSON.stringify(values) })
 			.then(function (res) {
 				if (!res || !res.success) throw new Error((res && res.data) || 'Not saved. Try again.');
+				saved = true;
 				// The company's swatches everywhere on the page.
 				document.querySelectorAll('[data-sb-emailsig-brand="' + co + '"]').forEach(function (el) { el.outerHTML = res.data.swatches; });
 				if (!window.SBEmailSigIcons) return null;
 				$go.text('Drawing icons…');
 				return draw(res.data.draw).then(function (icons) {
 					return post({ action: 'sb_emailsig_brand_icons', nonce: cfg.nonce, co: co, icons: JSON.stringify(icons) });
+				}).then(function (r) {
+					if (!r || !r.success) throw new Error('icons');
 				});
 			})
 			.then(function () {
@@ -160,7 +164,9 @@
 				toast('Brand colours saved', 'ok');
 			})
 			.catch(function (err) {
-				$msg.text(err && err.message ? err.message : 'Not saved. Try again.').addClass('is-error');
+				// The colours are kept even when the icons couldn't be drawn: Save again redraws them.
+				var says = saved ? 'Colours saved, but the icons weren\'t redrawn. Save again to redraw them.' : (err && err.message ? err.message : 'Not saved. Try again.');
+				$msg.text(says).addClass('is-error');
 				$go.prop('disabled', false).text('Save');
 			});
 	}

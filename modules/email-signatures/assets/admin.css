@@ -89,7 +89,6 @@
 .sb-emailsig-transfer form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
 .sb-emailsig-people-head { display: flex; align-items: center; gap: 8px; margin: 28px 0 12px; }
 .sb-tweaks-wrap .sb-emailsig-people-head h2 { margin: 0; padding: 0; font-size: 16px; font-weight: 600; }
-.sb-emailsig-people-head__meta { color: var(--sbui-text-3, #787c82); }
 .sb-emailsig-import-table { margin: 12px 0 16px; }
 .sb-emailsig-import-table td { vertical-align: middle; }
 .sb-emailsig-import-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -113,6 +112,12 @@
 .sb-emailsig-person__state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 0 18px; }
 .sb-tweaks-wrap .sb-emailsig-person__contact { display: flex; flex-direction: column; margin: 4px 0 0; color: var(--sbui-text-2, #50575e); font-size: 12px; line-height: 1.45; }
 .sb-tweaks-wrap .sb-emailsig-person__contact span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* No Email of their own (Sam, 1 November 2026): the company's with a Company tag, or No email set. */
+.sb-tweaks-wrap .sb-emailsig-person__contact .sb-emailsig-person__mail { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: visible; }
+.sb-tweaks-wrap .sb-emailsig-person__contact .sb-emailsig-person__mail-text { min-width: 0; color: var(--sbui-text-3, #80857a); }
+.sb-tweaks-wrap .sb-emailsig-person__contact .sb-emailsig-person__mail-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border: 1px solid var(--sbui-border, #dcdcde); border-radius: 999px; background: var(--sbui-surface-3, #f6f7f7); color: var(--sbui-text-2, #50575e); font-size: 10.5px; font-weight: 600; line-height: 1; letter-spacing: .02em; cursor: default; }
+.sb-tweaks-wrap .sb-emailsig-person__mail.is-none .sb-emailsig-person__mail-tag { height: 20px; padding: 0 9px; border-color: var(--sbui-warn-line, #ffe17a); background: var(--sbui-warn-soft, #fff7d6); color: var(--sbui-warn, #8a6500); font-size: 11px; }
+.sb-tweaks-wrap .sb-emailsig-person__mail.is-none .sb-emailsig-person__mail-tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .sb-tweaks-wrap .sb-emailsig-chip { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border: 1px solid var(--sbui-border, #dcdcde); border-radius: 999px; background: var(--sbui-surface-2, #f6f7f7); color: var(--sbui-text-2, #50575e); font-size: 12px; text-decoration: none; box-sizing: border-box; }
 .sb-tweaks-wrap a.sb-emailsig-chip:hover { border-color: var(--sbui-green-ink, #2271b1); color: var(--sbui-green-ink, #2271b1); }
 .sb-emailsig-person__check { font-size: 12px; font-weight: 600; color: var(--sbui-warn, #996800); }
@@ -127,11 +132,12 @@
 .sb-tweaks-wrap .sb-emailsig-template__note { margin: -4px 0 0; padding: 0 18px; color: var(--sbui-text-2, #50575e); font-size: 12.5px; line-height: 1.45; overflow-wrap: anywhere; }
 .sb-emailsig-template__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: auto; padding: 0 18px; }
 .sb-emailsig-template .sb-emailsig-person__actions { margin-top: 0; }
-.sb-emailsig-template__stats span { display: flex; justify-content: center; align-items: baseline; gap: 4px; height: 22px; padding: 0 9px; border: 1px solid var(--sbui-border, #dcdcde); border-radius: 999px; background: var(--sbui-surface-2, #f6f7f7); color: var(--sbui-text-2, #50575e); font-size: 12px; line-height: 20px; box-sizing: border-box; }
+body.sb-ui .sb-tweaks-wrap .sb-emailsig-template__stats > a, .sb-emailsig-template__stats > a { color: var(--sbui-text-2, #50575e); text-decoration: none; transition: border-color .15s, background-color .15s; }
+.sb-emailsig-template__stats > a:hover, .sb-emailsig-template__stats > a:focus-visible { border-color: var(--sbui-border-strong, #c3c4c7); background: var(--sbui-surface-3, #f0f0f1); }
+.sb-emailsig-template__stats span, .sb-emailsig-template__stats > a { display: flex; justify-content: center; align-items: baseline; gap: 4px; height: 22px; padding: 0 9px; border: 1px solid var(--sbui-border, #dcdcde); border-radius: 999px; background: var(--sbui-surface-2, #f6f7f7); color: var(--sbui-text-2, #50575e); font-size: 12px; line-height: 20px; box-sizing: border-box; }
 .sb-emailsig-template__stats strong { color: var(--sbui-text, #1d2327); font-weight: 600; font-variant-numeric: tabular-nums; }
 .sb-emailsig-template .sb-emailsig-person__actions form { display: contents; }
 .sb-emailsig-template__badge { flex: none; display: inline-block; padding: 0 10px; border-radius: 999px; background: var(--sbui-green, var(--sb-tweaks-accent, #2271b1)); color: var(--sbui-navy-900, #fff); font-size: 12px; font-weight: 600; line-height: 22px; }
-.sb-emailsig-template__badge--set { background: var(--sbui-surface-3, #f0f0f1); color: var(--sbui-text-2, #50575e); }
 
 /* Banner on the people and settings screens: sits above WordPress's own heading */
 .sb-emailsig-banner { margin: 0 20px 0 2px; }
@@ -157,14 +163,12 @@
 
 /* The Layout card (assets/layout.js): columns of blocks, the gaps between them, the holding area. */
 .sb-emailsig-layout__bar { margin-bottom: 14px; }
-.sb-emailsig-layout__board { display: flex; align-items: stretch; min-width: 0; }
+.sb-emailsig-layout__board { display: flex; align-items: stretch; min-width: 0; overflow-x: auto; }
 .sb-emailsig-layout__col { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; padding: 8px; background: var(--sbui-surface-2, #f6f7f7); border: 1px solid var(--sbui-border, #dcdcde); border-radius: 6px; }
-.sb-emailsig-layout__col-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--sbui-text, #1d2327); }
+.sb-emailsig-layout__col-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--sbui-text, #1d2327); }
 .sb-emailsig-layout__col-head small, .sb-emailsig-layout__sum { display: block; overflow: hidden; color: var(--sbui-text-3, #787c82); font-size: 11px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
 /* Columns added, removed and dragged (Sam, 31 October 2026): a grip, settings and Remove in each head, + at the end of the row; many columns scroll sideways. */
-.sb-emailsig-layout__board { overflow-x: auto; }
 .sb-emailsig-layout__board > .sb-emailsig-layout__col { min-width: 140px; }
-.sb-emailsig-layout__col-head { align-items: center; }
 .sb-emailsig-layout__col-name { flex: 1 1 auto; min-width: 0; }
 .sb-emailsig-layout__col-grip { flex: 0 0 auto; width: 18px; height: 18px; font-size: 18px; color: var(--sbui-text-3, #787c82); cursor: grab; }
 .sb-emailsig-layout__col-tools { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 2px; }
@@ -238,16 +242,14 @@
 /* A plain select on a layout card (a line's Style), the same height as the rest. */
 .sb-emailsig-layout__box > .sb-emailsig-field > select { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; padding-top: 0; padding-bottom: 0; line-height: 34px; }
 /* Footer Settings: a sub heading at the top of the card, and the Footer Controls ticks in a row. */
-.sb-emailsig-item__name.sb-emailsig-layout__sub--first { margin-top: 0; }
 .sb-emailsig-layout__controls { display: flex; flex-wrap: wrap; gap: 4px 24px; }
 /* Layout Settings: the defaults row under the colours. */
 [data-sb-emailsig-layout-settings] { margin-top: 16px; }
 .sb-emailsig-layout__items { margin: 0; padding: 0; list-style: none; border: 1px solid var(--sbui-border, #dcdcde); border-radius: 4px; }
-.sb-emailsig-layout__items li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 6px 8px; background: var(--sbui-surface, #fff); border-bottom: 1px solid var(--sbui-border, #f0f0f1); }
+.sb-emailsig-layout__items li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 6px 8px; background: var(--sbui-surface, #fff); border-bottom: 1px solid var(--sbui-border, #f0f0f1); cursor: grab; }
 .sb-emailsig-layout__items li:last-child { border-bottom: 0; }
 .sb-emailsig-layout__grip { color: var(--sbui-text-3, #8c8f94); cursor: grab; }
 /* The whole row drags (layout.js); the tick box inside still ticks. */
-.sb-emailsig-layout__items li { cursor: grab; }
 .sb-emailsig-layout__items li.sortable-chosen { cursor: grabbing; }
 .sb-emailsig-layout__items li.sortable-ghost { opacity: 0.4; }
 .sb-emailsig-layout__items li label { cursor: pointer; }
@@ -261,6 +263,16 @@
 /* Reset, bottom left of a layout popup (Sam, 31 October 2026): faded while there is nothing to reset. */
 .sb-tweaks-dialog__buttons .sb-emailsig-layout__reset { margin-right: auto; }
 .sb-tweaks-dialog__buttons .sb-emailsig-layout__reset:disabled { opacity: 0.45; cursor: default; }
+/* Reset, Copy and Paste together, bottom left (Sam, 1 November 2026). */
+.sb-tweaks-dialog__buttons .sb-emailsig-layout__left { display: flex; flex-wrap: wrap; gap: 8px; margin-right: auto; }
+.sb-tweaks-dialog__buttons .sb-emailsig-layout__left .sb-emailsig-layout__reset { margin-right: 0; }
+.sb-tweaks-dialog__buttons .sb-emailsig-layout__paste:disabled { opacity: 0.45; cursor: default; }
+body .sb-tweaks-dialog__buttons .button.sb-emailsig-layout__copy { display: inline-grid !important; grid-template-columns: auto; place-items: center; gap: 0 !important; }
+.sb-tweaks-dialog__buttons .sb-emailsig-layout__copy > span { grid-area: 1 / 1; }
+.sb-emailsig-layout__copy .sb-emailsig-layout__copied-word,
+.sb-emailsig-layout__copy.is-copied .sb-emailsig-layout__copy-word { visibility: hidden; }
+.sb-emailsig-layout__copy.is-copied .sb-emailsig-layout__copied-word { visibility: visible; }
+.sb-tweaks-dialog__buttons .sb-emailsig-layout__clip-label { align-self: center; margin-left: 8px; color: var(--sbui-text-2, #50575e); font-size: 13px; }
 
 .sb-emailsig-fields { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; min-width: 0; }
 /* A row of its own in a card (a photo's border). */
@@ -332,40 +344,6 @@
 .acf-repeater [data-key="field_sb_emailsig_info_id"],
 .acf-repeater [data-key="field_sb_emailsig_person_info_id"] {
 	display: none !important;
-}
-
-/* Changed since copied / Not copied yet (SB_EmailSig_Notify), and the orange Resend. */
-.sb-emailsig-state {
-	display: inline-block;
-	font-size: 12px;
-	font-weight: 600;
-	line-height: 1.3;
-}
-
-.sb-emailsig-state--changed {
-	color: var(--sbui-warn, #b26200);
-}
-
-.sb-emailsig-state--new {
-	color: var(--sbui-text-3, #8c8f94);
-}
-
-.wp-core-ui .button.sb-emailsig-resend,
-.wp-core-ui .button.sb-emailsig-resend:focus {
-	border-color: var(--sbui-warn-solid, #dba617);
-	background: #dba617;
-	color: var(--sbui-text, #1d2327);
-}
-
-.wp-core-ui .button.sb-emailsig-resend:hover {
-	border-color: var(--sbui-warn-solid-hover, #c08f0c);
-	background: #c08f0c;
-	color: var(--sbui-text, #1d2327);
-}
-
-.sb-emailsig-preview__actions .sb-emailsig-state {
-	margin-left: 4px;
-	vertical-align: middle;
 }
 
 /* Reports (SB_EmailSig_Report). */
@@ -917,15 +895,13 @@
 body.sb-ui .sb-emailsig-people .sb-tweaks-card:is(.sb-emailsig-person, .sb-emailsig-template) { padding: 0; }
 body.sb-ui .sb-emailsig-people .sb-emailsig-person__name a { color: var(--sbui-text); }
 body.sb-ui .sb-tweaks-wrap .sb-emailsig-template__badge { color: var(--sbui-on-green); }
-body.sb-ui .sb-tweaks-wrap .sb-emailsig-template__badge--set { color: var(--sbui-text-2); }
 body.sb-ui .sb-emailsig-people .sb-emailsig-person__name a:hover { color: var(--sbui-green-ink); }
 body.sb-ui .sb-emailsig-person__actions .button { gap: 6px; }
 body.sb-ui .sb-emailsig-person__actions .button svg { flex: none; }
-body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon { justify-content: center; width: 26px; padding: 0; color: var(--sbui-text-2); }
+/* Icons with no words are square, whatever the button size (Sam, 30 October 2026). */
+body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon { flex: none; justify-content: center; width: auto; aspect-ratio: 1; padding: 0; color: var(--sbui-text-2); }
 body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon:hover:not(:disabled) { color: var(--sbui-green-ink); }
 body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon.is-done { border-color: var(--sbui-green); color: var(--sbui-green-ink); }
-/* Icons with no words are square, whatever the button size (Sam, 30 October 2026). */
-body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon { flex: none; width: auto; aspect-ratio: 1; }
 /* Delete: a red outline, solid red with a white icon on hover. */
 body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon--danger { border-color: var(--sbui-danger); color: var(--sbui-danger); }
 body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon--danger:hover:not(:disabled) { border-color: var(--sbui-danger-solid); background: var(--sbui-danger-solid); color: #fff; }
@@ -940,22 +916,14 @@ body.sb-ui .sb-tweaks-wrap .button.is-loading::after { content: ""; position: ab
 @keyframes sb-emailsig-spin { to { transform: rotate(360deg); } }
 
 /* Where a signature stands, as a badge. */
-body.sb-ui .sb-emailsig-state { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border: 1px solid var(--sbui-border); border-radius: 999px; background: var(--sbui-surface-3); color: var(--sbui-text-2); font-size: 12px; font-weight: 600; }
-body.sb-ui .sb-emailsig-state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-body.sb-ui .sb-emailsig-state--current { border-color: var(--sbui-ok-line); background: var(--sbui-ok-soft); color: var(--sbui-ok); }
-body.sb-ui .sb-emailsig-state--changed { border-color: var(--sbui-warn-line); background: var(--sbui-warn-soft); color: var(--sbui-warn); }
 
-/* Resend: amber outline, for a signature that changed since it was copied. */
-body.sb-ui.wp-core-ui .button.sb-emailsig-resend,
-body.sb-ui.wp-core-ui .button.sb-emailsig-resend:focus { border-color: var(--sbui-warn-solid); background: var(--sbui-surface); color: var(--sbui-warn); }
-body.sb-ui.wp-core-ui .button.sb-emailsig-resend:hover:not(:disabled) { border-color: var(--sbui-warn-solid); background: var(--sbui-warn-soft); color: var(--sbui-warn); }
 
 /* Preview popup: the signature on white, as an email shows it. */
 body.sb-ui .sb-emailsig-preview-modal .sb-tweaks-dialog { max-width: 780px; }
-.sb-emailsig-preview-pop { margin: 0 0 20px; padding: 28px 24px; overflow-x: auto; border: 1px solid var(--sbui-border, #dcdcde); border-radius: var(--sbui-r-lg, 8px); background: #fff; color: #000; color-scheme: light; }
+.sb-emailsig-preview-pop { margin: 0 0 20px; padding: 28px 24px; overflow-x: auto; border: 1px solid var(--sbui-border, #dcdcde); border-radius: var(--sbui-r-lg, 8px); background: #fff; color: #000; color-scheme: light; position: relative; }
 /* iPhone Safari enlarges small text in a wide box (the footer text at 10px read huge); signatures show at their own sizes. */
 .sb-emailsig-preview-pop, .sb-emailsig-front, .sb-emailsig-editor__fit { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-.sb-emailsig-preview-pop__sig { width: max-content; max-width: none; }
+.sb-emailsig-preview-pop__sig { width: max-content; max-width: none; transition: opacity 0.15s; }
 /* Preview's template tabs, above the signature (30 October 2026). */
 /* At the top of the screen, not centred, so Close and Edit stay put as templates change its height (Sam). */
 .sb-tweaks-modal.sb-emailsig-preview-modal { align-items: flex-start; overflow-y: auto; padding-top: 40px; padding-bottom: 40px; }
@@ -977,8 +945,6 @@ body.sb-ui .sb-emailsig-preview-modal .sb-emailsig-preview-pop__pick .sb-ui-seg 
 body.sb-ui .sb-emailsig-preview-modal .sb-emailsig-preview-pop__person { box-sizing: border-box; width: 240px; max-width: 100%; height: 36px; min-height: 36px; margin: 0; }
 body.sb-ui .sb-emailsig-preview-modal .sb-tweaks-dialog__x { top: 20px; }
 /* Switching template: the signature dims and a spinner turns over it (Sam). */
-.sb-emailsig-preview-pop { position: relative; }
-.sb-emailsig-preview-pop__sig { transition: opacity 0.15s; }
 .sb-emailsig-preview-pop.is-loading .sb-emailsig-preview-pop__sig { opacity: 0.3; }
 .sb-emailsig-preview-pop.is-loading::after { content: ""; position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 3px solid var(--sbui-border, #dcdcde); border-top-color: var(--sbui-btn, #85df07); border-radius: 50%; animation: sb-emailsig-spin 0.7s linear infinite; }
 @keyframes sb-emailsig-spin { to { transform: rotate(360deg); } }
@@ -1158,9 +1124,17 @@ body.sb-ui .sb-emailsig-front textarea.sb-emailsig-front__code { display: block;
 /* No logo: the company's letter, white on its Brand Primary. */
 .sb-emailsig-company__logo--letter { padding: 0; border: 0; color: #fff; font-size: 20px; font-weight: 700; line-height: 1; }
 .sb-emailsig-company .sb-emailsig-template__note { margin: 0; }
-.sb-emailsig-company .sb-emailsig-template__stats { margin-top: 0; }
+/* The stats just above the footer, whatever is above them (Sam, 1 November 2026). */
+.sb-emailsig-company .sb-emailsig-template__stats { margin-top: auto; }
 /* The footer at the card's foot, whatever the name's length beside it (Sam, 31 October 2026). */
-.sb-emailsig-company .sb-emailsig-person__actions { margin-top: auto; }
+.sb-emailsig-company .sb-emailsig-person__actions { margin-top: 0; }
+/* Each card's parts (header, colours, details, stats, footer) on the same
+   rows as its neighbours', so a long name moves them all alike (Sam, 1
+   November 2026). */
+@supports (grid-template-rows: subgrid) {
+	.sb-emailsig-companies > .sb-emailsig-company { display: grid; grid-row: span 5; grid-template-rows: subgrid; row-gap: 12px; }
+	.sb-emailsig-companies > .sb-emailsig-company > .sb-emailsig-template__stats { align-self: end; }
+}
 
 /* Team page (SB_EmailSig_Page): the search, the Company filter, and on
    everyone's page each company under its own heading. */
@@ -1168,9 +1142,6 @@ body.sb-ui .sb-emailsig-front textarea.sb-emailsig-front__code { display: block;
 .sb-emailsig-front .is-filtered { display: none !important; }
 .sb-emailsig-company-group { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--sbui-border, #dcdcde); }
 .sb-emailsig-company-group:first-of-type { margin-top: 28px; padding-top: 0; border-top: 0; }
-.sb-emailsig-company-group__head { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
-.sb-tweaks-wrap .sb-emailsig-company-group__head h2 { margin: 0; font-size: 22px; line-height: 1.25; }
-.sb-emailsig-company-group__head .sb-ui-count { margin-right: 4px; }
 .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-people-head h2 { font-size: 15px; }
 .sb-emailsig-find-none { margin: 24px 0; color: var(--sbui-text-2, #50575e); }
 @media (max-width: 600px) {
@@ -1208,11 +1179,12 @@ body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-utm-reset svg { width: 14px; heig
    part of the title (Sam, 30 October 2026): a light fill with a border a
    shade darker, and dark text. Active and Team green, Inactive warning
    yellow, Deleted danger red. Totals (Companies, Templates, each company
-   on the team page) dark with white text. */
-body .sb-ui-count.sb-emailsig-count.sb-emailsig-count { min-width: 24px; height: 22px; border: 1px solid var(--sbui-navy-900, #16171d); background: var(--sbui-navy-900, #16171d); color: #fff; }
-body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--active { border-color: var(--sbui-green-line, #c0ef7e); background: var(--sbui-green-soft, #effcdd); color: var(--sbui-navy-900, #16171d); }
-body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--inactive { border-color: var(--sbui-warn-line, #ffe17a); background: var(--sbui-warn-soft, #fff7d6); color: var(--sbui-navy-900, #16171d); }
-body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--deleted { border-color: var(--sbui-danger-line, #ffb8ab); background: var(--sbui-danger-soft, #ffece8); color: var(--sbui-navy-900, #16171d); }
+   on the team page) in the text colour with the card's on it: dark in
+   light mode, light in dark mode. Text follows the mode too. */
+body .sb-ui-count.sb-emailsig-count.sb-emailsig-count { min-width: 24px; height: 22px; border: 1px solid var(--sbui-text, #16171d); background: var(--sbui-text, #16171d); color: var(--sbui-surface, #fff); }
+body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--active { border-color: var(--sbui-green-line, #c0ef7e); background: var(--sbui-green-soft, #effcdd); color: var(--sbui-text, #16171d); }
+body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--inactive { border-color: var(--sbui-warn-line, #ffe17a); background: var(--sbui-warn-soft, #fff7d6); color: var(--sbui-text, #16171d); }
+body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--deleted { border-color: var(--sbui-danger-line, #ffb8ab); background: var(--sbui-danger-soft, #ffece8); color: var(--sbui-text, #16171d); }
 
 /* A person's Staff Page: the field, its help and the staff page's photo and
    tokens in one box while a page is picked (staff.js, has-staff). */
@@ -1223,8 +1195,7 @@ body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--deleted { border-color: v
 .acf-field[data-key="field_sb_emailsig_staff_fields"].sb-emailsig-no-fields .acf-input::before { content: "No ACF fields on this post type."; color: var(--sbui-text-3, #80857a); font-size: 13px; }
 
 /* A person's card: Linked to (their staff page, to edit it) and Image
-   mismatch (their photo isn't its featured image) in the chips' row, then
-   whether it's been copied below (Admin::chips()). */
+   mismatch (their photo isn't its featured image) in the chips' row (Admin::chips()). */
 .sb-emailsig-person__state { flex-direction: column; align-items: flex-start; }
 .sb-emailsig-person__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .sb-tweaks-wrap .sb-emailsig-chip__label { margin-right: 3px; color: var(--sbui-text-3, #80857a); }
@@ -1238,8 +1209,6 @@ body .sb-ui-count.sb-emailsig-count.sb-emailsig-count--deleted { border-color: v
 .sb-emailsig-staff .sb-emailsig-token.is-empty span { color: var(--sbui-text-3, #80857a); font-style: italic; }
 
 /* A person's card: Email missing (it's required), red (Admin::chips()). */
-.sb-tweaks-wrap .sb-emailsig-chip.sb-emailsig-chip--danger { border-color: var(--sbui-danger-line, #ffb8ab); background: var(--sbui-danger-soft, #ffece8); color: var(--sbui-danger, #d0331a); font-weight: 600; }
-.sb-tweaks-wrap a.sb-emailsig-chip.sb-emailsig-chip--danger:hover { border-color: var(--sbui-danger-solid, #e2381d); background: var(--sbui-danger-solid, #e2381d); color: #fff; }
 
 /* A person's page: under a field, its merge tags that come out empty (staff.js); Email's red. */
 .sb-emailsig-token-note { margin: 6px 0 0; color: var(--sbui-warn, #8a6500); font-size: 12px; font-weight: 600; }
@@ -1274,7 +1243,41 @@ html:not(.sb-emailsig-searching) .sb-emailsig-company-group.is-folded .sb-emails
 button.sb-emailsig-swatches.is-edit { margin: 0; padding: 3px; border: 0; border-radius: 999px; background: none; cursor: pointer; transition: box-shadow 0.12s; }
 button.sb-emailsig-swatches.is-edit:hover { box-shadow: 0 0 0 1px var(--sbui-border-strong, #c8ccc0); }
 button.sb-emailsig-swatches.is-edit:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--sbui-focus, rgba(133, 223, 7, 0.45)); }
-.sb-emailsig-company__brand { padding: 0 18px 12px; }
+.sb-emailsig-company__brand { padding: 0 18px; }
+/* A company's Phone, Email, Address and Default Template on its card (Sam, 1 November 2026). */
+.sb-emailsig-company__details { display: grid; align-content: start; gap: 5px; margin: 0; padding: 0 18px 4px; list-style: none; color: var(--sbui-text-2, #50575e); font-size: 12.5px; line-height: 1.4; }
+.sb-emailsig-company__details li { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0; }
+.sb-emailsig-company__details .sb-emailsig-svg { flex: none; width: 14px; height: 14px; color: var(--sbui-text-3, #80857a); }
+.sb-emailsig-company__details span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-tweaks-wrap .sb-emailsig-company__details a.is-unset { color: var(--sbui-text-3, #80857a); text-decoration: underline dotted; text-underline-offset: 3px; }
+.sb-tweaks-wrap .sb-emailsig-company__details a.is-unset:hover { color: var(--sbui-text, #1d2327); text-decoration-style: solid; }
+.sb-emailsig-company__details li:has(a.is-unset) .sb-emailsig-svg { opacity: .5; }
+
+/* A labelled list of names (SB_EmailSig_Admin::name_list(), Sam, 1 November
+   2026): three under each other beside the label, then "and X more…". */
+.sb-emailsig-template__uses { display: grid; gap: 6px; padding: 0 18px; }
+.sb-emailsig-uses { display: flex; align-items: flex-start; gap: 6px; min-width: 0; color: var(--sbui-text-2, #50575e); font-size: 12.5px; line-height: 1.45; }
+.sb-emailsig-uses__label { flex: none; color: var(--sbui-text, #1d2327); font-weight: 600; }
+.sb-tweaks-wrap .sb-emailsig-uses__list { min-width: 0; margin: 0; padding: 0; list-style: none; }
+.sb-tweaks-wrap .sb-emailsig-uses__list li { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-tweaks-wrap .sb-emailsig-uses__list a { color: inherit; text-decoration: none; }
+.sb-tweaks-wrap .sb-emailsig-uses__list a:hover { color: var(--sbui-text, #1d2327); text-decoration: underline; }
+.sb-emailsig-uses__list .is-more, .sb-emailsig-uses__list .is-none { color: var(--sbui-text-3, #80857a); }
+.sb-emailsig-uses__list[data-sb-tip] { cursor: default; }
+/* Edit styles and Layout toolbar: how many companies use the template, their names in the tip. */
+.sb-tweaks-wrap .sb-emailsig-uses-pill { height: 26px; padding: 0 11px; font-size: 12.5px; white-space: nowrap; cursor: default; }
+.sb-tweaks-wrap .sb-emailsig-uses-pill b { margin: 0 4px; color: var(--sbui-text, #16171d); font-weight: 700; }
+/* Its companies, one a line, each a link: drops down on hover or focus, looking like the framework's tip (.sb-ui-tip). */
+.sb-emailsig-uses-pop { position: relative; display: inline-flex; }
+.sb-emailsig-uses-pop__list { --sbui-pop-bg: #16171d; --sbui-pop-text: #ffffff; position: absolute; z-index: 1000; top: calc(100% + 8px); left: 50%; display: flex; flex-direction: column; align-items: flex-start; width: max-content; max-width: 280px; padding: 5px 4px; border-radius: 6px; background: var(--sbui-pop-bg); box-shadow: 0 6px 18px rgba(10, 12, 16, 0.22); font-size: 12px; font-weight: 500; line-height: 1.35; opacity: 0; visibility: hidden; transform: translate(-50%, -4px); transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s linear 0.12s; }
+.sb-emailsig-uses-pop__list::before { content: ""; position: absolute; bottom: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-bottom-color: var(--sbui-pop-bg); }
+/* A bridge over the gap, so the pointer can reach the links. */
+.sb-emailsig-uses-pop__list::after { content: ""; position: absolute; bottom: 100%; left: 0; right: 0; height: 10px; }
+.sb-emailsig-uses-pop:hover .sb-emailsig-uses-pop__list, .sb-emailsig-uses-pop:focus-within .sb-emailsig-uses-pop__list { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0s; }
+body .sb-tweaks-wrap .sb-emailsig-uses-pop__list a, .sb-emailsig-uses-pop__list span { display: block; padding: 2px 6px; border-radius: 4px; color: var(--sbui-pop-text); text-decoration: none; white-space: nowrap; }
+body .sb-tweaks-wrap .sb-emailsig-uses-pop__list a:hover, body .sb-tweaks-wrap .sb-emailsig-uses-pop__list a:focus-visible { background: rgba(255, 255, 255, 0.14); color: var(--sbui-pop-text); text-decoration: underline; outline: none; box-shadow: none; }
+body.sb-ui-mode-dark .sb-emailsig-uses-pop__list { --sbui-pop-bg: #3a3d4b; --sbui-pop-text: #f4f5f6; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); }
+@media (prefers-color-scheme: dark) { body.sb-ui-mode-auto:not(.sb-ui-light-only) .sb-emailsig-uses-pop__list { --sbui-pop-bg: #3a3d4b; --sbui-pop-text: #f4f5f6; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); } }
 
 /* Signatures page and everyone's team page: a company's people set in
    under its bar (Sam, 30 October 2026), and no company label on the cards. */
@@ -1337,13 +1340,11 @@ body .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-person__who a.sb-em
 .sb-emailsig-company__end { flex: none; display: flex; align-items: center; gap: 10px; }
 .sb-emailsig-company.is-off .sb-emailsig-company__who,
 .sb-emailsig-company.is-off .sb-emailsig-company__brand,
+.sb-emailsig-company.is-off .sb-emailsig-company__details,
 .sb-emailsig-company.is-off .sb-emailsig-template__stats,
 .sb-emailsig-company.is-off .sb-emailsig-template__note { opacity: .5; }
 .sb-emailsig-off-note { margin: 0 0 16px; }
 
-/* Templates cards: Main for (Templates::render_list()). */
-.sb-tweaks-wrap .sb-emailsig-template__mainfor strong { color: var(--sbui-text-1, #1d2327); font-weight: 600; }
-.sb-emailsig-template__more { text-decoration: underline dotted; cursor: help; }
 
 /* Layout rows (Sam, 31 October 2026): each row a box with its head (grip, name, columns, align, settings, remove), the gap between rows, Add row. */
 .sb-emailsig-layout__rows { display: flex; flex-direction: column; }

@@ -3,9 +3,15 @@
  * People export and import, as a CSV file (one row per person) for Excel,
  * Numbers or Google Sheets. On the Signatures page, for administrators.
  *
- * Columns: Name, Qualifications, Job Title, Email, Mobile, Active (Yes or
- * No), Main Template and Extra Templates (template names, extras split by
- * "; "), Hide Company Lines (Yes or No), Photo (its address), Photo Crop
+ * One company at a time (Sam, 1 November 2026): with more than one, a
+ * Company menu beside Export and Import picks it. Export writes that
+ * company's people; an import adds everyone to it and only matches people
+ * already in it. No Company column, so one file never moves people between
+ * companies.
+ *
+ * Columns: First Name, Last Name, Qualifications, Job Title (their lines as lines in the
+ * cell), Separator (Comma, Space, Line or Dot), Email, Mobile, Active (Yes or
+ * No), Hide Company Lines (Yes or No), Photo (its address), Photo Crop
  * (x, y, w, h as fractions of the photo), then Info 1 Icon, Info 1 Label,
  * Info 1 Text, Info 1 Link and so on, as many as anyone has. Left out, as
  * they belong to one site: the Staff Page, the page key, and the copy and
@@ -14,8 +20,10 @@
  * apostrophe so spreadsheets don't run it as a formula; import takes it off.
  *
  * Import reads the file into a preview first (kept for an hour for the user
- * who sent it): each row is new, matches people already here by email, or
- * is skipped (no valid email, or no name for a new person). A match can be
+ * who sent it): each row is new, matches people already here by email (by
+ * name when the row has no email, as Email isn't required: Sam, 1 November
+ * 2026), or is skipped (an email that isn't valid, or no name for a new
+ * person). A match can be
  * updated, skipped or added as a new person, picked per row: one match
  * starts on Update, more than one (staff sharing an email) on Skip. Only
  * then is anything saved. An update changes only the cells that have
@@ -39,11 +47,10 @@ class SB_EmailSig_Transfer {
 		'last_name'      => 'Last Name',
 		'qualifications' => 'Qualifications',
 		'job_title'      => 'Job Title',
+		'join'           => 'Separator',
 		'email'          => 'Email',
 		'mobile'         => 'Mobile',
 		'active'         => 'Active',
-		'template'       => 'Main Template',
-		'extra'          => 'Extra Templates',
 		'hide'           => 'Hide Company Lines',
 		'photo'          => 'Photo',
 		'crop'           => 'Photo Crop',
@@ -59,7 +66,7 @@ class SB_EmailSig_Transfer {
 		'mobile'         => 'field_sb_emailsig_mobile',
 	);
 
-	/** A preview, kept per user: rows read from the file. */
+	/** A preview, kept per user: [ co, rows ] read from the file. */
 	const PREVIEW = 'sb_emailsig_people_import_';
 
 	/** What the last import did, shown once on the Signatures page. */
@@ -118,17 +125,6 @@ class SB_EmailSig_Transfer {
 		return in_array( $v, array( 'no', 'n', '0', 'false' ), true ) ? 'no' : '';
 	}
 
-	/** Template ids by lower case name. */
-	private static function template_ids() {
-		$out = array();
-
-		foreach ( SB_EmailSig_Templates::all() as $tpl ) {
-			$out[ strtolower( $tpl['name'] ) ] = $tpl['id'];
-		}
-
-		return $out;
-	}
-
 	/** A person's Additional Info List Items, as saved. */
 	private static function info_lines( $post_id ) {
 		$rows = get_field( 'sb_emailsig_person_info', $post_id );
@@ -155,13 +151,25 @@ class SB_EmailSig_Transfer {
 		return wp_nonce_url( admin_url( 'admin-post.php?action=sb_emailsig_people_export' ), 'sb_emailsig_people_export' );
 	}
 
+	/** The company asked for ($v), else the default one. */
+	private static function company( $v ) {
+		$co = absint( $v );
+
+		return SB_EmailSig_Company::valid( $co ) ? $co : SB_EmailSig_Company::default_id();
+	}
+
+	/** Company $co's people, active and not (as the Signatures page lists them). */
+	private static function people_of( $co ) {
+		return SB_EmailSig_Admin::people( array( 'publish', 'draft' ), (int) $co );
+	}
+
 	public static function export() {
 		self::allowed();
 		check_admin_referer( 'sb_emailsig_people_export' );
 		SB_EmailSig_Data::$as_typed = true; // Shortcodes exported as typed, not run.
 
-		$people = SB_EmailSig_Admin::people( array( 'publish', 'draft' ) );
-		$names  = wp_list_pluck( SB_EmailSig_Templates::all(), 'name' );
+		$co     = self::company( isset( $_GET['co'] ) ? wp_unslash( $_GET['co'] ) : 0 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- absint in company().
+		$people = self::people_of( $co );
 		$rows   = array();
 		$most   = 0;
 
@@ -172,16 +180,13 @@ class SB_EmailSig_Transfer {
 				$row[ $col ] = trim( (string) get_field( 'sb_emailsig_' . $col, $id ) );
 			}
 
-			$main   = (string) get_post_meta( $id, SB_EmailSig_Templates::PERSON_MAIN, true );
-			$extras = get_post_meta( $id, SB_EmailSig_Templates::PERSON_EXTRA, true );
+			$join        = (string) get_field( 'sb_emailsig_join', $id );
+			$row['join'] = SB_EmailSig_Data::JOINS[ $join ][0] ?? SB_EmailSig_Data::JOINS['comma'][0];
+
 			$att    = (int) get_field( 'sb_emailsig_photo', $id, false );
 			$crop   = json_decode( (string) get_post_meta( $id, '_sb_emailsig_crop', true ), true );
 
 			$row['active']   = get_post_status( $id ) === 'publish' ? 'Yes' : 'No';
-			$row['template'] = $names[ $main ] ?? '';
-			$row['extra']    = implode( '; ', array_filter( array_map( function ( $t ) use ( $names ) {
-				return $names[ (string) $t ] ?? '';
-			}, is_array( $extras ) ? $extras : array() ) ) );
 			$row['hide']     = get_field( 'sb_emailsig_person_info_hide', $id ) ? 'Yes' : 'No';
 			$row['photo']    = $att ? (string) wp_get_attachment_url( $att ) : '';
 			$row['crop']     = ( $att && is_array( $crop ) && (int) ( $crop['id'] ?? 0 ) === $att )
@@ -203,7 +208,8 @@ class SB_EmailSig_Transfer {
 
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="email-signature-people-' . gmdate( 'Y-m-d' ) . '.csv"' );
+		$slug = count( SB_EmailSig_Company::all() ) > 1 ? sanitize_title( SB_EmailSig_Company::name( $co ) ) . '-' : '';
+		header( 'Content-Disposition: attachment; filename="email-signature-people-' . $slug . gmdate( 'Y-m-d' ) . '.csv"' );
 
 		$out = fopen( 'php://output', 'w' );
 		fwrite( $out, "\xEF\xBB\xBF" ); // So Excel reads it as UTF-8. phpcs:ignore WordPress.WP.AlternativeFunctions
@@ -246,7 +252,8 @@ class SB_EmailSig_Transfer {
 			$fail( 'badfile' );
 		}
 
-		$rows = self::parse( $up['tmp_name'] );
+		$co   = self::company( isset( $_POST['co'] ) ? wp_unslash( $_POST['co'] ) : 0 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- absint in company().
+		$rows = self::parse( $up['tmp_name'], $co );
 
 		if ( $rows === null ) {
 			$fail( 'badfile' );
@@ -256,7 +263,7 @@ class SB_EmailSig_Transfer {
 			$fail( 'empty' );
 		}
 
-		set_transient( self::PREVIEW . get_current_user_id(), $rows, HOUR_IN_SECONDS );
+		set_transient( self::PREVIEW . get_current_user_id(), array( 'co' => $co, 'rows' => $rows ), HOUR_IN_SECONDS );
 
 		wp_safe_redirect( self::page_url( array( 'people' => 'preview' ) ) );
 		exit;
@@ -264,10 +271,11 @@ class SB_EmailSig_Transfer {
 
 	/**
 	 * The file's rows, each checked: [ cells (by column key), info (lines),
-	 * matches (ids with that email), status (new, match or skip), why ].
-	 * null when it isn't a people file (no Email column).
+	 * matches (company $co's people with that email, or that name without
+	 * one), status (new, match or skip), why ]. null when it isn't a people
+	 * file (no Email, First Name or Name column).
 	 */
-	private static function parse( $path ) {
+	private static function parse( $path, $co ) {
 		$fh = fopen( $path, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 
 		if ( ! $fh ) {
@@ -299,19 +307,25 @@ class SB_EmailSig_Transfer {
 			}
 		}
 
-		if ( ! isset( $cols['email'] ) ) {
+		// A people file has an Email or a name column.
+		if ( ! isset( $cols['email'] ) && ! isset( $cols['first_name'] ) && ! isset( $cols['name'] ) ) {
 			fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 			return null;
 		}
 
 		ksort( $info );
 
-		// Everyone here, by email.
+		// The company's people, by email and by name.
 		$by_email = array();
-		foreach ( SB_EmailSig_Admin::people( array( 'publish', 'draft' ) ) as $id ) {
+		$by_name  = array();
+		foreach ( self::people_of( $co ) as $id ) {
 			$e = strtolower( trim( (string) get_field( 'sb_emailsig_email', $id ) ) );
 			if ( $e !== '' ) {
 				$by_email[ $e ][] = (int) $id;
+			}
+			$nm = strtolower( trim( (string) get_field( 'sb_emailsig_name', $id ) ) );
+			if ( $nm !== '' ) {
+				$by_name[ $nm ][] = (int) $id;
 			}
 		}
 
@@ -328,7 +342,10 @@ class SB_EmailSig_Transfer {
 
 			$cells = array();
 			foreach ( $cols as $key => $i ) {
-				$cells[ $key ] = sanitize_text_field( self::uncell( $line[ $i ] ?? '' ) );
+				// Qualifications and Job Title keep their lines.
+				$cells[ $key ] = in_array( $key, array( 'qualifications', 'job_title' ), true )
+					? implode( "\n", SB_EmailSig_Data::lines( sanitize_textarea_field( self::uncell( $line[ $i ] ?? '' ) ) ) )
+					: sanitize_text_field( self::uncell( $line[ $i ] ?? '' ) );
 			}
 
 			// The full name from the first and last; one Name split when that's all there is.
@@ -353,13 +370,16 @@ class SB_EmailSig_Transfer {
 			}
 
 			$email   = strtolower( $cells['email'] ?? '' );
-			$matches = $by_email[ $email ] ?? array();
+			$matches = $email !== '' ? ( $by_email[ $email ] ?? array() ) : ( $by_name[ strtolower( $cells['name'] ?? '' ) ] ?? array() );
 			$status  = $matches ? 'match' : 'new';
 			$why     = '';
 
-			if ( ! is_email( $email ) ) {
+			if ( $email !== '' && ! is_email( $email ) ) {
 				$status = 'skip';
-				$why    = 'No valid email.';
+				$why    = 'The email isn\'t valid.';
+			} elseif ( $email === '' && ( $cells['name'] ?? '' ) === '' ) {
+				$status = 'skip';
+				$why    = 'No email or name.';
 			} elseif ( ! $matches && ( $cells['name'] ?? '' ) === '' ) {
 				$status = 'skip';
 				$why    = 'No name.';
@@ -384,15 +404,6 @@ class SB_EmailSig_Transfer {
 	/** Things worth knowing about a row before it's imported. */
 	private static function notes( array $cells ) {
 		$notes = array();
-		$ids   = self::template_ids();
-
-		foreach ( array( 'template' => 'Main Template', 'extra' => 'Extra Templates' ) as $col => $label ) {
-			foreach ( array_filter( array_map( 'trim', explode( ';', $cells[ $col ] ?? '' ) ) ) as $name ) {
-				if ( ! isset( $ids[ strtolower( $name ) ] ) ) {
-					$notes[] = 'No template called ' . $name . ' here.';
-				}
-			}
-		}
 
 		$photo = $cells['photo'] ?? '';
 		if ( $photo !== '' ) {
@@ -422,7 +433,7 @@ class SB_EmailSig_Transfer {
 
 		$state = isset( $_GET['people'] ) ? sanitize_key( wp_unslash( $_GET['people'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 		$fails = array(
-			'badfile' => 'That file isn\'t a people CSV. It needs an Email column.',
+			'badfile' => 'That file isn\'t a people CSV. It needs an Email or First Name column.',
 			'empty'   => 'That file has no people in it.',
 			'expired' => 'That preview has expired. Import the file again.',
 		);
@@ -443,22 +454,38 @@ class SB_EmailSig_Transfer {
 		}
 
 		// Import picks the file and goes straight to the preview: nothing is
-		// saved until Import is pressed there (list.js).
+		// saved until Import is pressed there (list.js). With more than one
+		// company, the menu says whose people Export and Import are.
+		$all  = SB_EmailSig_Company::all();
+		$pick = self::company( isset( $_GET['company'] ) ? wp_unslash( $_GET['company'] ) : 0 ); // phpcs:ignore WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput -- the page's Company filter, absint in company().
+		$menu = '';
+
+		if ( count( $all ) > 1 ) {
+			$menu = '<select name="co" form="sb-emailsig-import" data-sb-emailsig-people-co aria-label="Company">';
+			foreach ( $all as $co ) {
+				$menu .= '<option value="' . (int) $co . '"' . selected( $co, $pick, false ) . '>' . esc_html( SB_EmailSig_Company::name( $co ) ) . '</option>';
+			}
+			$menu .= '</select>';
+		}
+
 		echo '<div class="sb-ui-bar__group sb-emailsig-transfer"><span class="sb-ui-bar__label">People file</span>';
-		echo '<a class="button button-small" href="' . esc_url( self::export_url() ) . '" data-sb-tip="Download everyone as a CSV">' . SB_EmailSig_Admin::icon( 'down' ) . 'Export</a>';
-		echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-sb-emailsig-import>';
+		echo $menu; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
+		echo '<a class="button button-small" href="' . esc_url( add_query_arg( 'co', $pick, self::export_url() ) ) . '" data-sb-emailsig-export data-sb-tip="' . esc_attr( $menu ? 'Download this company\'s people as a CSV' : 'Download everyone as a CSV' ) . '">' . SB_EmailSig_Admin::icon( 'down' ) . 'Export</a>';
+		echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="sb-emailsig-import" data-sb-emailsig-import>';
 		echo '<input type="hidden" name="action" value="sb_emailsig_people_read">';
 		wp_nonce_field( 'sb_emailsig_people_read' );
 		echo '<input type="file" name="sb_emailsig_people" accept=".csv,text/csv" required aria-label="People CSV file" class="screen-reader-text" tabindex="-1">';
-		echo '<button type="button" class="button button-small" data-sb-emailsig-import-pick data-sb-tip="Check a CSV before adding anyone">' . SB_EmailSig_Admin::icon( 'up' ) . 'Import</button>';
+		echo '<button type="button" class="button button-small" data-sb-emailsig-import-pick data-sb-tip="' . esc_attr( $menu ? 'Check a CSV before adding anyone to this company' : 'Check a CSV before adding anyone' ) . '">' . SB_EmailSig_Admin::icon( 'up' ) . 'Import</button>';
 		echo '</form></div>';
 	}
 
 	public static function render_preview() {
-		$rows = get_transient( self::PREVIEW . get_current_user_id() );
+		$kept = get_transient( self::PREVIEW . get_current_user_id() );
+		$rows = is_array( $kept ) ? ( $kept['rows'] ?? null ) : null;
+		$co   = is_array( $kept ) ? self::company( $kept['co'] ?? 0 ) : 0;
 
 		if ( ! is_array( $rows ) ) {
-			echo '<div class="notice notice-error"><p>That preview has expired. Import the file again.</p></div>';
+			echo '<div class="notice notice-error is-dismissible"><p>That preview has expired. Import the file again.</p></div>';
 			echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Back to Signatures</a></p>';
 
 			return;
@@ -469,11 +496,12 @@ class SB_EmailSig_Transfer {
 			$count[ $row['status'] ]++;
 		}
 
-		echo '<section class="sb-tweaks-section sb-emailsig-import-preview"><div class="sb-tweaks-section__head"><h2>Import people</h2>';
+		$into = count( SB_EmailSig_Company::all() ) > 1 ? ' into ' . SB_EmailSig_Company::name( $co ) : '';
+		echo '<section class="sb-tweaks-section sb-emailsig-import-preview"><div class="sb-tweaks-section__head"><h2>' . esc_html( 'Import people' . $into ) . '</h2>';
 		echo '<p>' . esc_html( sprintf( '%d new, %d already here, %d skipped. Nothing is saved until you press Import.', $count['new'], $count['match'], $count['skip'] ) ) . '</p></div>';
 
 		if ( $count['match'] ) {
-			echo '<div class="notice notice-warning inline"><p>' . esc_html( sprintf( _n( '%d row has an email already used here.', '%d rows have an email already used here.', $count['match'] ), $count['match'] ) . ' Choose what happens to each. Staff can share an email, so check before updating.' ) . '</p></div>';
+			echo '<div class="notice notice-warning inline"><p>' . esc_html( sprintf( _n( '%d row matches someone already here.', '%d rows match someone already here.', $count['match'] ), $count['match'] ) . ' Choose what happens to each.' ) . '</p></div>';
 		}
 
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -530,7 +558,9 @@ class SB_EmailSig_Transfer {
 		check_admin_referer( 'sb_emailsig_people_import' );
 		SB_EmailSig_Data::$as_typed = true; // Compared as typed, so a shortcode isn't seen as changed.
 
-		$rows = get_transient( self::PREVIEW . get_current_user_id() );
+		$kept = get_transient( self::PREVIEW . get_current_user_id() );
+		$rows = is_array( $kept ) ? ( $kept['rows'] ?? null ) : null;
+		$co   = is_array( $kept ) ? self::company( $kept['co'] ?? 0 ) : 0;
 
 		if ( ! is_array( $rows ) ) {
 			wp_safe_redirect( self::page_url( array( 'people' => 'expired' ) ) );
@@ -556,7 +586,7 @@ class SB_EmailSig_Transfer {
 			}
 
 			if ( $do === 'new' ) {
-				$id = self::add( $row );
+				$id = self::add( $row, $co );
 				if ( ! $id ) {
 					$done['skipped']++;
 					continue;
@@ -581,12 +611,13 @@ class SB_EmailSig_Transfer {
 		exit;
 	}
 
-	/** A new person (active unless the row says No). Their id, or 0. */
-	private static function add( array $row ) {
-		$id = wp_insert_post(
+	/** A new person in company $co (active unless the row says No, or the company is switched off). Their id, or 0. */
+	private static function add( array $row, $co ) {
+		$off = self::yes_no( $row['cells']['active'] ?? '' ) === 'no' || SB_EmailSig_Switch::is_off( $co );
+		$id  = wp_insert_post(
 			array(
 				'post_type'   => SB_EMAILSIG_CPT,
-				'post_status' => self::yes_no( $row['cells']['active'] ?? '' ) === 'no' ? 'draft' : 'publish',
+				'post_status' => $off ? 'draft' : 'publish',
 				'post_title'  => $row['cells']['name'] ?? '',
 			),
 			true
@@ -596,6 +627,7 @@ class SB_EmailSig_Transfer {
 			return 0;
 		}
 
+		update_post_meta( $id, SB_EmailSig_Company::PERSON_META, (int) $co );
 		SB_EmailSig_CPT::ensure_key( $id );
 
 		return (int) $id;
@@ -637,24 +669,17 @@ class SB_EmailSig_Transfer {
 			}
 		}
 
+		// The Separator, by its name; anything else leaves it as it is.
+		$join = strtolower( $cells['join'] ?? '' );
+		foreach ( SB_EmailSig_Data::JOINS as $key => $j ) {
+			if ( $join !== '' && ( $join === $key || $join === strtolower( $j[0] ) ) ) {
+				update_field( 'field_sb_emailsig_join', $key, $id );
+			}
+		}
+
 		$hide = self::yes_no( $cells['hide'] ?? '' );
 		if ( $hide !== '' ) {
 			update_field( 'field_sb_emailsig_person_info_hide', $hide === 'yes' ? 1 : 0, $id );
-		}
-
-		// Templates by name; unknown names are left out.
-		$ids = self::template_ids();
-		if ( ( $cells['template'] ?? '' ) !== '' && isset( $ids[ strtolower( $cells['template'] ) ] ) ) {
-			update_field( 'field_sb_emailsig_person_template', $ids[ strtolower( $cells['template'] ) ], $id );
-		}
-		if ( ( $cells['extra'] ?? '' ) !== '' ) {
-			$extra = array();
-			foreach ( array_filter( array_map( 'trim', explode( ';', $cells['extra'] ) ) ) as $name ) {
-				if ( isset( $ids[ strtolower( $name ) ] ) ) {
-					$extra[] = $ids[ strtolower( $name ) ];
-				}
-			}
-			update_field( 'field_sb_emailsig_person_templates_extra', array_values( array_unique( $extra ) ), $id );
 		}
 
 		self::fill_info( $id, $row['info'] );
@@ -726,6 +751,12 @@ class SB_EmailSig_Transfer {
 			$att = media_sideload_image( $url, 0, trim( (string) get_field( 'sb_emailsig_name', $id ) ), 'id' );
 
 			if ( is_wp_error( $att ) ) {
+				return false;
+			}
+
+			// Downloaded but not a photo a signature can use (a GIF, say): not left in the Media Library.
+			if ( ! in_array( get_post_mime_type( $att ), SB_EmailSig_Request::MIMES, true ) ) {
+				wp_delete_attachment( $att, true );
 				return false;
 			}
 		}

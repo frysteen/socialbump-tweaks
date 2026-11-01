@@ -27,7 +27,7 @@ choice), and Image Management's handling of WooCommerce's image sizes.
 | Path | What it is |
 | --- | --- |
 | module.php | the definition: id woo, groups shop and admin, menu sb-woo-tweaks after sb-site-kit, bar row woo-tweaks |
-| includes/class-sb-woo-tweaks.php | SB_Woo_Tweaks: options, setting(), is_enabled(), page_slug(), migrate(), old_address() |
+| includes/class-sb-woo-tweaks.php | SB_Woo_Tweaks: options, FEATURE_IDS, boot(), features(), setting(), is_enabled(), page_slug(), migrate(), old_address() |
 | features/woo-*/ | one folder per feature, feature.php plus class-sb-woo-*.php |
 | features/woo-analytics-csv/assets/ | analytics-csv.js and .css, loaded on WooCommerce's Analytics (page=wc-admin) only |
 
@@ -43,8 +43,9 @@ from sb_tweaks_site_kit_features and _settings, and sets both groups from
 Site Kit's woocommerce group. It creates the features option, which switches
 the module on through 'auto', only where Site Kit's WooCommerce group was on
 and WooCommerce is active, or a woo-* switch had been saved on. Site Kit's own
-options are left as they were. On the hub it waits while standalone Site Kit
-is active.
+options are left as they were. A site that never had Site Kit
+(no sb_tweaks_site_kit_features) only gets the migrated flag, so the module
+starts off.
 
 Driving Events was the only site running SocialBUMP Tweaks with WooCommerce
 when this was built: all seven switches on, From Price set to loops only with
@@ -52,6 +53,13 @@ the label "From:".
 
 Site Kit's old WooCommerce page (admin.php?page=sb-site-kit-woocommerce)
 redirects to Shop and Checkout, through admin_page_access_denied.
+
+## Card extras
+
+From Price's card lists its two parts (loops, product page) with their own
+state, through 'features' in its feature.php. Require Login to Check Out is
+marked unavailable, with a link to WooCommerce's Accounts and Privacy
+settings, while guest checkout is on ('unavailable' in its feature.php).
 
 ## Names that moved
 

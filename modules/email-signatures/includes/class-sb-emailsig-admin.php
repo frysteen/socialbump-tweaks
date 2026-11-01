@@ -37,7 +37,7 @@ class SB_EmailSig_Admin {
 		// Image fields: the pencil replaces the image (assets/replace.js).
 		wp_enqueue_script( 'sb-emailsig-replace', SB_EMAILSIG_URL . 'assets/replace.js', array(), SB_EmailSig_Module::asset_version( 'assets/replace.js' ), true );
 
-		// Email link and Resend: the Signatures page and a person's edit screen.
+		// Email link: the Signatures page and a person's edit screen.
 		$signatures = strpos( (string) $hook, SB_EmailSig_Module::SLUG . '-signatures' ) !== false;
 		if ( $signatures || ( $ours && $screen->base === 'post' ) ) {
 			SB_EmailSig_Notify::register_confirm();
@@ -79,6 +79,30 @@ class SB_EmailSig_Admin {
 			);
 		}
 
+		// Icon sets drawn before icons were added: drawn now, in the background (Icons::stale()).
+		$stale = current_user_can( 'manage_options' ) ? SB_EmailSig_Icons::stale() : array();
+		if ( $stale ) {
+			wp_enqueue_script( 'sb-emailsig-icon-builder', SB_EMAILSIG_URL . 'assets/icon-builder.js', array(), SB_EmailSig_Module::asset_version( 'assets/icon-builder.js' ), true );
+			wp_enqueue_script( 'sb-emailsig-icons-fill', SB_EMAILSIG_URL . 'assets/icons-fill.js', array( 'sb-emailsig-icon-builder' ), SB_EmailSig_Module::asset_version( 'assets/icons-fill.js' ), true );
+			wp_localize_script(
+				'sb-emailsig-icons-fill',
+				'sbEmailsigIconsFill',
+				array(
+					'ajax'      => admin_url( 'admin-ajax.php' ),
+					'nonce'     => wp_create_nonce( 'sb_emailsig_brand' ),
+					'companies' => array_map(
+						function ( $co ) {
+							return array(
+								'co'   => $co,
+								'draw' => SB_EmailSig_Icons::fill_data( $co ),
+							);
+						},
+						$stale
+					),
+				)
+			);
+		}
+
 		// Live updating on the Signatures page's list (not a person's Add or Edit page, or an import being checked).
 		if ( $signatures && ! SB_EmailSig_Person::is_screen() && ! SB_EmailSig_Transfer::previewing() ) {
 			wp_enqueue_script( 'sb-emailsig-live', SB_EMAILSIG_URL . 'assets/live.js', array( 'sb-emailsig-list' ), SB_EmailSig_Module::asset_version( 'assets/live.js' ), true );
@@ -113,7 +137,6 @@ class SB_EmailSig_Admin {
 		}
 		$html  = SB_EmailSig_Render::html( $post->ID );
 		$url   = SB_EmailSig_CPT::page_url( $post->ID );
-		$state = SB_EmailSig_Notify::state( $post->ID, SB_EmailSig_Notify::fingerprint( $html ) );
 
 		// Tokens the staff page has no value for: they show as nothing.
 		foreach ( SB_EmailSig_Staff::missing( $post->ID ) as $key => $tokens ) {
@@ -126,18 +149,17 @@ class SB_EmailSig_Admin {
 			<script type="application/json" id="sb-emailsig-admin-preview-html"><?php echo wp_json_encode( $html, JSON_HEX_TAG | JSON_HEX_AMP ); ?></script>
 		</div>
 		<p class="sb-emailsig-preview__actions">
-			<button type="button" class="button button-small button-primary" data-sb-emailsig-copy="sb-emailsig-admin-preview" data-sb-emailsig-status="sb-emailsig-admin-status">Copy signature</button>
+			<button type="button" class="button button-small button-primary" data-sb-emailsig-copy="sb-emailsig-admin-preview" data-sb-emailsig-status="sb-emailsig-admin-status"<?php echo SB_EmailSig_Notify::mark_attr( $post->ID, '', 'admin' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in mark_attr(). ?>>Copy signature</button>
 			<button type="button" class="button button-small" data-sb-emailsig-copy-text="<?php echo esc_attr( $url ); ?>">Copy link</button>
 			<a class="button button-small" href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener">Open link</a>
-			<?php echo SB_EmailSig_Notify::button( $post->ID, $state, 'button button-small' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in button(). ?>
-			<?php echo SB_EmailSig_Notify::badge( $state ); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup. ?>
+			<?php echo SB_EmailSig_Notify::button( $post->ID, 'button button-small' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in button(). ?>
 			<span class="sb-emailsig-status" id="sb-emailsig-admin-status" role="status" aria-live="polite"></span>
 		</p>
 		<?php
 	}
 
-	/** People with a name, by name: ids. $statuses: publish (active), draft (not). */
-	public static function people( array $statuses = array( 'publish' ) ) {
+	/** People with a name, by name: ids. $statuses: publish (active), draft (not); $co: only that company's (0 for all). */
+	public static function people( array $statuses = array( 'publish' ), $co = 0 ) {
 		$ids = get_posts(
 			array(
 				'post_type'      => SB_EMAILSIG_CPT,
@@ -149,7 +171,7 @@ class SB_EmailSig_Admin {
 			)
 		);
 
-		return array_values(
+		$ids = array_values(
 			array_filter(
 				$ids,
 				function ( $id ) {
@@ -157,6 +179,8 @@ class SB_EmailSig_Admin {
 				}
 			)
 		);
+
+		return $co ? self::of_company( $ids, $co ) : $ids;
 	}
 
 	/**
@@ -164,9 +188,8 @@ class SB_EmailSig_Admin {
 	 * (Export, Import) and Add person (SB_EmailSig_Person's page), then,
 	 * straight on the page, a card per person with
 	 * their photo (or a grey stand-in), name, job title and Active switch
-	 * (published or draft), where their signature stands (Up to date, Changed
-	 * since copied, Not copied yet), and Preview, Edit, Copy link, Open link
-	 * and Email link (Resend when changed). Each card carries its signature
+	 * (published or draft), and Preview, Edit, Copy link, Open link and
+	 * Email link. Each card carries its signature
 	 * off screen, for the Preview popup (list.js). No Copy signature here: the
 	 * person copies it from their own page (Sam, 29 October 2026).
 	 */
@@ -201,8 +224,7 @@ class SB_EmailSig_Admin {
 		self::filters( count( $active ) + count( $inactive ) + count( $deleted ) > 1, count( $companies ) > 1 ? $companies : array() );
 
 		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Team page</span>';
-		echo '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $team ) . '" data-sb-tip="Copy link (every company, for those who manage)">' . self::icon( 'link' ) . '</button>';
-		echo '<a class="button button-small sb-emailsig-icon" href="' . esc_url( $team ) . '" target="_blank" rel="noopener" data-sb-tip="Open team page (every company)">' . self::icon( 'open' ) . '</a>';
+		echo self::link_buttons( $team, 'Copy link (every company, for those who manage)', 'Open team page (every company)' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
 		echo '</div>';
 
 		// People file: Export and Import (administrators).
@@ -249,6 +271,98 @@ class SB_EmailSig_Admin {
 		echo '<p class="sb-emailsig-find-none" hidden>No one matches that.</p>';
 	}
 
+	/**
+	 * A list of tags or codes to click and copy (merge tags, tracking codes):
+	 * $rows of [ tag, note, empty ]; an empty one can't be copied yet.
+	 */
+	public static function tag_list( array $rows ) {
+		echo '<div class="sb-emailsig-tags">';
+
+		foreach ( $rows as $r ) {
+			list( $tag, $note, $empty ) = $r;
+
+			echo '<div class="sb-emailsig-tags__row' . ( $empty ? ' is-empty' : '' ) . '">';
+			echo '<button type="button" class="sb-emailsig-token" data-sb-emailsig-tag="' . esc_attr( $tag ) . '"' . ( $empty ? ' disabled data-sb-tip="Set it first, then save"' : ' data-sb-tip="Copy ' . esc_attr( $tag ) . '"' ) . '><code>' . esc_html( $tag ) . '</code></button>';
+			echo '<span class="sb-emailsig-tags__note">' . esc_html( $note ) . '</span>';
+			echo '</div>';
+		}
+
+		echo '</div>';
+	}
+
+	/** A filter's Company menu, with more than one company ('' otherwise). $attr: fixed extra attributes. */
+	public static function company_filter( $picked, $attr = '' ) {
+		$companies = SB_EmailSig_Company::all();
+
+		if ( count( $companies ) < 2 ) {
+			return '';
+		}
+
+		$out = '<select name="company" aria-label="Company"' . $attr . '><option value="0">Every company</option>';
+		foreach ( $companies as $id ) {
+			$out .= '<option value="' . (int) $id . '"' . selected( (int) $picked, (int) $id, false ) . '>' . esc_html( SB_EmailSig_Company::name( $id ) ) . '</option>';
+		}
+
+		return $out . '</select>';
+	}
+
+	/**
+	 * A person's Active switch (list.js saves it). Locked while their company
+	 * is switched off, saying so. $class: extra classes for where it sits.
+	 */
+	public static function active_switch( $id, $class = '' ) {
+		$off = SB_EmailSig_Switch::person_off( $id );
+		$tip = $off ? 'Switch ' . SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $id ) ) . ' on first' : 'Active';
+
+		return '<label class="sb-tweaks-switch' . ( $class !== '' ? ' ' . esc_attr( $class ) : '' ) . '" data-sb-tip="' . esc_attr( $tip ) . '"><input type="checkbox" data-sb-emailsig-active="' . (int) $id . '"' . checked( get_post_status( $id ) === 'publish', true, false ) . disabled( $off, true, false ) . '><span class="sb-tweaks-switch__track"><span class="sb-tweaks-switch__dot"></span></span><span class="screen-reader-text">Active</span></label>';
+	}
+
+	/** Delete person's ask-first attributes (the framework's popup). */
+	public static function delete_confirm( $name ) {
+		return ' data-sb-tweaks-confirm="' . esc_attr( 'Move ' . ( $name !== '' ? $name : 'this person' ) . ' to the Trash? Their signature stops working.' ) . '" data-sb-tweaks-confirm-title="Delete person" data-sb-tweaks-confirm-action="Delete"';
+	}
+
+	/**
+	 * A link's two icon buttons: copy it, open it in a new tab. Tips as shown,
+	 * labels for screen readers (the tips when not given).
+	 */
+	public static function link_buttons( $url, $copy_tip, $open_tip, $copy_label = '', $open_label = '' ) {
+		return '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $url ) . '" data-sb-tip="' . esc_attr( $copy_tip ) . '" aria-label="' . esc_attr( $copy_label !== '' ? $copy_label : $copy_tip ) . '">' . self::icon( 'link' ) . '</button>'
+			. '<a class="button button-small sb-emailsig-icon" href="' . esc_url( $url ) . '" target="_blank" rel="noopener" data-sb-tip="' . esc_attr( $open_tip ) . '" aria-label="' . esc_attr( $open_label !== '' ? $open_label : $open_tip ) . '">' . self::icon( 'open' ) . '</a>';
+	}
+
+	/**
+	 * Active and Inactive people for a menu, by company then name: [ id,
+	 * name (with " (Inactive)"), company name ('' with one company) ].
+	 */
+	public static function everyone() {
+		static $list = null;
+
+		if ( $list !== null ) {
+			return $list;
+		}
+
+		$list = array();
+		$many = count( SB_EmailSig_Company::all() ) > 1;
+
+		foreach ( self::people( array( 'publish', 'draft' ) ) as $pid ) {
+			$list[] = array(
+				(int) $pid,
+				trim( (string) get_field( 'sb_emailsig_name', $pid ) ) . ( get_post_status( $pid ) === 'draft' ? ' (Inactive)' : '' ),
+				$many ? SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $pid ) ) : '',
+			);
+		}
+
+		usort(
+			$list,
+			function ( $a, $b ) {
+				return array( $a[2], strtolower( $a[1] ) ) <=> array( $b[2], strtolower( $b[1] ) );
+			}
+		);
+
+		return $list;
+	}
+
 	/** People in company $co. */
 	public static function of_company( array $ids, $co ) {
 		return array_values(
@@ -289,8 +403,7 @@ class SB_EmailSig_Admin {
 		echo '</span>';
 
 		echo '<div class="sb-ui-bar__end">';
-		echo '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $link ) . '" data-sb-tip="Copy ' . esc_attr( $name ) . '\'s team page link">' . self::icon( 'link' ) . '</button>';
-		echo '<a class="button button-small sb-emailsig-icon" href="' . esc_url( $link ) . '" target="_blank" rel="noopener" data-sb-tip="Open ' . esc_attr( $name ) . '\'s team page">' . self::icon( 'open' ) . '</a>';
+		echo self::link_buttons( $link, 'Copy ' . $name . '\'s team page link', 'Open ' . $name . '\'s team page' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
 		if ( $manage && current_user_can( 'manage_options' ) ) {
 			echo '<a class="button button-small" href="' . esc_url( SB_EmailSig_Companies::url( $co ) ) . '">' . self::icon( 'edit' ) . 'Edit company</a>';
 		}
@@ -320,8 +433,10 @@ class SB_EmailSig_Admin {
 			echo '<div class="sb-ui-bar__group"><label class="sb-ui-bar__label" for="sb-emailsig-pick">Company</label>';
 			echo '<select id="sb-emailsig-pick" data-sb-emailsig-pick><option value="">All companies</option>';
 
+			// One asked for in the address (a company card's people), picked to start.
+			$asked = isset( $_GET['company'] ) ? absint( $_GET['company'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
 			foreach ( $companies as $co ) {
-				echo '<option value="' . (int) $co . '">' . esc_html( SB_EmailSig_Company::name( $co ) ) . '</option>';
+				echo '<option value="' . (int) $co . '"' . selected( $asked, (int) $co, false ) . '>' . esc_html( SB_EmailSig_Company::name( $co ) ) . '</option>';
 			}
 
 			echo '</select></div>';
@@ -375,7 +490,7 @@ class SB_EmailSig_Admin {
 		$words = array();
 
 		foreach ( array( 'sb_emailsig_name', 'sb_emailsig_job_title', 'sb_emailsig_email', 'sb_emailsig_mobile' ) as $field ) {
-			$words[] = trim( (string) get_field( $field, $id ) );
+			$words[] = $field === 'sb_emailsig_job_title' ? SB_EmailSig_Data::field_line( $id, 'job_title' ) : trim( (string) get_field( $field, $id ) );
 		}
 
 		return function_exists( 'mb_strtolower' ) ? mb_strtolower( implode( ' ', $words ) ) : strtolower( implode( ' ', $words ) );
@@ -389,9 +504,8 @@ class SB_EmailSig_Admin {
 		$url    = SB_EmailSig_CPT::page_url( $id );
 		$sig    = 'sb-emailsig-sig-' . $id;
 		$html   = SB_EmailSig_Render::html( $id );
-		$state  = $manage ? SB_EmailSig_Notify::state( $id, SB_EmailSig_Notify::fingerprint( $html ) ) : '';
 
-		$job  = trim( (string) get_field( 'sb_emailsig_job_title', $id ) );
+		$job  = SB_EmailSig_Data::field_line( $id, 'job_title' );
 		$edit = $manage ? (string) get_edit_post_link( $id ) : '';
 
 		// Just restored: highlighted, and list.js scrolls to it.
@@ -418,15 +532,13 @@ class SB_EmailSig_Admin {
 		echo '</div>';
 
 		if ( $manage ) {
-			echo '<label class="sb-tweaks-switch sb-emailsig-person__switch" data-sb-tip="' . esc_attr( $off ? 'Switch ' . SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $id ) ) . ' on first' : 'Active' ) . '"><input type="checkbox" data-sb-emailsig-active="' . (int) $id . '"' . checked( $active, true, false ) . disabled( $off, true, false ) . '><span class="sb-tweaks-switch__track"><span class="sb-tweaks-switch__dot"></span></span><span class="screen-reader-text">Active</span></label>';
+			echo self::active_switch( $id, 'sb-emailsig-person__switch' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in active_switch().
 		}
 
 		echo '</div>';
 
 		if ( $manage ) {
-			// The chips (and the crop check) in a row, then whether their
-			// signature has been copied on a line of its own (Sam, 30 October 2026).
-			echo '<div class="sb-emailsig-person__state">';
+			// The chips (and the crop check) in a row (Sam, 30 October 2026), when there are any.
 			ob_start();
 			self::chips( $id, $edit );
 
@@ -437,10 +549,8 @@ class SB_EmailSig_Admin {
 
 			$row = ob_get_clean();
 			if ( $row !== '' ) {
-				echo '<div class="sb-emailsig-person__chips">' . $row . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
+				echo '<div class="sb-emailsig-person__state"><div class="sb-emailsig-person__chips">' . $row . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
 			}
-			echo '<div class="sb-emailsig-person__copied">' . ( $state === 'current' ? '<span class="sb-emailsig-state sb-emailsig-state--current">Up to date</span>' : SB_EmailSig_Notify::badge( $state ) ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup.
-			echo '</div>';
 		}
 
 		// Preview first, then Edit, the links and the email, as icons.
@@ -452,9 +562,8 @@ class SB_EmailSig_Admin {
 			echo '<a class="button button-small sb-emailsig-icon" href="' . esc_url( $edit ) . '" data-sb-tip="Edit" aria-label="Edit ' . esc_attr( $name ) . '">' . self::icon( 'edit' ) . '</a>';
 		}
 
-		echo '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $url ) . '" data-sb-tip="Copy link" aria-label="Copy ' . esc_attr( $name ) . '\'s link">' . self::icon( 'link' ) . '</button>';
-		echo '<a class="button button-small sb-emailsig-icon" href="' . esc_url( $url ) . '" target="_blank" rel="noopener" data-sb-tip="Open their page" aria-label="Open ' . esc_attr( $name ) . '\'s page">' . self::icon( 'open' ) . '</a>';
-		echo $manage && ! $off ? self::send_button( $id, $state ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in send_button().
+		echo self::link_buttons( $url, 'Copy link', 'Open their page', 'Copy ' . $name . '\'s link', 'Open ' . $name . '\'s page' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
+		echo $manage && ! $off ? self::send_button( $id ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in send_button().
 
 		// Delete, bottom right, asks first (Sam, 30 October 2026). To the Trash, like the person page's.
 		if ( $manage && current_user_can( 'delete_post', $id ) ) {
@@ -462,7 +571,7 @@ class SB_EmailSig_Admin {
 			echo '<input type="hidden" name="action" value="sb_emailsig_person_delete"><input type="hidden" name="sb_emailsig_person" value="' . (int) $id . '">';
 			echo $front ? '<input type="hidden" name="sb_back" value="team">' : '';
 			echo '<input type="hidden" name="_wpnonce" value="' . esc_attr( wp_create_nonce( SB_EmailSig_Person::NONCE . '_delete_' . $id ) ) . '">';
-			echo '<button type="submit" class="button button-small sb-emailsig-icon sb-emailsig-icon--danger" data-sb-tip="Delete" aria-label="Delete ' . esc_attr( $name ) . '" data-sb-tweaks-confirm="' . esc_attr( 'Move ' . ( $name !== '' ? $name : 'this person' ) . ' to the Trash? Their signature stops working.' ) . '" data-sb-tweaks-confirm-title="Delete person" data-sb-tweaks-confirm-action="Delete">' . self::icon( 'trash' ) . '</button>';
+			echo '<button type="submit" class="button button-small sb-emailsig-icon sb-emailsig-icon--danger" data-sb-tip="Delete" aria-label="Delete ' . esc_attr( $name ) . '"' . self::delete_confirm( $name ) . '>' . self::icon( 'trash' ) . '</button>';
 			echo '</form>';
 		}
 
@@ -499,7 +608,7 @@ class SB_EmailSig_Admin {
 	public static function deleted_card( $id, $front = false ) {
 		$days = defined( 'EMPTY_TRASH_DAYS' ) ? (int) EMPTY_TRASH_DAYS : 30;
 		$name = trim( (string) get_field( 'sb_emailsig_name', $id ) );
-		$job  = trim( (string) get_field( 'sb_emailsig_job_title', $id ) );
+		$job  = SB_EmailSig_Data::field_line( $id, 'job_title' );
 		$when = (int) get_post_meta( $id, '_wp_trash_meta_time', true );
 		$note = '<span>' . esc_html( $when ? 'Deleted ' . human_time_diff( $when ) . ' ago' : 'Deleted' ) . '</span>';
 
@@ -538,17 +647,28 @@ class SB_EmailSig_Admin {
 	/**
 	 * A little more about a person on their card (Sam, 30 October 2026):
 	 * their email and mobile, then chips that only show when there's
-	 * something to say: their own main template (not the company's), extra
-	 * templates just for them, their own Info List lines, the company's lines
+	 * something to say: their own Info List lines, the company's lines
 	 * hidden, and the staff page they're linked to.
 	 */
 	public static function contact( $id ) {
 		$email  = trim( (string) get_field( 'sb_emailsig_email', $id ) );
 		$mobile = trim( (string) get_field( 'sb_emailsig_mobile', $id ) );
+		$mail   = $email !== '' ? '<span>' . esc_html( $email ) . '</span>' : '';
 
-		if ( $email !== '' || $mobile !== '' ) {
+		// No Email of their own, for those who manage (Sam, 1 November 2026):
+		// the company's, marked as the company's, or No email set.
+		if ( $email === '' && self::can_manage() ) {
+			$co   = SB_EmailSig_Company::of_person( (int) $id );
+			$from = SB_EmailSig_Company::email( $co );
+
+			$mail = $from !== ''
+				? '<span class="sb-emailsig-person__mail is-company"><span class="sb-emailsig-person__mail-text" data-sb-tip="' . esc_attr( $from ) . '">' . esc_html( $from ) . '</span><span class="sb-emailsig-person__mail-tag" data-sb-tip="' . esc_attr( 'From ' . SB_EmailSig_Company::name( $co ) . '\'s Email. They have none of their own.' ) . '">Company</span></span>'
+				: '<span class="sb-emailsig-person__mail is-none"><span class="sb-emailsig-person__mail-tag">No email set</span></span>';
+		}
+
+		if ( $mail !== '' || $mobile !== '' ) {
 			echo '<p class="sb-emailsig-person__contact">';
-			echo $email !== '' ? '<span>' . esc_html( $email ) . '</span>' : '';
+			echo $mail; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
 			echo $mobile !== '' ? '<span>' . esc_html( $mobile ) . '</span>' : '';
 			echo '</p>';
 		}
@@ -583,29 +703,7 @@ class SB_EmailSig_Admin {
 	 * contact()). $edit: their Edit page, for Image mismatch.
 	 */
 	public static function chips( $id, $edit = '' ) {
-		$chips   = array();
-		$company = SB_EmailSig_Templates::current();
-		$main    = SB_EmailSig_Templates::for_person( $id );
-		$set     = SB_EmailSig_Templates::company_set();
-
-		if ( $main !== $company ) {
-			$tpl     = SB_EmailSig_Templates::get( $main );
-			$chips[] = array( 'Their main template', $tpl ? $tpl['name'] : '' );
-		}
-
-		$extra = array_diff( SB_EmailSig_Templates::available( $id ), array( $main ), $set );
-
-		if ( $extra ) {
-			$names   = array_map(
-				function ( $t ) {
-					$tpl = SB_EmailSig_Templates::get( $t );
-
-					return $tpl ? $tpl['name'] : '';
-				},
-				$extra
-			);
-			$chips[] = array( 'Just for them: ' . implode( ', ', array_filter( $names ) ), '+' . count( $extra ) . ' ' . _n( 'template', 'templates', count( $extra ) ) );
-		}
+		$chips = array();
 
 		$lines = (array) get_field( 'sb_emailsig_person_info', $id );
 		$lines = array_filter( $lines );
@@ -657,7 +755,7 @@ class SB_EmailSig_Admin {
 		// A field filled from the staff page whose merge tag is now empty (or
 		// no longer allowed): it comes out blank in the signature. Kept, not
 		// cleared, as the staff page may only be empty for now (Sam, 30
-		// October 2026). Email is required, so it's red.
+		// October 2026).
 		$names = array(
 			'field_sb_emailsig_first_name'     => 'First name',
 			'field_sb_emailsig_last_name'      => 'Last name',
@@ -670,7 +768,7 @@ class SB_EmailSig_Admin {
 		foreach ( SB_EmailSig_Staff::missing( $id ) as $key => $tokens ) {
 			$label  = ( $names[ $key ] ?? 'A field' ) . ' missing';
 			$tip    = implode( ', ', $tokens ) . ' ' . _n( 'is', 'are', count( $tokens ) ) . ' empty on their staff page';
-			$class  = 'sb-emailsig-chip ' . ( $key === 'field_sb_emailsig_email' ? 'sb-emailsig-chip--danger' : 'sb-emailsig-chip--warn' );
+			$class  = 'sb-emailsig-chip sb-emailsig-chip--warn';
 			$extra .= $edit !== ''
 				? '<a class="' . $class . '" href="' . esc_url( $edit ) . '" data-sb-tip="' . esc_attr( $tip . '. Edit their signature' ) . '">' . esc_html( $label ) . '</a>'
 				: '<span class="' . $class . '" data-sb-tip="' . esc_attr( $tip ) . '">' . esc_html( $label ) . '</span>';
@@ -688,18 +786,38 @@ class SB_EmailSig_Admin {
 	}
 
 	/**
-	 * Email link as an icon. Its popup starts on Updated Signature when the
-	 * signature has changed since it was copied (Sam, 31 October 2026).
-	 * Not shown without an email address.
+	 * A labelled list of names (Sam, 1 November 2026): the label, then up to
+	 * three names one under another beside it, then "and X more…". Hovering
+	 * the list shows everyone, only when some are hidden. $items: [ name,
+	 * link or '' ]. With none, $empty in grey.
 	 */
-	public static function send_button( $id, $state ) {
-		$email = trim( (string) get_field( 'sb_emailsig_email', $id ) );
+	public static function name_list( $label, array $items, $empty = '' ) {
+		$out  = '<div class="sb-emailsig-uses"><span class="sb-emailsig-uses__label">' . esc_html( $label ) . '</span>';
+		$more = count( $items ) - 3;
+		$tip  = $more > 0 ? ' data-sb-tip="' . esc_attr( implode( ', ', array_column( $items, 0 ) ) ) . '"' : '';
+		$out .= '<ul class="sb-emailsig-uses__list"' . $tip . '>';
 
-		if ( $email === '' ) {
-			return '';
+		if ( ! $items ) {
+			$out .= '<li class="is-none">' . esc_html( $empty ) . '</li>';
 		}
 
-		$title = 'Email ' . $email . ' their signature link';
+		foreach ( array_slice( $items, 0, 3 ) as $item ) {
+			$out .= '<li>' . ( ! empty( $item[1] ) ? '<a href="' . esc_url( $item[1] ) . '">' . esc_html( $item[0] ) . '</a>' : esc_html( $item[0] ) ) . '</li>';
+		}
+
+		if ( $more > 0 ) {
+			$out .= '<li class="is-more">and ' . (int) $more . ' more…</li>';
+		}
+
+		return $out . '</ul></div>';
+	}
+
+	/**
+	 * Email link as an icon, for everyone (Sam, 1 November 2026): its
+	 * popup's To starts as their Email, else their company's, else blank.
+	 */
+	public static function send_button( $id ) {
+		$title = SB_EmailSig_Notify::send_title( $id );
 
 		return '<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-send="' . (int) $id . '" data-sb-emailsig-icon data-sb-tip="' . esc_attr( $title ) . '" aria-label="' . esc_attr( $title ) . '">' . self::icon( 'mail' ) . '</button>';
 	}
@@ -749,6 +867,8 @@ class SB_EmailSig_Admin {
 			'link' => '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
 			'open' => '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/>',
 			'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+			'phone' => '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+			'pin' => '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
 			'chevron' => '<path d="M6 9l6 6 6-6"/>',
 			'restore' => '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/>',
 			'plus' => '<path d="M12 5v14M5 12h14"/>',
@@ -843,31 +963,11 @@ class SB_EmailSig_Admin {
 	 * a new one yet. '' for those who can't manage.
 	 */
 	public static function people_pick( $template ) {
-		static $list = null;
-
 		if ( ! self::can_manage() ) {
 			return '';
 		}
 
-		if ( $list === null ) {
-			$list = array();
-			$many = count( SB_EmailSig_Company::all() ) > 1;
-
-			foreach ( self::people( array( 'publish', 'draft' ) ) as $pid ) {
-				$list[] = array(
-					(int) $pid,
-					trim( (string) get_field( 'sb_emailsig_name', $pid ) ) . ( get_post_status( $pid ) === 'draft' ? ' (Inactive)' : '' ),
-					$many ? SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $pid ) ) : '',
-				);
-			}
-
-			usort(
-				$list,
-				function ( $a, $b ) {
-					return array( $a[2], strtolower( $a[1] ) ) <=> array( $b[2], strtolower( $b[1] ) );
-				}
-			);
-		}
+		$list = self::everyone();
 
 		if ( ! $list ) {
 			return '';
@@ -954,7 +1054,7 @@ class SB_EmailSig_Admin {
 				}
 				break;
 			case 'sb_emailsig_job':
-				echo esc_html( (string) get_field( 'sb_emailsig_job_title', $post_id ) );
+				echo esc_html( SB_EmailSig_Data::field_line( $post_id, 'job_title' ) );
 				break;
 			case 'sb_emailsig_email':
 				echo esc_html( (string) get_field( 'sb_emailsig_email', $post_id ) );

@@ -2,21 +2,13 @@
 /**
  * Telling people about their signature.
  *
- * Changed since copied: each person's finished signature has a fingerprint
- * (md5 of its HTML). Pressing Copy signature anywhere (their page, the team
- * page, the admin) records the fingerprint copied (_sb_emailsig_copied:
- * fingerprint and time). If the signature now differs, what they have in Mail
- * is out of date: the card says Changed since copied and its email popup
- * starts on the Updated Signature email. Copies on the admin pages don't count, nor
- * an administrator's or editor's on the front end unless it's their own
- * signature (same email), as checking one isn't the person updating theirs.
- * Links (short links), the campaign banner, the photo and
- * the logo keep their addresses, so only real changes count: text, layout,
- * styles. A new photo or crop shows in pasted signatures by itself
- * (SB_EmailSig_Photo::fixed_url). Never copied: Not copied yet. Nothing is
- * sent by itself. A copy of one of the person's other templates (picked on
- * their page) is kept by template id in the same meta ('t'), and counts as
- * changed too while that template is still theirs.
+ * Copies: pressing Copy signature (or a Copy HTML code button) on a
+ * person's page, or Copy signature in the admin's Signature box, is logged
+ * (SB_EmailSig_Log): the person, the template's name, and the name of
+ * whoever was logged in (Sam, 1 November 2026). The old copied or not
+ * copied status (Changed since copied, Not copied yet, Resend) is gone,
+ * and what it kept against each person (_sb_emailsig_copied) is deleted
+ * once (forget_copies()).
  *
  * Email link: emails the person their page link, from Settings, Emails tab
  * (From name, and From address on the site's own domain, the same whoever
@@ -24,8 +16,12 @@
  * signature emails with merge tags: tags(), listed on the tab with click to
  * copy, render_tags() and assets/settings.js). The button opens a popup (the framework's, SBTweaksConfirm in
  * assets/notify.js) with the email filled in (draft()), to change before
- * Send. Sent with wp_mail as plain text, so an SMTP plugin sends it.
- * The last send is kept in _sb_emailsig_sent (time, kind, to).
+ * Send: To starts as their Email, else their company's, else blank, and
+ * can be changed (Sam, 1 November 2026). It starts on Updated Signature
+ * for someone sent their link before, else New. {sender} is Settings'
+ * Default Sender Name, else whoever sends it. Sent with wp_mail as plain
+ * text, so an SMTP plugin sends it. The last send is kept in
+ * _sb_emailsig_sent (time, kind, to).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,8 +30,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SB_EmailSig_Notify {
 
+	/** What the old copied status kept: deleted once (forget_copies()). */
 	const COPIED = '_sb_emailsig_copied';
 	const SENT   = '_sb_emailsig_sent';
+
+	/** Set once the old copied status has been deleted. */
+	const COPIES_GONE = 'sb_emailsig_copies_gone';
 
 	/** The emails' text when never saved. */
 	const TEXT = array(
@@ -50,6 +50,7 @@ class SB_EmailSig_Notify {
 		add_action( 'wp_ajax_nopriv_sb_emailsig_copied', array( __CLASS__, 'copied' ) );
 		add_action( 'wp_ajax_sb_emailsig_send', array( __CLASS__, 'send' ) );
 		add_action( 'wp_ajax_sb_emailsig_draft', array( __CLASS__, 'draft' ) );
+		add_action( 'admin_init', array( __CLASS__, 'forget_copies' ) );
 		add_action( 'acf/render_field/key=field_sb_emailsig_mail_tags', array( __CLASS__, 'render_tags' ) );
 		add_filter( 'acf/load_field/key=field_sb_emailsig_mail_from_name', array( __CLASS__, 'from_name_field' ) );
 		add_filter( 'acf/load_field/key=field_sb_emailsig_mail_from_email', array( __CLASS__, 'from_field' ) );
@@ -112,9 +113,9 @@ class SB_EmailSig_Notify {
 			'{first_name}' => array( 'The person\'s First Name', null ),
 			'{name}'       => array( 'The person\'s Name', null ),
 			'{job_title}'  => array( 'The person\'s Job Title', null ),
-			'{email}'      => array( 'The person\'s Email (where it\'s sent)', null ),
+			'{email}'      => array( 'The person\'s Email, else their company\'s', null ),
 			'{link}'       => array( 'Their signature page, to copy it from', null ),
-			'{sender}'     => array( 'Whoever sends it (their WordPress name)', null ),
+			'{sender}'     => array( 'Default Sender Name, else whoever sends it (their WordPress name)', self::sender_name() !== '' ? self::sender_name() : null ),
 			'{company}'    => array( 'Their company\'s Company Name', trim( (string) get_field( 'sb_emailsig_company_name', $o ) ) ),
 			'{website}'    => array( 'Their company\'s Website', trim( (string) get_field( 'sb_emailsig_website', $o ) ) ),
 			'{site_name}'  => array( 'Site Title in WordPress Settings, General', self::site_name() ),
@@ -123,154 +124,144 @@ class SB_EmailSig_Notify {
 
 	/** Settings, Emails tab: every merge tag, click to copy (assets/settings.js). */
 	public static function render_tags() {
-		echo '<div class="sb-emailsig-tags">';
-
 		// With more than one company, Company and Website are each person's
 		// company's, so no one company's value is shown here (Sam, 31 October 2026).
 		$multi = count( SB_EmailSig_Company::all() ) > 1;
+		$rows  = array();
 
 		foreach ( self::tags() as $tag => $t ) {
 			if ( $multi && in_array( $tag, array( '{company}', '{website}' ), true ) ) {
 				$t[1] = null;
 			}
 
-			$empty = $t[1] !== null && $t[1] === '';
-			$note  = $t[0] . ( $t[1] !== null ? ( $empty ? ': not set yet' : ': ' . $t[1] ) : '' );
-
-			echo '<div class="sb-emailsig-tags__row' . ( $empty ? ' is-empty' : '' ) . '">';
-			echo '<button type="button" class="sb-emailsig-token" data-sb-emailsig-tag="' . esc_attr( $tag ) . '"' . ( $empty ? ' disabled title="Set it first, then save"' : ' title="Copy ' . esc_attr( $tag ) . '"' ) . '><code>' . esc_html( $tag ) . '</code></button>';
-			echo '<span class="sb-emailsig-tags__note">' . esc_html( $note ) . '</span>';
-			echo '</div>';
+			$empty  = $t[1] !== null && $t[1] === '';
+			$rows[] = array( $tag, $t[0] . ( $t[1] !== null ? ( $empty ? ': not set yet' : ': ' . $t[1] ) : '' ), $empty );
 		}
 
-		echo '</div>';
+		SB_EmailSig_Admin::tag_list( $rows );
 	}
 
-	public static function fingerprint( $html ) {
-		return md5( (string) $html );
-	}
-
-	/** new (never copied), changed, or current. $fingerprint: the main template's signature now. */
-	public static function state( $post_id, $fingerprint ) {
-		$copied = get_post_meta( $post_id, self::COPIED, true );
-		$copied = is_array( $copied ) ? $copied : array();
-		$others = isset( $copied['t'] ) && is_array( $copied['t'] ) ? $copied['t'] : array();
-
-		if ( empty( $copied['fp'] ) && ! $others ) {
-			return 'new';
+	/** The old copied status, deleted once (Sam, 1 November 2026). */
+	public static function forget_copies() {
+		if ( get_option( self::COPIES_GONE ) ) {
+			return;
 		}
 
-		if ( ! empty( $copied['fp'] ) && ! hash_equals( (string) $copied['fp'], (string) $fingerprint ) ) {
-			return 'changed';
-		}
-
-		// Other templates copied, while still theirs.
-		$available = SB_EmailSig_Templates::available( $post_id );
-
-		foreach ( $others as $tpl_id => $fp ) {
-			if ( in_array( (string) $tpl_id, $available, true ) && ! hash_equals( (string) $fp, self::fingerprint( SB_EmailSig_Render::html( $post_id, (string) $tpl_id ) ) ) ) {
-				return 'changed';
-			}
-		}
-
-		return 'current';
+		delete_post_meta_by_key( self::COPIED );
+		update_option( self::COPIES_GONE, 1, true );
 	}
 
 	/**
-	 * The Copy signature button's data: Copy records the version copied
-	 * (copy.js posts it). The person's page key proves they may.
+	 * A Copy button's data: copy.js posts it when the copy works, to log it.
+	 * The person's page key proves they may. $tpl_id '' for their main
+	 * template; $where 'admin' for the Signature box in the admin.
 	 */
-	public static function mark_attr( $post_id, $fingerprint, $tpl_id = '' ) {
-		return ' data-sb-emailsig-mark="' . esc_attr( wp_json_encode( self::mark( $post_id, $fingerprint, $tpl_id ) ) ) . '"';
+	public static function mark_attr( $post_id, $tpl_id = '', $where = '' ) {
+		return ' data-sb-emailsig-mark="' . esc_attr( wp_json_encode( self::mark( $post_id, $tpl_id, $where ) ) ) . '"';
 	}
 
-	/** The data mark_attr() carries; $tpl_id '' for the person's main template. */
-	public static function mark( $post_id, $fingerprint, $tpl_id = '' ) {
+	/** The data mark_attr() carries. */
+	public static function mark( $post_id, $tpl_id = '', $where = '' ) {
 		$out = array(
 			'ajax' => admin_url( 'admin-ajax.php' ),
 			'id'   => (int) $post_id,
 			'key'  => SB_EmailSig_CPT::get_key( $post_id ),
-			'fp'   => $fingerprint,
+			't'    => (string) $tpl_id !== '' ? (string) $tpl_id : SB_EmailSig_Templates::for_person( $post_id ),
 		);
 
-		if ( (string) $tpl_id !== '' && (string) $tpl_id !== SB_EmailSig_Templates::for_person( $post_id ) ) {
-			$out['t'] = (string) $tpl_id;
+		if ( $where === 'admin' ) {
+			$out['w'] = 'admin';
 		}
 
 		return $out;
 	}
 
-	/** Copy signature was pressed: keep the version copied. */
+	/**
+	 * A copy, logged (Sam, 1 November 2026): every click, with the
+	 * template's name, HTML code when it was the code, and admin when from
+	 * the admin's Signature box. By whoever is logged in, else the person
+	 * (it's their page).
+	 */
 	public static function copied() {
 		// phpcs:disable WordPress.Security.NonceVerification -- the person's page key stands in.
-		$id  = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-		$key = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
-		$fp  = isset( $_POST['fp'] ) ? sanitize_key( wp_unslash( $_POST['fp'] ) ) : '';
-		$t   = isset( $_POST['t'] ) ? sanitize_key( wp_unslash( $_POST['t'] ) ) : '';
+		$id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$key  = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
+		$t    = isset( $_POST['t'] ) ? sanitize_key( wp_unslash( $_POST['t'] ) ) : '';
+		$w    = isset( $_POST['w'] ) ? sanitize_key( wp_unslash( $_POST['w'] ) ) : '';
+		$code = ! empty( $_POST['c'] );
 		// phpcs:enable
 
-		if ( ! $id || get_post_type( $id ) !== SB_EMAILSIG_CPT || $key === '' || ! hash_equals( SB_EmailSig_CPT::get_key( $id ), $key ) || ! preg_match( '/^[a-f0-9]{32}$/', $fp ) ) {
+		if ( ! $id || get_post_type( $id ) !== SB_EMAILSIG_CPT || $key === '' || ! hash_equals( SB_EmailSig_CPT::get_key( $id ), $key ) ) {
 			wp_send_json_error( null, 403 );
 		}
 
-		// Someone who manages signatures checking one, not the person.
-		if ( is_user_logged_in() && SB_EmailSig_Admin::can_manage() ) {
-			$own = strtolower( (string) wp_get_current_user()->user_email ) === strtolower( trim( (string) get_field( 'sb_emailsig_email', $id ) ) );
-
-			if ( ! $own ) {
-				wp_send_json_success( 'skipped' );
+		// Logged out: only from a page that shows (active, company on), and
+		// no more than 20 in 10 minutes from one visitor for one person.
+		if ( ! is_user_logged_in() ) {
+			if ( get_post_status( $id ) !== 'publish' || SB_EmailSig_Switch::person_off( $id ) ) {
+				wp_send_json_error( null, 403 );
 			}
+
+			$ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+			$limit = 'sb_emailsig_copied_' . md5( $ip . '|' . $id . '|' . wp_salt( 'nonce' ) );
+			$n     = (int) get_transient( $limit );
+
+			if ( $n >= 20 ) {
+				wp_send_json_success( 'enough' );
+			}
+
+			set_transient( $limit, $n + 1, 10 * MINUTE_IN_SECONDS );
 		}
 
-		$copied = get_post_meta( $id, self::COPIED, true );
-		$copied = is_array( $copied ) ? $copied : array();
+		$tpl    = $t !== '' ? SB_EmailSig_Templates::get( $t ) : null;
+		$detail = array();
 
-		// Another of their templates: kept beside the main one's.
-		if ( $t !== '' && $t !== SB_EmailSig_Templates::for_person( $id ) && in_array( $t, SB_EmailSig_Templates::available( $id ), true ) ) {
-			$copied['t']       = isset( $copied['t'] ) && is_array( $copied['t'] ) ? $copied['t'] : array();
-			$copied['t'][ $t ] = $fp;
-		} else {
-			$copied['fp'] = $fp;
+		if ( $tpl && ! empty( $tpl['name'] ) ) {
+			$detail[] = $tpl['name'];
+		}
+		if ( $code ) {
+			$detail[] = 'HTML code';
+		}
+		if ( $w === 'admin' && is_user_logged_in() ) {
+			$detail[] = 'admin';
 		}
 
-		$copied['time'] = time();
-		update_post_meta( $id, self::COPIED, $copied );
-
-		// The activity log: by them (it's their page), or by whoever is logged in and copying their own.
-		$other = $t !== '' && $t !== SB_EmailSig_Templates::for_person( $id ) && SB_EmailSig_Templates::get( $t ) ? SB_EmailSig_Templates::get( $t )['name'] : '';
-		$who   = is_user_logged_in() ? '' : trim( (string) get_field( 'sb_emailsig_name', $id ) );
-		SB_EmailSig_Log::add( 'copied', 'person', $id, '', $other, $who );
+		$who = is_user_logged_in() ? '' : trim( (string) get_field( 'sb_emailsig_name', $id ) );
+		SB_EmailSig_Log::add( 'copied', 'person', $id, '', implode( ', ', $detail ), $who );
 
 		wp_send_json_success( 'recorded' );
 	}
 
-	/** The card's note: Changed since copied, or Not copied yet. '' when up to date. */
-	public static function badge( $state ) {
-		if ( $state === 'changed' ) {
-			return '<span class="sb-emailsig-state sb-emailsig-state--changed">Changed since copied</span>';
-		}
-
-		if ( $state === 'new' ) {
-			return '<span class="sb-emailsig-state sb-emailsig-state--new">Not copied yet</span>';
-		}
-
-		return '';
+	/**
+	 * The Email link button, for everyone (Sam, 1 November 2026): without
+	 * an Email the popup's To starts as the company's, or blank to fill in.
+	 * $classes for the page's button style.
+	 */
+	public static function button( $post_id, $classes ) {
+		return '<button type="button" class="' . esc_attr( $classes ) . '" data-sb-emailsig-send="' . (int) $post_id . '" data-sb-tip="' . esc_attr( self::send_title( $post_id ) ) . '">Email link</button>';
 	}
 
-	/**
-	 * The Email link button. The popup picks New or Updated Signature,
-	 * Updated first when the signature has changed since it was copied
-	 * (Sam, 31 October 2026), so the button stays the same. $classes for
-	 * the page's button style. Not shown without an email address.
-	 */
-	public static function button( $post_id, $state, $classes ) {
-		$email = trim( (string) get_field( 'sb_emailsig_email', $post_id ) );
+	/** Where Email link sends to start with: their Email, else their company's, else ''. */
+	public static function to( $post_id ) {
+		$own = sanitize_email( (string) get_field( 'sb_emailsig_email', $post_id ) );
 
-		if ( $email === '' ) {
-			return '';
+		if ( is_email( $own ) ) {
+			return $own;
 		}
 
-		return '<button type="button" class="' . esc_attr( $classes ) . '" data-sb-emailsig-send="' . (int) $post_id . '" title="' . esc_attr( 'Email ' . $email . ' their signature link' ) . '">Email link</button>';
+		return SB_EmailSig_Company::email( SB_EmailSig_Company::of_person( (int) $post_id ) );
+	}
+
+	/** The Email link button's tip. */
+	public static function send_title( $post_id ) {
+		$to = self::to( $post_id );
+
+		return $to !== '' ? 'Email ' . $to . ' their signature link' : 'Email their signature link';
+	}
+
+	/** Settings' Default Sender Name, or ''. */
+	public static function sender_name() {
+		return trim( (string) get_field( 'sb_emailsig_mail_sender', 'option' ) );
 	}
 
 	/** A SocialBUMP Tweaks framework file's address, versioned by its time, or ''. */
@@ -335,7 +326,7 @@ class SB_EmailSig_Notify {
 	/**
 	 * The email for a person as Settings words it, filled in: [ to, kind,
 	 * subject, message, drafts ]. The kind is the one posted, else Updated
-	 * when the signature has changed since it was copied, else New; drafts
+	 * when a link was sent to them before, else New; drafts
 	 * has each kind's subject and message. Stops with a JSON error if it
 	 * can't be sent.
 	 */
@@ -359,15 +350,12 @@ class SB_EmailSig_Notify {
 		// Their company's name and website in the email (one email a request).
 		SB_EmailSig_Company::enter( SB_EmailSig_Company::of_person( $id ) );
 
-		$to = sanitize_email( (string) get_field( 'sb_emailsig_email', $id ) );
+		$to = self::to( $id );
 
-		if ( ! is_email( $to ) ) {
-			wp_send_json_error( 'They have no email address.' );
-		}
-
+		// Sent before: Updated Signature first, else New (Sam, 1 November 2026).
 		$set     = self::settings();
 		$asked   = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '';
-		$kind    = isset( self::KINDS[ $asked ] ) ? $asked : ( self::state( $id, self::fingerprint( SB_EmailSig_Render::html( $id ) ) ) === 'changed' ? 'updated' : 'new' );
+		$kind    = isset( self::KINDS[ $asked ] ) ? $asked : ( get_post_meta( $id, self::SENT, true ) ? 'updated' : 'new' );
 		$name    = trim( (string) get_field( 'sb_emailsig_name', $id ) );
 		$first   = trim( (string) get_field( 'sb_emailsig_first_name', $id ) );
 		$sender  = wp_get_current_user();
@@ -375,10 +363,10 @@ class SB_EmailSig_Notify {
 		$swap    = array(
 			'{first_name}' => $first !== '' ? $first : ( strtok( $name, ' ' ) ?: $name ),
 			'{name}'       => $name,
-			'{job_title}'  => trim( (string) get_field( 'sb_emailsig_job_title', $id ) ),
+			'{job_title}'  => SB_EmailSig_Data::field_line( $id, 'job_title' ),
 			'{email}'      => $to,
 			'{link}'       => SB_EmailSig_CPT::page_url( $id ),
-			'{sender}'     => $sender && $sender->exists() ? $sender->display_name : ( $company ?: get_bloginfo( 'name' ) ),
+			'{sender}'     => self::sender_name() !== '' ? self::sender_name() : ( $sender && $sender->exists() ? $sender->display_name : ( $company ?: get_bloginfo( 'name' ) ) ),
 		);
 		foreach ( self::tags() as $tag => $t ) {
 			if ( $t[1] !== null ) {
@@ -428,13 +416,18 @@ class SB_EmailSig_Notify {
 	public static function send() {
 		$mail = self::compose();
 		$id   = $mail['id'];
-		$to   = $mail['to'];
 		$kind = $mail['kind'];
 
 		// phpcs:disable WordPress.Security.NonceVerification -- checked in compose().
+		$to      = isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : $mail['to'];
 		$subject = isset( $_POST['subject'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['subject'] ) ) ) : '';
 		$message = isset( $_POST['message'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) ) : '';
 		// phpcs:enable
+
+		// To, as the popup has it (Sam, 1 November 2026).
+		if ( ! is_email( $to ) ) {
+			wp_send_json_error( 'Enter an email address to send it to.' );
+		}
 
 		// From the site's own address only: no Reply-To with the sender's
 		// address (personal ones, and mail servers block other domains).

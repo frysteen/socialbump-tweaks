@@ -3,7 +3,7 @@
  * Plugin Name: SocialBUMP Tweaks
  * Plugin URI:  https://socialbump.com.au
  * Description: SocialBUMP site tweaks in switchable modules. Turn on only the parts a site needs.
- * Version:     0.5.3
+ * Version:     0.6.0
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author:      SocialBUMP
@@ -37,7 +37,7 @@ if ( PHP_VERSION_ID < 80000 ) {
 // Tells the SocialBUMP hub this site has the plugin, its version and whether it is active.
 require_once __DIR__ . '/includes/class-socialbump-reporter.php';
 
-define( 'SB_TWEAKS_VERSION', '0.5.3' );
+define( 'SB_TWEAKS_VERSION', '0.6.0' );
 define( 'SB_TWEAKS_FILE', __FILE__ );
 define( 'SB_TWEAKS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SB_TWEAKS_URL', plugin_dir_url( __FILE__ ) );
@@ -203,10 +203,6 @@ function sb_tweaks_boot() {
 		// Updates pushed to sites from the Installs page.
 		require_once SB_TWEAKS_PATH . 'includes/class-sb-tweaks-push.php';
 		SB_Tweaks_Push::boot();
-
-		// Publishing from the Installs page, through each plugin's own publish handler.
-		require_once SB_TWEAKS_PATH . 'includes/class-sb-tweaks-hub-publish.php';
-		SB_Tweaks_Hub_Publish::boot();
 	}
 }
 add_action( 'plugins_loaded', 'sb_tweaks_boot' );
@@ -259,11 +255,15 @@ function sb_tweaks_tidy_away_hub_data() {
 		return;
 	}
 
-	foreach ( [ 'sb_tweaks_github_token', 'sb_tweaks_pending_changes', 'sb_tweaks_latest_release' ] as $option ) {
+	// The hub's own: its token, notes, signing keys, sites and their allowances (1 November 2026).
+	foreach ( [ 'sb_tweaks_github_token', 'sb_tweaks_pending_changes', 'sb_tweaks_push_secret', 'sb_tweaks_push_public', 'sb_tweaks_installs', 'sb_tweaks_policies', 'sb_tweaks_install_icons' ] as $option ) {
 		if ( get_option( $option ) !== false ) {
 			delete_option( $option );
 		}
 	}
+
+	// The latest release is kept as a transient, not an option.
+	delete_transient( 'sb_tweaks_latest_release' );
 }
 add_action( 'admin_init', 'sb_tweaks_tidy_away_hub_data' );
 

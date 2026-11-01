@@ -250,7 +250,7 @@ class SB_EmailSig_Report {
 		self::filters( $links );
 
 		if ( ! SB_EmailSig_Tracking::settings()['clicks'] ) {
-			echo '<div class="notice notice-warning inline"><p>Track Clicks is off in <a href="' . esc_url( SB_EmailSig_Settings::url() ) . '">Settings</a>, so no new clicks are counted.</p></div>';
+			echo '<div class="notice notice-warning inline"><p>Enable Reporting is off in <a href="' . esc_url( SB_EmailSig_Settings::url() ) . '">Settings</a>, so no new clicks are counted.</p></div>';
 		}
 
 		// The change on the period before.
@@ -358,21 +358,10 @@ class SB_EmailSig_Report {
 		echo '</span>';
 
 		// Company (with more than one): the Person menu then lists only its people.
-		$companies = SB_EmailSig_Company::all();
-		if ( count( $companies ) > 1 ) {
-			echo '<select name="company" aria-label="Company" data-sb-emailsig-company><option value="0">Every company</option>';
-			foreach ( $companies as $co ) {
-				echo '<option value="' . (int) $co . '"' . selected( $f['company'], $co, false ) . '>' . esc_html( SB_EmailSig_Company::name( $co ) ) . '</option>';
-			}
-			echo '</select>';
-		}
+		echo SB_EmailSig_Admin::company_filter( $f['company'], ' data-sb-emailsig-company' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in company_filter().
 
 		echo '<select name="person" aria-label="Person"><option value="0">Everyone</option>';
-		foreach ( SB_EmailSig_Admin::people( array( 'publish', 'draft' ) ) as $id ) {
-			if ( $f['company'] && SB_EmailSig_Company::of_person( $id ) !== $f['company'] ) {
-				continue;
-			}
-
+		foreach ( SB_EmailSig_Admin::people( array( 'publish', 'draft' ), $f['company'] ) as $id ) {
 			echo '<option value="' . (int) $id . '"' . selected( $f['person'], $id, false ) . '>' . esc_html( (string) get_field( 'sb_emailsig_name', $id ) ) . '</option>';
 		}
 		echo '</select>';

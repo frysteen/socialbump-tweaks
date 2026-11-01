@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.5.3
+Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,58 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.0 =
+* Email Signatures: a person's Email isn't required any more, here or on the team page form. Companies have an Email, used in the signature for anyone without their own.
+* Email Signatures: Company Email is an Info List item. A new or reset Info List has Save my contact details ticked, above the company's and person's items, which start unticked.
+* Email Signatures: Email link is on every person. Its To can be changed, and starts as their Email, else their company's. It starts on Updated Signature for someone emailed before.
+* Email Signatures: Default Sender Name in Settings, Signature Emails, for {sender}. Blank uses whoever sends it.
+* Email Signatures: the copied or not copied status is gone (Changed since copied, Not copied yet, Up to date). Every Copy signature and Copy HTML code click is logged, with the template, and who was logged in.
+* Email Signatures: the people file has a Separator column, and imports without an Email, matching by name.
+* Email Signatures: in an Info List, Email is now Person Email, with a note that it uses the Company Email when the person has none. Company Email links to that company's Company tab.
+* Email Signatures: people cards show the company's email with a Company tag for someone without their own, or No email set.
+* Email Signatures: company cards show the company's Phone, Email and Address.
+* Email Signatures: people use their company's templates only. Their own main and extra templates are gone, along with the Templates box on the person page and the template columns in the people file.
+* Email Signatures: Main Template is now called Default Template everywhere.
+* Email Signatures: company cards show Phone, Email, Address and Default Template, each with a Not set link to its field when empty. The cards line up row by row, and their people and templates counts link to those pages, filtered to the company.
+* Email Signatures: the Templates page has a Used by filter, and each card lists the companies it's the default for and available for. Edit styles and Layout show which companies use the template.
+* Email Signatures: the Info List icon menu is grouped (Contact, Social Media, Bookings and Hours, Reviews and Awards, Other) and adds Facebook, Instagram, YouTube, TikTok, X, Threads, Pinterest and a thumbs up.
+* Email Signatures: a Google icon in the company Social Media list and the Info List icon menu.
+* Email Signatures: icons added in an update are drawn in each template's colours the first time an administrator opens an Email Signatures page, instead of showing in the default teal.
+* Email Signatures: WhatsApp and Messenger icons in the company Social Media list and the Info List icon menu.
+* Email Signatures: Copy and Paste in the Layout popups, to put one widget's, row's, column's or gap's look on another of the same kind, on any template.
+* Email Signatures: the Submit New Team Member form only works from that company's own team page link, and anything typed into it can no longer run shortcodes.
+* Email Signatures: shortcodes in a person's details no longer run a second time inside Text widgets.
+* Image Management: the site wide image tools (rebuild, clear, scan and delete) are for administrators only; single image tools stay with anyone who can edit that image.
+* Settings import and export no longer carry the hub's module allowances and limits.
+* Email Signatures: with more than one company, the people file has a Company menu: Export writes that company's people and Import adds everyone to it, matching only people already in it.
+* Email Signatures: a photo in an import that can't be used (a GIF, say) is no longer left in the Media Library.
+* Email Signatures: a person added to, or moved into, a switched off company is made Inactive.
+* Email Signatures: the Layout card's own Reset only resets rows, columns and widgets, not Container, Footer or Layout Settings.
+* Email Signatures: the Active, Inactive, Deleted and total counts are readable in dark mode.
+* Email Signatures: UPPERCASE and lowercase text no longer break symbols such as &nbsp;.
+* Email Signatures: deleting a company moves its deleted people to the default company too, and a company can't be added past the limit from a page opened earlier.
+* Email Signatures: brand colours say so when the icons couldn't be redrawn, and copy buttons only say Copied once it really copied.
+* Bricks: Bricks Content conditions saved in the older wording work again, and gallery loops saved under the old name show their images.
+* Site Kit: adding a FAQ post type after removing one can no longer wipe another, and Reset to default rules on robots.txt asks first.
+* Image Management: Regenerate keeps a file another image still uses, the delete confirm shows the real file count, a long orphan scan keeps its list to the end, and a size settings field has its width back.
+* Woo Tweaks: the regular and sale prices in the cart follow the cart's tax display setting.
+* The Installs page says how many updated and failed after a bulk update, and a failed publish no longer leaves readme.txt with the new version.
+* Email Signatures: tidied unused code and fixed old wording on screen. The Default Template help now reads "Used for everyone in this company", the Settings page description lists what it really holds, the Reports notice points to Enable Reporting, and the person screens say Person instead of Signature.
+* Email Signatures: merged repeated code into shared helpers (people in a company, the company Email, link buttons, the Active switch, the Company filter, the tag lists, private page headers and more). Icon-only link buttons now have screen reader labels.
+* Email Signatures: removed unused styles and merged rules that were written twice. Nothing looks different.
+* Email Signatures: the Save Contact card splits a name the same way as the rest of the plugin when no first and last name are saved.
+* Tidy: removed about 24KB of unused styles from the framework stylesheet, plus unused code in the framework, Images and Site Kit (an old Installs publish handler nothing called, and a few functions nothing used).
+* Site Kit: shortcodes in excerpts run once instead of twice, and the FAQ clean-up says "1 post type has" instead of "1 post type have".
+* UI rules: hover tips use the framework tooltip instead of the browser one, Save buttons keep one width whether they say Nothing to save or Save changes, copy confirmations show as toasts, and copied tags say Copied in their tip instead of changing size.
+* Site Kit: deleting leftover FAQ content asks in a red Delete popup and says how it went in a toast.
+* Saved and done messages on the Updates page, the plugin notes and the Image Cleaner show as toasts instead of banners, so the page does not jump.
+* Email Signatures: Houzz added to the social media icons and to the Social Media group in the Info List icon menu.
+* Email Signatures: the template toolbar shows "In use by 2 companies" as a pill, with the company names in its tip, in place of the list.
+* Email Signatures: hovering the In use by pill lists the companies one a line, each a link to edit that company.
+* Stop button for long jobs: the progress popup can show Stop while it runs, which ends the job after the step in hand and keeps what is done. Updating several sites and sending modules to several sites on the Installs page now have it.
+* Modules and Features pages: cards drag by a handle beside their switch and the new order saves as soon as one is dropped (the Reorder Cards popup is gone). The toolbar shows how many are on as a pill, with Enable all and Disable all.
+* Features and Modules pages: Disable all now sits left of Enable all, and turns red on hover where Enable all turns green.
 
 = 0.5.3 =
 * Email Signatures: the person photo is a fixed width again, set by Width in Edit styles. The Max width version left the photo out in Apple Mail.

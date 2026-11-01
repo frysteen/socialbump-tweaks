@@ -36,14 +36,16 @@ class SB_EmailSig_Person {
 
 	/** The cards and the fields in each, in order. */
 	const CARDS = array(
-		'details'   => array( 'Details', array( 'person_company', 'staff_page', 'first_name', 'last_name', 'qualifications', 'job_title', 'email', 'mobile' ) ),
+		'details'   => array( 'Details', array( 'person_company', 'staff_page', 'first_name', 'last_name', 'qualifications', 'job_title', 'join', 'email', 'mobile' ) ),
 		'crop'      => array( 'Photo', array( 'photo' ) ),
 		'info'      => array( 'Info List', array( 'person_info', 'person_info_hide' ) ),
-		'templates' => array( 'Templates', array( 'person_template' ) ),
 	);
 
 	/** Fields the preview takes from the form as they change: simple values only. */
-	const LIVE = array( 'first_name', 'last_name', 'qualifications', 'job_title', 'email', 'mobile', 'staff_page', 'person_info_hide', 'person_company' );
+	const LIVE = array( 'first_name', 'last_name', 'qualifications', 'job_title', 'join', 'email', 'mobile', 'staff_page', 'person_info_hide', 'person_company' );
+
+	/** Live fields with more than one line (Sam, 1 November 2026): their line breaks kept. */
+	const MULTILINE = array( 'qualifications', 'job_title' );
 
 	/** The person's own Info List rows (a repeater): its sub fields, by key. */
 	const INFO     = 'field_sb_emailsig_person_info';
@@ -67,25 +69,11 @@ class SB_EmailSig_Person {
 	 * people say so.
 	 */
 	private static function menu( $id, $name ) {
-		$many   = count( SB_EmailSig_Company::all() ) > 1;
 		$people = array();
 
-		foreach ( SB_EmailSig_Admin::people( array( 'publish', 'draft' ) ) as $pid ) {
-			$co       = SB_EmailSig_Company::of_person( $pid );
-			$people[] = array(
-				self::url( $pid ),
-				trim( (string) get_field( 'sb_emailsig_name', $pid ) ) . ( get_post_status( $pid ) === 'draft' ? ' (Inactive)' : '' ),
-				$many ? SB_EmailSig_Company::name( $co ) : '',
-			);
+		foreach ( SB_EmailSig_Admin::everyone() as $p ) {
+			$people[] = array( self::url( $p[0] ), $p[1], $p[2] );
 		}
-
-		// By company, then by name.
-		usort(
-			$people,
-			function ( $a, $b ) {
-				return array( $a[2], strtolower( $a[1] ) ) <=> array( $b[2], strtolower( $b[1] ) );
-			}
-		);
 
 		if ( ! in_array( self::url( $id ), array_column( $people, 0 ), true ) ) {
 			return '<span class="sb-ui-bar__title">' . esc_html( $name ) . '</span>';
@@ -176,7 +164,7 @@ class SB_EmailSig_Person {
 					function ( $k ) {
 						return 'field_sb_emailsig_' . $k;
 					},
-					array_merge( self::LIVE, array( 'person_template' ) )
+					self::LIVE
 				),
 			)
 		);
@@ -264,9 +252,7 @@ class SB_EmailSig_Person {
 		$who = $id ? self::menu( $id, $name ) : '<span class="sb-ui-bar__title">' . esc_html( $name ) . '</span>';
 
 		if ( $id ) {
-			$active = get_post_status( $id ) === 'publish';
-			$off    = SB_EmailSig_Switch::person_off( $id ); // Their company switched off: locked.
-			$who   .= '<label class="sb-tweaks-switch" data-sb-tip="' . esc_attr( $off ? 'Switch ' . SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $id ) ) . ' on first' : 'Active' ) . '"><input type="checkbox" data-sb-emailsig-active="' . (int) $id . '"' . checked( $active, true, false ) . disabled( $off, true, false ) . '><span class="sb-tweaks-switch__track"><span class="sb-tweaks-switch__dot"></span></span><span class="screen-reader-text">Active</span></label>';
+			$who .= SB_EmailSig_Admin::active_switch( $id );
 		}
 
 		$groups = array(
@@ -278,15 +264,14 @@ class SB_EmailSig_Person {
 			$url      = SB_EmailSig_CPT::page_url( $id );
 			$groups[] = array(
 				'Their page',
-				'<button type="button" class="button button-small sb-emailsig-icon" data-sb-emailsig-copy-text="' . esc_attr( $url ) . '" data-sb-tip="Copy link">' . SB_EmailSig_Admin::icon( 'link' ) . '</button>'
-				. '<a class="button button-small sb-emailsig-icon" href="' . esc_url( $url ) . '" target="_blank" rel="noopener" data-sb-tip="Open their page">' . SB_EmailSig_Admin::icon( 'open' ) . '</a>',
+				SB_EmailSig_Admin::link_buttons( $url, 'Copy link', 'Open their page' ),
 			);
 		}
 
 		$end = '';
 
 		if ( $id && current_user_can( 'delete_post', $id ) ) {
-			$end .= '<button type="submit" form="sb-emailsig-person-delete" class="button sb-emailsig-icon sb-emailsig-icon--danger" data-sb-tip="Delete" data-sb-always-on data-sb-tweaks-confirm="' . esc_attr( 'Move ' . $name . ' to the Trash? Their signature stops working.' ) . '" data-sb-tweaks-confirm-title="Delete person" data-sb-tweaks-confirm-action="Delete">' . SB_EmailSig_Admin::icon( 'trash' ) . '</button>';
+			$end .= '<button type="submit" form="sb-emailsig-person-delete" class="button sb-emailsig-icon sb-emailsig-icon--danger" data-sb-tip="Delete" data-sb-always-on' . SB_EmailSig_Admin::delete_confirm( $name ) . '>' . SB_EmailSig_Admin::icon( 'trash' ) . '</button>';
 		}
 
 		$end .= SB_Tweaks_UI::save_button( $form, $id ? '' : 'Add person' );
@@ -325,12 +310,6 @@ class SB_EmailSig_Person {
 		// The signature, beside the cards.
 		echo '<div class="sb-emailsig-editor__side"><div class="sb-emailsig-editor__sticky">';
 		echo '<div class="sb-emailsig-editor__side-head"><h3>Preview</h3><span class="sb-emailsig-editor__status" aria-live="polite"></span>';
-
-		if ( $id ) {
-			$state = SB_EmailSig_Notify::state( $id, SB_EmailSig_Notify::fingerprint( SB_EmailSig_Render::html( $id ) ) );
-			echo $state === 'current' ? '<span class="sb-emailsig-state sb-emailsig-state--current">Up to date</span>' : SB_EmailSig_Notify::badge( $state ); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup.
-		}
-
 		echo '</div>';
 
 		if ( $id ) {
@@ -527,7 +506,7 @@ class SB_EmailSig_Person {
 			$tpl = SB_EmailSig_Templates::get( $tpl_id );
 
 			if ( $tpl ) {
-				$out .= '<button type="button" data-sb-emailsig-tpl="' . esc_attr( $tpl['id'] ) . '"' . ( (string) $tpl['id'] === (string) $current ? ' aria-current="page"' : '' ) . ( $i === 0 ? ' data-sb-tip="Their main template"' : '' ) . '>' . esc_html( $tpl['name'] ) . '</button>';
+				$out .= '<button type="button" data-sb-emailsig-tpl="' . esc_attr( $tpl['id'] ) . '"' . ( (string) $tpl['id'] === (string) $current ? ' aria-current="page"' : '' ) . ( $i === 0 ? ' data-sb-tip="Their company\'s Default Template"' : '' ) . '>' . esc_html( $tpl['name'] ) . '</button>';
 			}
 		}
 
@@ -570,7 +549,7 @@ class SB_EmailSig_Person {
 			$k = 'field_sb_emailsig_' . $key;
 
 			if ( isset( $posted[ $k ] ) && ! is_array( $posted[ $k ] ) ) {
-				$over[ $k ] = sanitize_text_field( (string) $posted[ $k ] );
+				$over[ $k ] = in_array( $key, self::MULTILINE, true ) ? sanitize_textarea_field( (string) $posted[ $k ] ) : sanitize_text_field( (string) $posted[ $k ] );
 			}
 		}
 
@@ -607,19 +586,11 @@ class SB_EmailSig_Person {
 			$over['field_sb_emailsig_photo'] = absint( $posted['field_sb_emailsig_photo'] ) ?: '';
 		}
 
-		// Their templates as picked: the main ('' for the company's) and the extras.
-		$main   = isset( $posted['field_sb_emailsig_person_template'] ) && ! is_array( $posted['field_sb_emailsig_person_template'] ) ? sanitize_text_field( (string) $posted['field_sb_emailsig_person_template'] ) : null;
-		$extras = null;
-
-		if ( isset( $_POST['sb_extras'] ) ) {
-			$extras = array_map( 'sanitize_text_field', array_filter( (array) wp_unslash( $_POST['sb_extras'] ), 'is_string' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- cleaned here.
-		}
-
 		// Their company as picked, if it isn't saved yet: its templates and its details.
 		$co = isset( $posted['field_sb_emailsig_person_company'] ) && ! is_array( $posted['field_sb_emailsig_person_company'] ) ? absint( $posted['field_sb_emailsig_person_company'] ) : 0;
 		$co = SB_EmailSig_Company::valid( $co ) ? $co : null;
 
-		$list = SB_EmailSig_Templates::available( $id, $main, $extras, $co );
+		$list = SB_EmailSig_Templates::available( $id, $co );
 		$show = isset( $_POST['template'] ) ? sanitize_text_field( wp_unslash( $_POST['template'] ) ) : '';
 
 		$swap = function ( $value, $post_id, $field ) use ( $id, $over ) {

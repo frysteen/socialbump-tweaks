@@ -375,13 +375,7 @@ class SB_EmailSig_Log {
 		echo '</select>';
 
 		$companies = SB_EmailSig_Company::all();
-		if ( count( $companies ) > 1 ) {
-			echo '<select name="company" aria-label="Company"><option value="0">Every company</option>';
-			foreach ( $companies as $id ) {
-				echo '<option value="' . (int) $id . '"' . selected( $co, $id, false ) . '>' . esc_html( SB_EmailSig_Company::name( $id ) ) . '</option>';
-			}
-			echo '</select>';
-		}
+		echo SB_EmailSig_Admin::company_filter( $co ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in company_filter().
 
 		if ( $type !== '' || $co || $q !== '' ) {
 			echo '<a class="button sb-emailsig-report__clear" href="' . esc_url( $base ) . '">Clear filters</a>';
@@ -400,7 +394,7 @@ class SB_EmailSig_Log {
 		foreach ( $rows as $row ) {
 			$at = strtotime( $row['at'] . ' UTC' );
 
-			echo '<tr><td class="sb-emailsig-activity__when" title="' . esc_attr( wp_date( 'j M Y, g:ia', $at ) ) . '">' . esc_html( human_time_diff( $at ) . ' ago' ) . '<span>' . esc_html( wp_date( 'j M Y, g:ia', $at ) ) . '</span></td>';
+			echo '<tr><td class="sb-emailsig-activity__when" data-sb-tip="' . esc_attr( wp_date( 'j M Y, g:ia', $at ) ) . '">' . esc_html( human_time_diff( $at ) . ' ago' ) . '<span>' . esc_html( wp_date( 'j M Y, g:ia', $at ) ) . '</span></td>';
 			echo '<td>' . esc_html( $row['who'] ) . '</td>';
 			echo '<td>' . esc_html( self::sentence( $row ) ) . '</td>';
 

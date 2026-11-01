@@ -79,16 +79,12 @@ class SB_EmailSig_Tracking {
 
 	/** Settings, Tracking tab: every code, click to copy (assets/settings.js, as the Emails tab's merge tags). */
 	public static function render_codes() {
-		echo '<div class="sb-emailsig-tags">';
-
+		$rows = array();
 		foreach ( self::codes() as $code => $note ) {
-			echo '<div class="sb-emailsig-tags__row">';
-			echo '<button type="button" class="sb-emailsig-token" data-sb-emailsig-tag="' . esc_attr( $code ) . '" title="Copy ' . esc_attr( $code ) . '"><code>' . esc_html( $code ) . '</code></button>';
-			echo '<span class="sb-emailsig-tags__note">' . esc_html( $note ) . '</span>';
-			echo '</div>';
+			$rows[] = array( $code, $note, false );
 		}
 
-		echo '</div>';
+		SB_EmailSig_Admin::tag_list( $rows );
 	}
 
 	/**
@@ -246,8 +242,7 @@ class SB_EmailSig_Tracking {
 
 		// Their company switched off (SB_EmailSig_Switch): the link goes nowhere.
 		if ( $hit && SB_EmailSig_Switch::person_off( $hit['person'] ) ) {
-			nocache_headers();
-			header( 'X-Robots-Tag: noindex, nofollow', true );
+			SB_EmailSig_Page::private_headers();
 			status_header( 404 );
 			echo 'Link not found.';
 			exit;
@@ -265,12 +260,7 @@ class SB_EmailSig_Tracking {
 			$url = trim( (string) get_field( 'sb_emailsig_website', SB_EmailSig_Company::source() ) ) ?: home_url( '/' );
 		}
 
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
-		nocache_headers();
-		header( 'X-Robots-Tag: noindex, nofollow', true );
-		header( 'X-LiteSpeed-Cache-Control: no-cache', true );
+		SB_EmailSig_Page::private_headers();
 
 		wp_redirect( $url, 302, 'SB Email Signatures' ); // phpcs:ignore WordPress.Security.SafeRedirect -- only addresses saved in Settings.
 		exit;

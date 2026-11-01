@@ -16,7 +16,7 @@
 			a.setAttribute('data-sb-replace', '1');
 			a.classList.remove('-pencil');
 			a.classList.add('-sync');
-			a.setAttribute('title', 'Replace');
+			a.removeAttribute('title');
 			a.setAttribute('aria-label', 'Replace image');
 			a.setAttribute('data-sb-tip', 'Replace');
 		});

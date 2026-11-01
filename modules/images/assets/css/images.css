@@ -42,7 +42,9 @@
 	flex-wrap: wrap;
 }
 
-.sb-images-width input[type="number"] {\n\twidth: 90px;\n}
+.sb-images-width input[type="number"] {
+	width: 90px;
+}
 
 .sb-images-width__name {
 	flex: 1 1 auto;
@@ -424,10 +426,9 @@ table.sb-images-report td:last-child {
 	cursor: default;
 }
 
-/* Orphan rows: in use, or kept on purpose */
+/* Orphan rows: in use */
 
-.sb-images-report__used,
-.sb-images-report__keptflag {
+.sb-images-report__used {
 	display: block;
 	margin-top: 2px;
 	font-size: 11px;

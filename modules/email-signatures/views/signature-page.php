@@ -3,7 +3,7 @@
  * Front-end signature page, in the SocialBUMP UI look (Sam, 30 October
  * 2026). Available: $post_id, $sigs (each template they can pick, main first:
  * name, html, mark), $html (the main one's), $name, $title. Copy signature
- * records the version copied (SB_EmailSig_Notify). With more than one
+ * and the Copy HTML code buttons are logged (SB_EmailSig_Notify). With more than one
  * template, tabs swap the signature, its copy buttons and the HTML code box
  * (assets/copy.js). The signature sits on white, as in an email. $head:
  * their company's circle beside the heading (SB_EmailSig_Page::head_mark()).
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $icons = SB_EMAILSIG_URL . 'assets/guides/';
-$mark  = SB_EmailSig_Notify::mark_attr( $post_id, SB_EmailSig_Notify::fingerprint( $html ) );
+$mark  = SB_EmailSig_Notify::mark_attr( $post_id, $sigs ? (string) array_key_first( $sigs ) : '' );
 // Copy link for anyone, to pass the page on; Email link for those who manage (Sam, 31 October 2026).
 $manage = SB_EmailSig_Admin::can_manage();
 $link   = SB_EmailSig_CPT::page_url( $post_id );
@@ -59,7 +59,7 @@ $link   = SB_EmailSig_CPT::page_url( $post_id );
 			<span class="status" id="sb-emailsig-status" role="status" aria-live="polite"></span>
 			<span class="sb-emailsig-front__tools">
 				<button type="button" class="button sb-emailsig-icon" data-sb-emailsig-copy-text="<?php echo esc_attr( $link ); ?>" data-sb-tip="Copy link to this page" aria-label="Copy link to this page"><?php echo SB_EmailSig_Admin::icon( 'link' ); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup. ?></button>
-				<?php echo $manage ? SB_EmailSig_Admin::send_button( $post_id, SB_EmailSig_Notify::state( $post_id, SB_EmailSig_Notify::fingerprint( $html ) ) ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in send_button(). ?>
+				<?php echo $manage ? SB_EmailSig_Admin::send_button( $post_id ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in send_button(). ?>
 			</span>
 		</div>
 	</section>

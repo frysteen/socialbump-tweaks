@@ -10,11 +10,11 @@
  *   rows       (Sam, 31 October 2026; before, one row's columns, gaps and
  *              valign sat at the top level, read as Row 1) 1 to MAX_ROWS,
  *              stacked, each: [
- *     columns  1 to 5 (3 before 30 October 2026): [ width (px, 0 for as wide as its blocks), valign
+ *     columns  1 to MAX_COLUMNS: [ width (px, 0 for as wide as its blocks), valign
  *              ('' for the row's), top and bottom (px of space inside
  *              the column, so a line beside it runs past its blocks), blocks ]
- *     gaps     always four (two before 30 October 2026), between each
- *              column and the next: [ space (left of a line, or between
+ *     gaps     one between each column and the next, never fewer than
+ *              GAP_PAD: [ space (left of a line, or between
  *              the columns with none), space_after (right of a line; Sam,
  *              31 October 2026, missing is the same as space), line (its
  *              thickness in px, 0 for none; 0 or 1 before 29 October 2026,
@@ -181,7 +181,7 @@ class SB_EmailSig_Layout {
 	const TEXT_PARTS = [ 'title', 'text' ];
 
 	/** The merge tags a Text block fills in (Sam, 31 October 2026). */
-	const TAGS = [ 'first_name', 'last_name', 'name', 'job_title', 'qualifications', 'company', 'phone', 'mobile', 'email', 'website' ];
+	const TAGS = [ 'first_name', 'last_name', 'name', 'job_title', 'qualifications', 'company', 'phone', 'mobile', 'email', 'company_email', 'website' ];
 
 	/**
 	 * Spacing steps, as parts of the Default Spacing (8px from 31 October
@@ -214,9 +214,6 @@ class SB_EmailSig_Layout {
 
 	/** The layout being drawn (for its default spacing and line width). */
 	private static $layout = [];
-
-	/** The row being drawn (its colours), and the variant icon sets its block draws with ('' for the usual). */
-	private static $row_now = [];
 
 	/** The colours blocks follow while a column is drawn: its own, else its row's. */
 	private static $colours_now = [];
@@ -256,15 +253,18 @@ class SB_EmailSig_Layout {
 	/**
 	 * What an Info List can hold: key => label. The company's Additional
 	 * Info List Items one by one (c:<row id>, labelled as in Settings), then
-	 * the person's own as one.
+	 * the person's own as one. Save my contact details above them (Sam, 1
+	 * November 2026).
 	 */
 	public static function items() {
 		$out = [
-			'phone'   => 'Phone',
-			'mobile'  => 'Mobile',
-			'email'   => 'Email',
-			'website' => 'Website',
-			'address' => 'Address',
+			'phone'         => 'Phone',
+			'mobile'        => 'Mobile',
+			'email'         => 'Person Email', // Their own, else the company's (Sam, 1 November 2026).
+			'company_email' => 'Company Email',
+			'website'       => 'Website',
+			'address'       => 'Address',
+			'vcard'         => 'Save my contact details',
 		];
 
 		foreach ( self::company_items() as $ref => $item ) {
@@ -273,9 +273,15 @@ class SB_EmailSig_Layout {
 
 		return $out + [
 			'info_person' => 'Person\'s own Additional Info List Items',
-			'vcard'       => 'Save my contact details',
 		];
 	}
+
+	/**
+	 * Ticked in a new Info List, or one reset (Sam, 1 November 2026): Save
+	 * my contact details yes; Company Email and the company's and person's
+	 * Additional Info List Items no.
+	 */
+	const ITEMS_ON = [ 'phone', 'mobile', 'email', 'website', 'address', 'vcard' ];
 
 	/**
 	 * What a layout leaves out, for the person page's preview (Sam, 30
@@ -437,7 +443,7 @@ class SB_EmailSig_Layout {
 				foreach ( array_keys( self::items() ) as $key ) {
 					$items[] = [
 						'key' => $key,
-						'on'  => $key === 'vcard' ? 0 : 1, // Its own block shows it already.
+						'on'  => in_array( $key, self::ITEMS_ON, true ) ? 1 : 0,
 					];
 				}
 
@@ -527,8 +533,7 @@ class SB_EmailSig_Layout {
 					'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026).
 					'blocks' => [
 						$b( 'logo' ),
-						$b( 'info', [], 1 ), // Default spacing both (Sam, 31 October 2026).
-						$b( 'vcard' ),
+						$b( 'info', [], 1 ), // Default spacing both (Sam, 31 October 2026). Save my contact details ticked in it (Sam, 1 November 2026).
 						$b( 'social', [ 'indent' => 1 ] ),
 					],
 				],
@@ -555,7 +560,7 @@ class SB_EmailSig_Layout {
 			],
 			'line_below' => 'default',
 			'line_space' => 'double',
-			'hold'       => [ $b( 'logo_small' ) ],
+			'hold'       => [ $b( 'logo_small' ), $b( 'vcard' ) ],
 		];
 	}
 
@@ -759,13 +764,10 @@ class SB_EmailSig_Layout {
 	/** A line's style for CSS: its own, or the layout's Default Line Style. */
 	public static function lstyle( $v, $layout = null ) {
 		$layout = is_array( $layout ) ? $layout : self::$layout;
+		$own    = self::line_style( $v );
 
-		if ( isset( self::STYLES[ $v ] ) ) {
-			return $v;
-		}
-
-		if ( in_array( $v, self::OLD_STYLES, true ) ) {
-			return 'solid';
+		if ( $own !== 'default' ) {
+			return $own;
 		}
 
 		return isset( self::STYLES[ $layout['line_style'] ?? '' ] ) ? $layout['line_style'] : 'solid';
@@ -1387,8 +1389,7 @@ class SB_EmailSig_Layout {
 
 	/** One row's columns, as a table: empty columns (nothing to show) are left out, gaps and all. '' with nothing to show. */
 	private static function row( array $layout ) {
-		$cols          = [];
-		self::$row_now = $layout;
+		$cols = [];
 
 		foreach ( $layout['columns'] as $col ) {
 			$parts = [];
@@ -1745,15 +1746,28 @@ class SB_EmailSig_Layout {
 		$name = esc_html( self::cased( 'name', SB_EmailSig_Names::show( $b['format'] ?? 'full', $d['first_name'] ?? '', $d['last_name'] ?? '', $d['name'] ) ) );
 		$name = $d['profile_link'] ? self::a( $d['profile_link'], $name, self::LINK . ( $css['name'] ?? '' ) ) : $name;
 		$more = [];
+		$tall = [];
 
 		foreach ( [ 'qualifications', 'job_title' ] as $item ) {
 			if ( ! empty( $d[ $item ] ) ) {
 				$more[ $item ] = esc_html( self::cased( $item, $d[ $item ] ) );
+				// Stacked, each line as typed, a <br> between (Sam, 1 November 2026).
+				$lines         = (array) ( $d[ $item . '_lines' ] ?? [ $d[ $item ] ] );
+				$tall[ $item ] = implode(
+					'<br>',
+					array_map(
+						function ( $l ) use ( $item ) {
+							return esc_html( self::cased( $item, (string) $l ) );
+						},
+						$lines ? $lines : [ $d[ $item ] ]
+					)
+				);
 			}
 		}
 
 		$space = self::px( $b['spacing'] ?? 3 );
 
+		// On one line: the lines joined with the person's Separator.
 		if ( $b['style'] === 'row' ) {
 			$sep = self::sep( $b['sep'] );
 			$out = '<div style="white-space:nowrap;"><span style="' . esc_attr( $css['name'] ?? '' ) . '">' . $name . '</span>';
@@ -1767,7 +1781,7 @@ class SB_EmailSig_Layout {
 
 		$out = '<div style="white-space:nowrap;' . esc_attr( $css['name'] ?? '' ) . '">' . $name . '</div>';
 
-		foreach ( $more as $item => $text ) {
+		foreach ( $tall as $item => $text ) {
 			$out .= '<div style="padding-top:' . $space . 'px;white-space:nowrap;' . esc_attr( $css[ $item ] ?? '' ) . '">' . $text . '</div>';
 		}
 
@@ -1860,7 +1874,7 @@ class SB_EmailSig_Layout {
 		return $css;
 	}
 
-	/** A Text block part filled in: merge tags, Dynamic Shortcodes, shortcodes, links, then its case. */
+	/** A Text block part filled in: its shortcodes and Dynamic Shortcodes, the merge tags, links, then its case. */
 	private static function fill( $html, $case, $link_hex ) {
 		$d    = self::$d;
 		$name = trim( (string) ( $d['name'] ?? '' ) );
@@ -1875,31 +1889,25 @@ class SB_EmailSig_Layout {
 			'phone'          => $d['phone'] ?? '',
 			'mobile'         => $d['mobile'] ?? '',
 			'email'          => $d['email'] ?? '',
+			'company_email'  => $d['company_email'] ?? '',
 			'website'        => ( $d['website_label'] ?? '' ) !== '' ? $d['website_label'] : ( $d['website'] ?? '' ),
 		];
 
+		// The widget's own shortcodes first (Dynamic Shortcodes too); the
+		// merge tags after, with any brackets in a person's details shown
+		// as typed, so they aren't run a second time (their fields already
+		// ran their own: SB_EmailSig_Data::format_value()).
+		// The tags are held aside while they run, so Dynamic Shortcodes can't take them for its own.
+		$tags = '/\{(' . implode( '|', self::TAGS ) . ')\}/';
+		$html = preg_replace( $tags, "\x01$1\x01", $html );
+		$html = SB_EmailSig_Data::expand( $html, false );
 		$html = preg_replace_callback(
-			'/\{(' . implode( '|', self::TAGS ) . ')\}/',
+			'/\x01(' . implode( '|', self::TAGS ) . ')\x01/',
 			function ( $m ) use ( $vals ) {
-				return esc_html( (string) $vals[ $m[1] ] );
+				return str_replace( array( '[', ']', '{', '}' ), array( '&#91;', '&#93;', '&#123;', '&#125;' ), esc_html( (string) $vals[ $m[1] ] ) );
 			},
 			$html
 		);
-
-		// Dynamic Shortcodes (dynamic.ooo), when the site has it: {wp-shortcode:site_phone @ format="link"}.
-		if ( strpos( $html, '{' ) !== false && class_exists( '\DynamicShortcodes\Plugin' ) ) {
-			try {
-				$manager = \DynamicShortcodes\Plugin::instance()->shortcodes_manager;
-				$done    = $manager ? $manager->expand_shortcodes( $html ) : null;
-				$html    = is_string( $done ) ? $done : $html;
-			} catch ( \Throwable $e ) {
-				unset( $e ); // Left as typed.
-			}
-		}
-
-		if ( strpos( $html, '[' ) !== false ) {
-			$html = do_shortcode( $html );
-		}
 
 		$html = make_clickable( $html );
 
@@ -1967,6 +1975,13 @@ class SB_EmailSig_Layout {
 		$d     = self::$d;
 		$names = (array) ( self::$s['icons']['names'] ?? [] );
 		$rows  = [];
+		// The address the Email line shows, when this list has it ticked.
+		$mailed = '';
+		foreach ( $items as $item ) {
+			if ( ( $item['key'] ?? '' ) === 'email' && ! empty( $item['on'] ) ) {
+				$mailed = strtolower( (string) ( $d['email'] ?? '' ) );
+			}
+		}
 		$extra = function ( $list ) use ( &$rows, $names ) {
 			foreach ( (array) $list as $info ) {
 				$rows[] = [ in_array( $info['icon'], $names, true ) ? $info['icon'] : '', $info['text'], $info['link'], $info['label'] ];
@@ -1992,6 +2007,12 @@ class SB_EmailSig_Layout {
 				case 'email':
 					if ( $d['email'] ) {
 						$rows[] = [ 'mail', $d['email'], 'mailto:' . $d['email'], 'Email' ];
+					}
+					break;
+				case 'company_email':
+					// Not twice: a person without an Email shows the company's already.
+					if ( ! empty( $d['company_email'] ) && strtolower( $d['company_email'] ) !== $mailed ) {
+						$rows[] = [ 'mail', $d['company_email'], 'mailto:' . $d['company_email'], 'Email' ];
 					}
 					break;
 				case 'website':

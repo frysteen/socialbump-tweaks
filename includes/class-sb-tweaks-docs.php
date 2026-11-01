@@ -16,9 +16,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SB_Tweaks_Docs {
 
-	const START = '<!-- shared:start -->';
-	const END   = '<!-- shared:end -->';
-
 	public static function boot() {
 		add_action( 'admin_post_sb_tweaks_save_docs', [ __CLASS__, 'save' ] );
 
@@ -28,25 +25,6 @@ class SB_Tweaks_Docs {
 
 	private static function path() {
 		return SB_TWEAKS_PATH . 'docs/context.md';
-	}
-
-	/** The shared block, for comparing against the other plugins. */
-	public static function shared( $file = '' ) {
-		$file = $file !== '' ? $file : self::path();
-
-		if ( ! is_readable( $file ) ) {
-			return '';
-		}
-
-		$text  = (string) file_get_contents( $file );
-		$start = strpos( $text, self::START );
-		$end   = strpos( $text, self::END );
-
-		if ( $start === false || $end === false || $end < $start ) {
-			return '';
-		}
-
-		return substr( $text, $start, $end - $start );
 	}
 
 	public static function save() {
@@ -82,7 +60,7 @@ class SB_Tweaks_Docs {
 		echo '<div class=' . $q . 'sb-tweaks-section__body' . $q . '>';
 
 		if ( isset( $_GET['docs'] ) ) {
-			echo '<div class=' . $q . 'notice notice-success inline' . $q . '><p>' . esc_html__( 'Notes saved.', 'sb-tweaks' ) . '</p></div>';
+			echo '<div class=' . $q . 'notice notice-success is-dismissible' . $q . '><p>' . esc_html__( 'Notes saved.', 'sb-tweaks' ) . '</p></div>';
 		}
 
 		$prompt  = 'You are picking up work on SocialBUMP Tweaks, a WordPress plugin. ';

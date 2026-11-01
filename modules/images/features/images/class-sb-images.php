@@ -658,7 +658,7 @@ class SB_Images {
 			// WordPress's larger sizes can be switched off. Thumbnail and medium
 			// stay on, because the media library and the editor show them.
 			if ( $offable ) {
-				echo '<input type="checkbox" class="sb-images-othersizes__on" name="sb_images_wp_on[]" value="' . esc_attr( $name ) . '" title="' . esc_attr__( 'Make this size', 'sb-tweaks' ) . '"' . checked( ! $is_off, true, false ) . disabled( $locked, true, false ) . '>';
+				echo '<input type="checkbox" class="sb-images-othersizes__on" name="sb_images_wp_on[]" value="' . esc_attr( $name ) . '" data-sb-tip="' . esc_attr__( 'Make this size', 'sb-tweaks' ) . '"' . checked( ! $is_off, true, false ) . disabled( $locked, true, false ) . '>';
 			} else {
 				echo '<span class="sb-images-othersizes__on"></span>';
 			}
@@ -731,7 +731,7 @@ class SB_Images {
 	 */
 	private static function lock_toggle( $name, $locked ) {
 		return sprintf(
-			'<label class="sb-images-lock" title="%3$s"><input type="checkbox" name="sb_images_locked[]" value="%1$s"%2$s><span class="dashicons dashicons-%4$s" aria-hidden="true"></span><span class="screen-reader-text">%3$s</span></label>',
+			'<label class="sb-images-lock" data-sb-tip="%3$s"><input type="checkbox" name="sb_images_locked[]" value="%1$s"%2$s><span class="dashicons dashicons-%4$s" aria-hidden="true"></span><span class="screen-reader-text">%3$s</span></label>',
 			esc_attr( $name ),
 			checked( $locked, true, false ),
 			esc_attr__( 'Lock this size, so it cannot be changed or removed and its files are never deleted', 'sb-tweaks' ),

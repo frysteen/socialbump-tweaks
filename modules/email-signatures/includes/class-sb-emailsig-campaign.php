@@ -1,7 +1,7 @@
 <?php
 /**
  * The campaign banner: one banner in the signature that can be changed any
- * time, in signatures already pasted into Mail. Settings, Campaign Banner tab.
+ * time, in signatures already pasted into Mail. A company's Campaign Banner tab.
  *
  * The signature always has the same image address, /?sbbanner=1, and (with
  * Track Clicks on) the same link, the short link with key c. This site
@@ -131,11 +131,7 @@ class SB_EmailSig_Campaign {
 			return;
 		}
 
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
-		header( 'X-Robots-Tag: noindex, nofollow', true );
-		header( 'X-LiteSpeed-Cache-Control: no-cache', true );
+		SB_EmailSig_Page::private_headers( false );
 		// Mail apps may keep it a few minutes; never longer from here.
 		header( 'Cache-Control: public, max-age=300', true );
 

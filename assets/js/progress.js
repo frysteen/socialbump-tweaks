@@ -25,6 +25,15 @@
  * The current item is written as "Label: detail"; the label is shown in bold.
  * finish() takes an optional second argument, a function to run on Close in
  * place of the reload.
+ *
+ * Stop (Sam, 1 November 2026): open( title, { stop: true } ) shows a Stop
+ * button while it runs. Pressing it says the run will stop after the step
+ * in hand, and job.stopping() turns true: check it before each step, and
+ * finish() when it is. stop can also be a function, called once when
+ * pressed (to tell a server to stop, say).
+ *
+ *   var job = SBTweaksProgress.open( 'Updating sites', { stop: true } );
+ *   if ( job.stopping() ) { job.finish( 'Stopped after 3 of 9' ); }
  */
 ( function () {
 	'use strict';
@@ -99,12 +108,16 @@
 		node.appendChild( document.createTextNode( text.slice( at ) ) );
 	}
 
-	function open( title ) {
+	function open( title, options ) {
 		build();
 
-		var started = Date.now();
-		var lines   = [];
-		var failed  = 0;
+		options = options || {};
+
+		var started  = Date.now();
+		var lines    = [];
+		var failed   = 0;
+		var stopping = false;
+		var stopper  = null;
 		var timer   = part( 'timer' );
 		var ticking = window.setInterval( function () {
 			timer.textContent = clock( Math.floor( ( Date.now() - started ) / 1000 ) );
@@ -116,12 +129,48 @@
 		part( 'current' ).textContent = '';
 		timer.textContent = '0s';
 		panel.classList.remove( 'is-done', 'is-failed', 'is-busy' );
-		Array.prototype.forEach.call( panel.querySelectorAll( '.sb-tweaks-job__report, .sb-tweaks-job__close' ), function ( node ) {
+		Array.prototype.forEach.call( panel.querySelectorAll( '.sb-tweaks-job__report, .sb-tweaks-job__close, .sb-tweaks-job__stop, .sb-tweaks-job__note' ), function ( node ) {
 			node.parentNode.removeChild( node );
 		} );
 		panel.removeAttribute( 'hidden' );
 
+		// Stop, while it runs: the step in hand finishes, nothing after it starts.
+		// Pressed, it gives its place to a line saying so (the same height, so
+		// nothing moves).
+		var note = null;
+
+		if ( options.stop ) {
+			stopper = document.createElement( 'button' );
+			stopper.type = 'button';
+			stopper.className = 'button sb-tweaks-button--danger sb-tweaks-job__stop';
+			stopper.textContent = 'Stop';
+
+			note = document.createElement( 'p' );
+			note.className = 'sb-tweaks-job__note';
+			note.textContent = 'Stopping after this step. Anything already done is kept.';
+
+			stopper.addEventListener( 'click', function () {
+				if ( stopping ) {
+					return;
+				}
+
+				stopping = true;
+				stopper.parentNode.replaceChild( note, stopper );
+
+				if ( typeof options.stop === 'function' ) {
+					options.stop();
+				}
+			} );
+			part( 'box' ).appendChild( stopper );
+		}
+
 		function stop() {
+			[ stopper, note ].forEach( function ( node ) {
+				if ( node && node.parentNode ) {
+					node.parentNode.removeChild( node );
+				}
+			} );
+
 			panel.classList.remove( 'is-busy' );
 			window.clearInterval( ticking );
 			timer.textContent = clock( Math.floor( ( Date.now() - started ) / 1000 ) );
@@ -149,6 +198,11 @@
 		}
 
 		return {
+			/** True once Stop has been pressed: start nothing more, and finish(). */
+			stopping: function () {
+				return stopping;
+			},
+
 			/** No count to show: a spinner in place of the bar until step(), finish() or fail(). */
 			busy: function () {
 				panel.classList.add( 'is-busy' );
@@ -221,8 +275,14 @@
 					report.appendChild( list );
 				}
 
-				part( 'bar' ).style.width = '100%';
-				part( 'count' ).textContent = 'Finished';
+				// Stopped short: the bar stays where it got to.
+				var cut = stopping && part( 'bar' ).style.width !== '100%';
+
+				if ( ! cut ) {
+					part( 'bar' ).style.width = '100%';
+				}
+
+				part( 'count' ).textContent = cut ? 'Stopped' : 'Finished';
 				part( 'current' ).textContent = '';
 				panel.classList.add( 'is-done' );
 

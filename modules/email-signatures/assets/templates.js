@@ -7,6 +7,8 @@
  *
  * Export (data-sb-emailsig-export-open) asks whether to lock the colours
  * first, then sends its form, which downloads the .json file.
+ *
+ * Used by (data-sb-emailsig-used) opens the page for the company picked.
  */
 (function () {
 	'use strict';
@@ -74,4 +76,14 @@
 			});
 		}
 	});
+
+	// Used by (Sam, 1 November 2026): the page again for that company, or Not in use.
+	var used = document.querySelector('[data-sb-emailsig-used]');
+	if (used) {
+		used.addEventListener('change', function () {
+			var url = new URL(used.getAttribute('data-sb-emailsig-used'), window.location.href);
+			if (used.value) url.searchParams.set('used', used.value);
+			window.location.href = url.toString();
+		});
+	}
 })();

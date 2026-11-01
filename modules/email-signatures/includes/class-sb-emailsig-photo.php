@@ -94,6 +94,16 @@ class SB_EmailSig_Photo {
 		return 1.0;
 	}
 
+	/** A ratio as chosen (a key, or 'custom' with $w and $h) as it is kept: 'w:h', or '' for the template's. */
+	private static function own_ratio( $ratio, $w, $h ) {
+		$ratio = (string) $ratio;
+		if ( $ratio === 'custom' ) {
+			$ratio = max( 1, min( 99, (int) $w ) ) . ':' . max( 1, min( 99, (int) $h ) );
+		}
+
+		return preg_match( '/^\d{1,2}:\d{1,2}$/', $ratio ) ? $ratio : '';
+	}
+
 	/** The person's own ratio as saved: '', a key, or 'w:h' for custom. */
 	public static function person_ratio( $post_id ) {
 		$r = (string) get_post_meta( $post_id, self::RATIO_META, true );
@@ -322,7 +332,7 @@ class SB_EmailSig_Photo {
 						<span class="sb-tweaks-colour sb-emailsig-colour" data-sb-colour data-fallback-hex="<?php echo esc_attr( $bfall ); ?>">
 							<input type="color" class="sb-tweaks-colour__swatch" value="<?php echo esc_attr( $bfall ); ?>" aria-label="Border colour">
 							<input type="text" class="sb-tweaks-colour__value code" id="sb-emailsig-border-c" name="sb_emailsig_border_c" value="<?php echo esc_attr( $bown['c'] ); ?>" placeholder="Template's" spellcheck="false" autocomplete="off">
-							<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" title="Theme colours" hidden><span class="dashicons dashicons-art" aria-hidden="true"></span></button>
+							<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" hidden><span class="dashicons dashicons-art" aria-hidden="true"></span></button>
 						</span>
 					</span>
 					<span class="sb-emailsig-crop__pair">
@@ -414,11 +424,8 @@ class SB_EmailSig_Photo {
 			update_post_meta( $post_id, '_sb_emailsig_crop', wp_slash( wp_json_encode( $crop ) ) );
 		}
 
-		$ratio = (string) $ratio;
-		if ( $ratio === 'custom' ) {
-			$ratio = max( 1, min( 99, (int) $w ) ) . ':' . max( 1, min( 99, (int) $h ) );
-		}
-		if ( $ratio !== '' && preg_match( '/^\d{1,2}:\d{1,2}$/', $ratio ) ) {
+		$ratio = self::own_ratio( $ratio, $w, $h );
+		if ( $ratio !== '' ) {
 			update_post_meta( $post_id, self::RATIO_META, $ratio );
 
 			if ( isset( self::shapes()[ $shape ] ) ) {
@@ -450,11 +457,8 @@ class SB_EmailSig_Photo {
 		}
 
 		if ( isset( $posted['sb_emailsig_ratio'] ) ) {
-			$ratio = sanitize_text_field( (string) $posted['sb_emailsig_ratio'] );
-			if ( $ratio === 'custom' ) {
-				$ratio = max( 1, min( 99, absint( $posted['sb_emailsig_ratio_w'] ?? 1 ) ) ) . ':' . max( 1, min( 99, absint( $posted['sb_emailsig_ratio_h'] ?? 1 ) ) );
-			}
-			$own                       = $ratio !== '' && preg_match( '/^\d{1,2}:\d{1,2}$/', $ratio );
+			$ratio                     = self::own_ratio( sanitize_text_field( (string) $posted['sb_emailsig_ratio'] ), absint( $posted['sb_emailsig_ratio_w'] ?? 1 ), absint( $posted['sb_emailsig_ratio_h'] ?? 1 ) );
+			$own                       = $ratio !== '';
 			$meta[ self::RATIO_META ]  = $own ? $ratio : '';
 			$shape                     = sanitize_key( (string) ( $posted['sb_emailsig_shape'] ?? '' ) );
 			$meta[ self::SHAPE_META ]  = $own && isset( self::shapes()[ $shape ] ) ? $shape : '';
@@ -695,11 +699,7 @@ class SB_EmailSig_Photo {
 			return;
 		}
 
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
-		header( 'X-Robots-Tag: noindex, nofollow', true );
-		header( 'X-LiteSpeed-Cache-Control: no-cache', true );
+		SB_EmailSig_Page::private_headers( false );
 		header( 'Cache-Control: no-cache', true );
 
 		$code = sanitize_text_field( wp_unslash( $_GET[ self::QUERY ] ) ); // phpcs:ignore WordPress.Security.NonceVerification

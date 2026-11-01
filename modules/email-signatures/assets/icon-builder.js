@@ -1,6 +1,6 @@
 /**
  * Draws an SVG icon to a PNG data URL in a given colour, with an optional
- * rounded background. Shared by the Settings and Edit styles pages.
+ * rounded background. Shared by the company and Edit styles pages.
  *
  * SBEmailSigIcons.png( svgSource, { size, scale, colour, bg, radius, glyph } )
  *   size   display size in px; the PNG is size * scale

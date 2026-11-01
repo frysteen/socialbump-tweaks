@@ -41,6 +41,25 @@ class SB_EmailSig_Switch {
 	public static function init() {
 		add_action( 'wp_ajax_sb_emailsig_company_switch', array( __CLASS__, 'ajax' ) );
 		add_filter( 'wp_insert_post_data', array( __CLASS__, 'stay_off' ), 20, 2 );
+		// A person's company is saved after the post (ACF), so checked again once it is.
+		add_action( 'acf/save_post', array( __CLASS__, 'after_save' ), 30 );
+	}
+
+	/**
+	 * A person added to, or moved into, a company that's off: made inactive
+	 * once their company is saved (stay_off() can't see it for someone new).
+	 */
+	public static function after_save( $post_id ) {
+		if ( ! is_numeric( $post_id ) || get_post_type( (int) $post_id ) !== SB_EMAILSIG_CPT || get_post_status( (int) $post_id ) !== 'publish' || ! self::person_off( (int) $post_id ) ) {
+			return;
+		}
+
+		wp_update_post(
+			array(
+				'ID'          => (int) $post_id,
+				'post_status' => 'draft',
+			)
+		);
 	}
 
 	/** However a person is saved (their page, an import): not switched on while their company is off. */

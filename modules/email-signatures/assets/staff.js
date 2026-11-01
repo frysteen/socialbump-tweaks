@@ -36,12 +36,13 @@
 		e.preventDefault();
 		var btn = this;
 		var tag = btn.getAttribute('data-sb-emailsig-tag');
-		var code = btn.querySelector('code');
+		// Copied shows in its tip, so the token keeps its width (no layout shift).
 		var done = function () {
-			code.textContent = 'Copied';
+			var tip = btn.getAttribute('data-sb-tip');
+			btn.setAttribute('data-sb-tip', 'Copied');
 			btn.classList.add('is-copied');
 			setTimeout(function () {
-				code.textContent = tag;
+				if (tip) btn.setAttribute('data-sb-tip', tip); else btn.removeAttribute('data-sb-tip');
 				btn.classList.remove('is-copied');
 			}, 1200);
 		};
@@ -85,8 +86,9 @@
 		}
 
 		/* Under Name, Qualifications, Job Title, Email and Mobile: a note for
-		   each merge tag that comes out empty (Sam, 30 October 2026). Email is
-		   required, so its note is red. Only once the staff page has loaded. */
+		   each merge tag that comes out empty (Sam, 30 October 2026). Only once
+		   the staff page has loaded. Qualifications and Job Title are text
+		   areas (Sam, 1 November 2026). */
 		var FIELDS = ['first_name', 'last_name', 'qualifications', 'job_title', 'email', 'mobile'];
 		var ready = false;
 
@@ -96,7 +98,7 @@
 			((current && current.tokens) || []).forEach(function (t) { if (t.value) have[t.token] = true; });
 			FIELDS.forEach(function (f) {
 				var $f = $('[data-key="field_sb_emailsig_' + f + '"]');
-				var $in = $f.find('.acf-input input').first();
+				var $in = $f.find('.acf-input').find('input, textarea').first();
 				if (!$in.length) return;
 				var empty = ($in.val().match(/\{[a-z0-9_]+\}/gi) || []).filter(function (tk, i, all) {
 					return !have[tk] && all.indexOf(tk) === i;
@@ -104,11 +106,10 @@
 				var $n = $f.find('.sb-emailsig-token-note');
 				if (!empty.length) { $n.remove(); return; }
 				if (!$n.length) $n = $('<p class="sb-emailsig-token-note"></p>').appendTo($f.find('.acf-input').first());
-				$n.toggleClass('is-danger', f === 'email')
-					.text(empty.join(', ') + (current ? (empty.length > 1 ? ' are' : ' is') + ' empty on the staff page.' : (empty.length > 1 ? ' need' : ' needs') + ' a staff page.'));
+				$n.text(empty.join(', ') + (current ? (empty.length > 1 ? ' are' : ' is') + ' empty on the staff page.' : (empty.length > 1 ? ' need' : ' needs') + ' a staff page.'));
 			});
 		}
-		$(document).on('input change', FIELDS.map(function (f) { return '[data-key="field_sb_emailsig_' + f + '"] input'; }).join(','), notes);
+		$(document).on('input change', FIELDS.map(function (f) { return '[data-key="field_sb_emailsig_' + f + '"] input, [data-key="field_sb_emailsig_' + f + '"] textarea'; }).join(','), notes);
 
 		function show() {
 			notes();
@@ -141,7 +142,7 @@
 				current.tokens.forEach(function (t) {
 					$('<button type="button" class="sb-emailsig-token"></button>')
 						.toggleClass('is-empty', !t.value)
-						.attr({ title: t.label + (t.value ? '' : ': empty on the staff page'), 'data-sb-emailsig-tag': t.token })
+						.attr({ 'data-sb-tip': t.label + (t.value ? '' : ': empty on the staff page'), 'data-sb-emailsig-tag': t.token })
 						.append($('<code></code>').text(t.token))
 						.append($('<span></span>').text(t.value || 'empty'))
 						.appendTo($t);

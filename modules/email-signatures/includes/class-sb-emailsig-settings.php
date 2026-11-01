@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * The Settings page: the site's own ACF fields (team pages, tracking codes,
- * emails) in a framework page (banner, card, framework Save button) through
+ * The Settings page: the site's own ACF fields (admin branding, admin
+ * notifications, signature emails, tracking) in a framework page (banner, card, framework Save button) through
  * acf_form(), rather than ACF's own options screen. Stored as ACF options,
  * so get_field( 'sb_emailsig_*', 'option' ) reads them. A company's fields
  * are on its own page (SB_EmailSig_Companies), which shares the assets here.
@@ -63,7 +63,8 @@ class SB_EmailSig_Settings {
 
 	/** acf_form() saves through acf_form_head(), which has to run before any output. A company's page too. */
 	public static function form_head() {
-		if ( ( self::is_settings_request() || SB_EmailSig_Companies::is_edit() ) && function_exists( 'acf_form_head' ) ) {
+		// Only for those who can open these pages: admin_init runs for admin-ajax and admin-post too.
+		if ( ( self::is_settings_request() || SB_EmailSig_Companies::is_edit() ) && current_user_can( 'manage_options' ) && function_exists( 'acf_form_head' ) ) {
 			acf_form_head();
 		}
 	}

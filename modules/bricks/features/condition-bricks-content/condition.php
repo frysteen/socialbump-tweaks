@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 return [
 	'key'     => 'sb_bricks_bricks_content',
 	'was'     => [ 'socialbump_bricks_content' ],
+	// The older wording, passed to check() as saved (SB_Bricks_Conditions::result()).
+	'legacy'  => [ 'has_content', 'has_no_content' ],
 	'label'   => 'Bricks Content',
 	'compare' => [
 		'==' => 'Is',

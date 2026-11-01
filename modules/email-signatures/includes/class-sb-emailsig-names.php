@@ -98,7 +98,7 @@ class SB_EmailSig_Names {
 		$ids = get_posts(
 			array(
 				'post_type'      => SB_EMAILSIG_CPT,
-				'post_status'    => 'any',
+				'post_status'    => SB_EmailSig_Company::STATUSES, // Deleted people too, so one restored has their names.
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 			)

@@ -4,7 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Cards that collapse to a title, with a Reorder dialogue to arrange them.
+ * Cards that collapse to a title, drag by a handle to a new place, and switch
+ * on or off together.
  *
  * Ported from the SocialBUMP_Cards class the standalone plugins share. Inside
  * one plugin nothing is shared, so the class_exists guard is gone and one AJAX
@@ -16,13 +17,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * is how each user's arrangement from the standalone plugins carries straight
  * over.
  *
- * A page uses it in four lines: register() once at boot with the page's key
+ * A page uses it in a few lines: register() once at boot with the page's key
  * and the top level menu slug it belongs to, sort() to put the cards in the
  * saved order, container_attributes() on the grid and card_attribute() on
- * each card, and toolbar() twice, links above the grid and reorder beside the
- * heading. module-cards.js does the rest, and expects a card's first child to
- * be its head (the title and the switch), which is what stays visible when it
- * is collapsed.
+ * each card, and in its toolbar switches() (the count and Enable all, Disable
+ * all) and toolbar() (Collapse all and the rest). module-cards.js does the
+ * rest: the chevron, the drag handle (Sam, 1 November 2026, in place of the
+ * Reorder dialogue), saving the order as each card is dropped, and the
+ * count. It expects a card's first child to be its head (the title and the
+ * switch), which is what stays visible when it is collapsed.
  */
 class SB_Tweaks_Cards {
 
@@ -112,18 +115,24 @@ class SB_Tweaks_Cards {
 	}
 
 	/**
-	 * The links for above the grid (Collapse all, Expand all, Collapse
-	 * disabled) or the Reorder Cards button for beside the heading. Both carry
-	 * the key so the script finds them.
+	 * For the toolbar: how many cards are switched on, as a pill (4 of 6 on),
+	 * then Enable all and Disable all (Sam, 1 November 2026). The switches
+	 * they flip are saved with Save changes; the script keeps the count live.
 	 */
-	public static function toolbar( $key, $part = 'links' ) {
+	public static function switches( $key, $on, $total ) {
 		$q = chr( 34 );
 
-		if ( $part === 'reorder' ) {
-			return '<div class=' . $q . 'sb-cards__tools sb-cards__tools--reorder' . $q . ' data-sb-cards-tools=' . $q . esc_attr( $key ) . $q . '>'
-				. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button' . $q . ' data-sb-cards-reorder>' . esc_html__( 'Reorder Cards', 'sb-tweaks' ) . '</button>'
-				. '</div>';
-		}
+		return '<span class=' . $q . 'sb-ui-pill' . $q . ' data-sb-cards-count=' . $q . esc_attr( $key ) . $q . '><b>' . (int) $on . '</b> ' . esc_html( sprintf( /* translators: %d: how many cards there are */ __( 'of %d on', 'sb-tweaks' ), (int) $total ) ) . '</span>'
+			. '<div class=' . $q . 'sb-cards__tools sb-cards__tools--switches' . $q . ' data-sb-cards-tools=' . $q . esc_attr( $key ) . $q . '>'
+			. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button-link sb-toggle' . $q . ' data-sb-cards-disable>' . esc_html__( 'Disable all', 'sb-tweaks' ) . '</button>'
+			. '<span aria-hidden=' . $q . 'true' . $q . '>|</span>'
+			. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button-link sb-toggle' . $q . ' data-sb-cards-enable>' . esc_html__( 'Enable all', 'sb-tweaks' ) . '</button>'
+			. '</div>';
+	}
+
+	/** Collapse all, Expand all and Collapse disabled, for the toolbar. They carry the key so the script finds them. */
+	public static function toolbar( $key ) {
+		$q = chr( 34 );
 
 		return '<div class=' . $q . 'sb-cards__tools sb-cards__tools--links' . $q . ' data-sb-cards-tools=' . $q . esc_attr( $key ) . $q . '>'
 			. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button-link sb-toggle' . $q . ' data-sb-cards-collapse>' . esc_html__( 'Collapse all', 'sb-tweaks' ) . '</button>'

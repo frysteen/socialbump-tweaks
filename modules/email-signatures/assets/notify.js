@@ -2,9 +2,11 @@
  * Email link buttons (data-sb-emailsig-send="{person id}"): opens the
  * framework's popup (SBTweaksConfirm, assets/js/confirm.js in SocialBUMP
  * Tweaks) with the email as Settings words it, filled in for the person, to
- * change before Send. Email picks New or Updated Signature (Sam, 31 October
- * 2026), Updated first when the signature has changed since it was copied;
- * each keeps its own changes while the popup is open. Cancel, the X, Escape or a click outside close it.
+ * change before Send. To starts as their Email, else their company's, else
+ * blank, and can be changed (Sam, 1 November 2026). Email picks New or
+ * Updated Signature (Sam, 31 October 2026), Updated first for someone sent
+ * their link before; each keeps its own changes while the popup is open.
+ * Cancel, the X, Escape or a click outside close it.
  * The answer shows in the card's status line, or the one named by
  * data-sb-emailsig-status.
  */
@@ -79,6 +81,7 @@
 				}
 
 				var d = res.data;
+				var to = document.createElement('input');
 				var subject = document.createElement('input');
 				var message = document.createElement('textarea');
 				var body = document.createElement('div');
@@ -89,7 +92,7 @@
 				Object.keys(drafts).forEach(function (k) {
 					var o = document.createElement('option');
 					o.value = k;
-					o.textContent = drafts[k].label + (k === d.kind && k === 'updated' ? ' (changed since copied)' : '');
+					o.textContent = drafts[k].label;
 					pick.appendChild(o);
 				});
 				pick.value = kind;
@@ -103,10 +106,15 @@
 					message.value = drafts[kind].message;
 				});
 
+				to.type = 'email';
+				to.value = d.to || '';
+				to.autocomplete = 'off';
+				to.placeholder = 'name@example.com';
 				subject.type = 'text';
 				subject.value = d.subject;
 				message.rows = 10;
 				message.value = d.message;
+				body.appendChild(field('To', to));
 				if (pick.options.length > 1) body.appendChild(field('Email', pick));
 				body.appendChild(field('Subject', subject));
 				body.appendChild(field('Message', message));
@@ -116,15 +124,14 @@
 					return;
 				}
 
-				window.SBTweaksConfirm.open({
+				var $modal = window.SBTweaksConfirm.open({
 					title: 'Email ' + (d.name || 'them') + ' their signature link',
-					message: 'To: ' + d.to,
 					body: body,
 					action: 'Send'
 				}, function () {
 					busy('Sending…');
 
-					post({ action: 'sb_emailsig_send', id: id, kind: kind, subject: subject.value, message: message.value })
+					post({ action: 'sb_emailsig_send', id: id, kind: kind, to: to.value.trim(), subject: subject.value, message: message.value })
 						.then(function (res2) {
 							if (res2 && res2.success) {
 								say(res2.data || 'Sent.', false);
@@ -135,6 +142,15 @@
 						.catch(function () { say('Not sent. Reload the page and try again.', true); })
 						.then(function () { busy(''); });
 				});
+
+				// Send waits for an address in To.
+				var $go = $modal && $modal.find ? $modal.find('.sb-tweaks-dialog__go') : null;
+				function ready() {
+					if ($go) $go.prop('disabled', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.value.trim()));
+				}
+				to.addEventListener('input', ready);
+				ready();
+				if (!to.value) to.focus();
 			})
 			.catch(function () {
 				busy('');

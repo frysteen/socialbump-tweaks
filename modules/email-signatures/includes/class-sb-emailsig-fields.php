@@ -36,6 +36,10 @@ class SB_EmailSig_Fields {
 			'x'         => 'X',
 			'threads'   => 'Threads',
 			'pinterest' => 'Pinterest',
+			'google'    => 'Google',
+			'whatsapp'  => 'WhatsApp',
+			'messenger' => 'Messenger',
+			'houzz'     => 'Houzz',
 			'custom'    => 'Custom SVG',
 		);
 	}
@@ -68,7 +72,43 @@ class SB_EmailSig_Fields {
 			'printer'        => 'Printer',
 			'car'            => 'Car',
 			'user-plus'      => 'Contact',
+			'thumbs-up'      => 'Thumbs up',
+			'facebook'       => 'Facebook',
+			'instagram'      => 'Instagram',
+			'youtube'        => 'YouTube',
+			'tiktok'         => 'TikTok',
+			'x'              => 'X',
+			'threads'        => 'Threads',
+			'pinterest'      => 'Pinterest',
+			'google'         => 'Google',
+			'whatsapp'       => 'WhatsApp',
+			'messenger'      => 'Messenger',
+			'houzz'          => 'Houzz',
 		);
+	}
+
+	/**
+	 * The same icons in groups, for the Icon menu (Sam, 1 November 2026):
+	 * group label => [ name => label ], None on its own first.
+	 */
+	public static function info_icon_groups() {
+		$all    = self::info_icons();
+		$groups = array(
+			'Contact'               => array( 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'message-circle', 'printer' ),
+			'Social Media'          => array( 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz' ),
+			'Bookings and Hours'    => array( 'calendar', 'clock' ),
+			'Reviews and Awards'    => array( 'star', 'heart', 'thumbs-up', 'award' ),
+			'Other'                 => array( 'info', 'link', 'gift', 'briefcase', 'building-2', 'graduation-cap', 'car' ),
+		);
+		$out    = array( '' => $all[''] );
+
+		foreach ( $groups as $label => $names ) {
+			$out[ $label ] = array_intersect_key( $all, array_flip( $names ) );
+			// In the group's order, not the list's.
+			$out[ $label ] = array_merge( array_flip( $names ), $out[ $label ] );
+		}
+
+		return $out;
 	}
 
 	/**
@@ -83,7 +123,7 @@ class SB_EmailSig_Fields {
 				'label'         => 'Icon',
 				'name'          => 'info_icon',
 				'type'          => 'select',
-				'choices'       => self::info_icons(),
+				'choices'       => self::info_icon_groups(),
 				'default_value' => '',
 				'wrapper'       => array( 'width' => '15' ),
 			),
@@ -184,19 +224,13 @@ class SB_EmailSig_Fields {
 		}
 		add_filter( 'acf/load_field/key=field_sb_emailsig_campaign_width', array( __CLASS__, 'campaign_help' ) );
 
-		// Templates: the choices, the main one's own option, and the person's
-		// fields only when there is more than one.
+		// Templates: the choices (people have none of their own since 1 November 2026).
 		add_filter( 'acf/load_field/key=field_sb_emailsig_main_template', array( __CLASS__, 'template_choices' ) );
 		add_filter( 'acf/load_field/key=field_sb_emailsig_templates', array( __CLASS__, 'template_choices' ) );
-		add_filter( 'acf/load_field/key=field_sb_emailsig_person_template', array( __CLASS__, 'person_template_choices' ) );
-		add_filter( 'acf/load_field/key=field_sb_emailsig_person_templates_extra', array( __CLASS__, 'person_extra_choices' ) );
-		// The main template is a company's own field now (SB_EmailSig_Company);
-		// main_template_value() and _save() kept it in an option before.
-		add_filter( 'acf/prepare_field/key=field_sb_emailsig_person_template', array( __CLASS__, 'when_templates' ) );
+		// The Default Template is a company's own field (SB_EmailSig_Company).
 		add_filter( 'acf/load_field/key=field_sb_emailsig_person_company', array( __CLASS__, 'company_choices' ) );
 		add_filter( 'acf/load_value/key=field_sb_emailsig_person_company', array( __CLASS__, 'company_value' ), 10, 2 );
 		add_filter( 'acf/prepare_field/key=field_sb_emailsig_person_company', array( __CLASS__, 'when_companies' ) );
-		add_filter( 'acf/prepare_field/key=field_sb_emailsig_person_templates_extra', array( __CLASS__, 'when_templates' ) );
 	}
 
 	/** A brand colour: a hex or a theme colour, not another brand colour. */
@@ -261,55 +295,6 @@ class SB_EmailSig_Fields {
 
 	public static function template_choices( $field ) {
 		$field['choices'] = self::template_names();
-
-		return $field;
-	}
-
-	/**
-	 * A person's main template: blank follows their company's, or one of the
-	 * others their company lets its people use (the company being drawn:
-	 * the person page enters theirs).
-	 */
-	public static function person_template_choices( $field ) {
-		$names = self::template_names();
-		$set   = SB_EmailSig_Templates::company_set();
-		$main  = $set ? $set[0] : SB_EmailSig_Templates::current();
-
-		$field['choices'] = array( '' => 'Company main' . ( isset( $names[ $main ] ) ? ' (' . $names[ $main ] . ')' : '' ) ) + array_intersect_key( $names, array_flip( $set ) );
-
-		return $field;
-	}
-
-	/** A person's extra templates: the ones the company set leaves out. */
-	public static function person_extra_choices( $field ) {
-		$field['choices'] = array_diff_key( self::template_names(), array_flip( SB_EmailSig_Templates::company_set() ) );
-
-		return $field;
-	}
-
-	public static function main_template_value( $value ) {
-		return SB_EmailSig_Templates::current();
-	}
-
-	public static function main_template_save( $value ) {
-		$tpl = SB_EmailSig_Templates::get( (string) $value );
-
-		if ( $tpl ) {
-			update_option( SB_EmailSig_Module::TEMPLATE_OPTION, $tpl['id'] );
-		}
-
-		return $value;
-	}
-
-	/**
-	 * The person's main template: only when their company lets them use more
-	 * than one. Extra Templates never shows any more (Sam, 30 October 2026:
-	 * people use their company's templates); what was saved there stays.
-	 */
-	public static function when_templates( $field ) {
-		if ( ! $field || $field['key'] === 'field_sb_emailsig_person_templates_extra' || count( SB_EmailSig_Templates::company_set() ) < 2 ) {
-			return false;
-		}
 
 		return $field;
 	}
@@ -439,14 +424,14 @@ class SB_EmailSig_Fields {
 						'name'     => 'sb_emailsig_first_name',
 						'type'     => 'text',
 						'required' => 1,
-						'wrapper'  => array( 'width' => '25' ),
+						'wrapper'  => array( 'width' => '50' ),
 					),
 					array(
 						'key'     => 'field_sb_emailsig_last_name',
 						'label'   => 'Last Name',
 						'name'    => 'sb_emailsig_last_name',
 						'type'    => 'text',
-						'wrapper' => array( 'width' => '25' ),
+						'wrapper' => array( 'width' => '50' ),
 					),
 					array(
 						'key'      => 'field_sb_emailsig_name',
@@ -456,28 +441,49 @@ class SB_EmailSig_Fields {
 						'required' => 0,
 						'wrapper'  => array( 'width' => '33' ),
 					),
+					// Qualifications and Job Title on a row of their own, three
+					// lines each: each line break is a <br> in the signature, and
+					// the Separator joins the lines where a break can't go (Sam,
+					// 1 November 2026; SB_EmailSig_Data::one_line()).
 					array(
-						'key'          => 'field_sb_emailsig_qualifications',
-						'label'        => 'Qualifications',
-						'name'         => 'sb_emailsig_qualifications',
-						'type'         => 'text',
-						'wrapper'      => array( 'width' => '25' ),
+						'key'       => 'field_sb_emailsig_qualifications',
+						'label'     => 'Qualifications',
+						'name'      => 'sb_emailsig_qualifications',
+						'type'      => 'textarea',
+						'rows'      => 3,
+						'new_lines' => '',
+						'wrapper'   => array( 'width' => '33.33' ),
 					),
 					array(
-						'key'     => 'field_sb_emailsig_job_title',
-						'label'   => 'Job Title',
-						'name'    => 'sb_emailsig_job_title',
-						'type'    => 'text',
-						'wrapper' => array( 'width' => '25' ),
+						'key'       => 'field_sb_emailsig_job_title',
+						'label'     => 'Job Title',
+						'name'      => 'sb_emailsig_job_title',
+						'type'      => 'textarea',
+						'rows'      => 3,
+						'new_lines' => '',
+						'wrapper'   => array( 'width' => '33.33' ),
+					),
+					array(
+						'key'           => 'field_sb_emailsig_join',
+						'label'         => 'Separator',
+						'name'          => 'sb_emailsig_join',
+						'type'          => 'select',
+						'choices'       => SB_EmailSig_Data::join_choices(),
+						'default_value' => 'comma',
+						'allow_null'    => 0,
+						'return_format' => 'value',
+						'instructions'  => 'Joins the lines where a line break can\'t go.',
+						'wrapper'       => array( 'width' => '33.33' ),
 					),
 					array(
 						// Text, not email, so it can hold a token such as {email}
-						// (SB_EmailSig_Staff::validate_email() checks it).
+						// (SB_EmailSig_Staff::validate_email() checks it). Not
+						// required (Sam, 1 November 2026): without one the
+						// signature shows the company's Email.
 						'key'      => 'field_sb_emailsig_email',
 						'label'    => 'Email',
 						'name'     => 'sb_emailsig_email',
 						'type'     => 'text',
-						'required' => 1,
 						'wrapper'  => array( 'width' => '50' ),
 					),
 					array(
@@ -516,29 +522,6 @@ class SB_EmailSig_Fields {
 						'library'       => 'all',
 						'mime_types'    => 'jpg,jpeg,png,webp',
 						'instructions'  => 'Any size or shape. Set the crop in the Photo Crop box below.',
-					),
-					// Only with more than one template (SB_EmailSig_Templates).
-					array(
-						'key'           => 'field_sb_emailsig_person_template',
-						'label'         => 'Main Template',
-						'name'          => SB_EmailSig_Templates::PERSON_MAIN,
-						'type'          => 'select',
-						'choices'       => array(),
-						'default_value' => '',
-						'allow_null'    => 0,
-						'instructions'  => 'The signature they see first.',
-						'wrapper'       => array( 'width' => '50' ),
-					),
-					array(
-						'key'           => 'field_sb_emailsig_person_templates_extra',
-						'label'         => 'Extra Templates',
-						'name'          => SB_EmailSig_Templates::PERSON_EXTRA,
-						'type'          => 'checkbox',
-						'choices'       => array(),
-						'layout'        => 'vertical',
-						'return_format' => 'value',
-						'instructions'  => 'More they can pick, on top of the company\'s.',
-						'wrapper'       => array( 'width' => '50' ),
 					),
 				),
 				'location'              => array(
@@ -580,14 +563,23 @@ class SB_EmailSig_Fields {
 						'label'   => 'Company Name',
 						'name'    => 'sb_emailsig_company_name',
 						'type'    => 'text',
-						'wrapper' => array( 'width' => '33' ),
+						'wrapper' => array( 'width' => '25' ),
 					),
 					array(
 						'key'          => 'field_sb_emailsig_phone',
 						'label'        => 'Phone',
 						'name'         => 'sb_emailsig_phone',
 						'type'         => 'text',
-						'wrapper'      => array( 'width' => '33' ),
+						'wrapper'      => array( 'width' => '25' ),
+					),
+					// The company's Email (Sam, 1 November 2026): an Info List item
+					// of its own, and the signature's Email for people without one.
+					array(
+						'key'          => 'field_sb_emailsig_company_email',
+						'label'        => 'Email',
+						'name'         => 'sb_emailsig_company_email',
+						'type'         => 'text', // Text, so it can hold a shortcode (SB_EmailSig_Data::validate_company_email()).
+						'wrapper'      => array( 'width' => '25' ),
 					),
 					array(
 						'key'          => 'field_sb_emailsig_address',
@@ -596,7 +588,7 @@ class SB_EmailSig_Fields {
 						'type'         => 'textarea',
 						'rows'         => 3,
 						'new_lines'    => '',
-						'wrapper'      => array( 'width' => '33' ),
+						'wrapper'      => array( 'width' => '25' ),
 					),
 					array(
 						'key'          => 'field_sb_emailsig_website',
@@ -615,15 +607,15 @@ class SB_EmailSig_Fields {
 						'wrapper'      => array( 'width' => '50' ),
 					),
 					self::sub_heading( 'field_sb_emailsig_head_templates', 'Template Settings' ),
-					// The main template is kept in its own option (SB_EmailSig_Templates).
+					// The company's Default Template and its set (company meta, SB_EmailSig_Templates).
 					array(
 						'key'           => 'field_sb_emailsig_main_template',
-						'label'         => 'Main Template',
+						'label'         => 'Default Template', // Was Main Template (Sam, 1 November 2026).
 						'name'          => 'sb_emailsig_main_template',
 						'type'          => 'select',
 						'choices'       => array(),
 						'allow_null'    => 0,
-						'instructions'  => 'Everyone\'s signature, unless their own setting says otherwise.',
+						'instructions'  => 'Used for everyone in this company.',
 						'wrapper'       => array( 'width' => '50' ),
 					),
 					array(
@@ -634,7 +626,7 @@ class SB_EmailSig_Fields {
 						'choices'       => array(),
 						'layout'        => 'vertical',
 						'return_format' => 'value',
-						'instructions'  => 'The ones people can pick on their signature page. The main template always is.',
+						'instructions'  => 'The ones people can pick on their signature page. The Default Template always is.',
 						'wrapper'       => array( 'width' => '50' ),
 					),
 					// Team Pages: each company its own (SB_EmailSig_Staff; Sam, 30
@@ -675,8 +667,8 @@ class SB_EmailSig_Fields {
 					),
 
 					// Branding (SB_EmailSig_Styles::brand()): the logo and the brand
-					// colours every template uses unless it sets its own. Later,
-					// with more than one company, each would have these.
+					// colours every template uses unless it sets its own. Each
+					// company has its own.
 					array(
 						'key'   => 'field_sb_emailsig_tab_branding',
 						'label' => 'Branding',
@@ -1215,7 +1207,7 @@ class SB_EmailSig_Fields {
 						'name'         => 'sb_emailsig_mail_from_name',
 						'type'         => 'text',
 						'instructions' => 'Leave blank for the site name.',
-						'wrapper'      => array( 'width' => '50' ),
+						'wrapper'      => array( 'width' => '33' ),
 					),
 					array(
 						// The part before the @ only: the site's domain is added
@@ -1226,7 +1218,16 @@ class SB_EmailSig_Fields {
 						'type'         => 'text',
 						'placeholder'  => 'noreply',
 						'instructions' => 'Leave blank for noreply.',
-						'wrapper'      => array( 'width' => '50' ),
+						'wrapper'      => array( 'width' => '33' ),
+					),
+					// {sender} (Sam, 1 November 2026): this name when set, else whoever sends it.
+					array(
+						'key'          => 'field_sb_emailsig_mail_sender',
+						'label'        => 'Default Sender Name',
+						'name'         => 'sb_emailsig_mail_sender',
+						'type'         => 'text',
+						'instructions' => 'Leave blank for whoever sends it.',
+						'wrapper'      => array( 'width' => '33' ),
 					),
 					array(
 						'key'          => 'field_sb_emailsig_mail_tags',
@@ -1300,7 +1301,7 @@ class SB_EmailSig_Fields {
 								'rows'          => 9,
 								'new_lines'     => '',
 								'default_value' => SB_EmailSig_Notify::TEXT['updated_message'],
-								'instructions'  => 'Sent by Resend, when a signature has changed since it was copied.',
+								'instructions'  => 'Sent by Email link, for someone sent their link before.',
 								'wrapper'       => array( 'class' => 'sb-emailsig-card-field__last' ),
 							),
 						),
@@ -1365,8 +1366,9 @@ class SB_EmailSig_Fields {
 	/**
 	 * The settings fields as two groups (Sam, 30 October 2026): a company's
 	 * (SB_EmailSig_Company::GROUP: the COMPANY_TABS), edited on its page, and
-	 * the site's own in Settings (Tracking, Emails). Team Member Post Type is
-	 * a company's (Company tab) since 30 October 2026. The fields keep their keys and names, so
+	 * the site's own in Settings (Admin Branding, Admin Notifications,
+	 * Signature Emails, Tracking). Team pages and Team Member Post Type are a
+	 * company's (Company tab). The fields keep their keys and names, so
 	 * values read the same from a company's post as from the options.
 	 */
 	private static function split_groups( array $group ) {

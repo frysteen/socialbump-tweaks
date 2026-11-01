@@ -399,6 +399,16 @@
 		if (input) input.click();
 	});
 
+	/* Export follows the Company menu beside it (one company at a time). */
+	document.addEventListener('change', function (e) {
+		if (!e.target.matches || !e.target.matches('[data-sb-emailsig-people-co]')) return;
+		var link = document.querySelector('[data-sb-emailsig-export]');
+		if (!link) return;
+		var url = new URL(link.href, window.location.href);
+		url.searchParams.set('co', e.target.value);
+		link.href = url.toString();
+	});
+
 	document.addEventListener('change', function (e) {
 		var form = e.target.closest ? e.target.closest('form[data-sb-emailsig-import]') : null;
 		if (!form || e.target.type !== 'file' || !e.target.files.length) return;
@@ -455,6 +465,8 @@
 
 	if (find) find.addEventListener('input', filter);
 	if (pick) pick.addEventListener('change', filter);
+	// A company picked from the address (a company card's people): filtered to start.
+	if (pick && pick.value) filter();
 	document.addEventListener('click', function (e) {
 		if (!e.target.closest || !e.target.closest('[data-sb-emailsig-clear]')) return;
 		if (find) find.value = '';

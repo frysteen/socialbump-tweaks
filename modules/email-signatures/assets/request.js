@@ -44,6 +44,7 @@
 		var fd = new FormData();
 		fd.append('action', 'sb_emailsig_request_token');
 		fd.append('co', cfg.co);
+		fd.append('key', cfg.key || '');
 		return post(fd).then(function (res) {
 			if (res && res.success) token = res.data;
 		}).catch(function () {});
@@ -117,7 +118,6 @@
 		if (busy) return;
 		var f = form.elements;
 		if (!f.first.value.trim()) { say('Add their first name.', true); f.first.focus(); return; }
-		if (!f.email.value.trim()) { say('Add their email address.', true); f.email.focus(); return; }
 
 		var fd = new FormData();
 		fd.append('action', 'sb_emailsig_request');

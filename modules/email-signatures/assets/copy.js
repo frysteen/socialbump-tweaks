@@ -6,7 +6,14 @@
 (function () {
 	'use strict';
 
+	// A toast where the page has them (SocialBUMP UI), so nothing on the page
+	// moves; else the words in the status beside the button.
 	function setStatus(el, msg, isError) {
+		if (window.SBTweaksUI && window.SBTweaksUI.toast) {
+			if (el) el.textContent = '';
+			window.SBTweaksUI.toast(msg, isError ? 'danger' : 'ok');
+			return;
+		}
 		if (!el) return;
 		el.textContent = msg;
 		el.classList.toggle('is-error', !!isError);
@@ -67,18 +74,26 @@
 				setTimeout(function () { btn.classList.remove('is-done'); }, 1500);
 				return;
 			}
+			// Copied is shorter than the label: the button keeps its width.
+			btn.style.minWidth = btn.offsetWidth + 'px';
 			btn.textContent = 'Copied';
 			setTimeout(function () { btn.textContent = label; }, 1500);
 		};
-		if (navigator.clipboard && navigator.clipboard.writeText) {
-			navigator.clipboard.writeText(text).then(done);
-		} else {
+		// The older way when the clipboard isn't allowed; Copied only once it really copied.
+		var older = function () {
 			var ta = document.createElement('textarea');
 			ta.value = text;
 			document.body.appendChild(ta);
 			ta.select();
-			try { document.execCommand('copy'); done(); } catch (err) { /* ignore */ }
+			var ok = false;
+			try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
 			document.body.removeChild(ta);
+			if (ok) done();
+		};
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(done, older);
+		} else {
+			older();
 		}
 	});
 
@@ -100,7 +115,7 @@
 
 		copy(html, node).then(function (ok) {
 			setStatus(status, ok ? 'Copied. Now paste it into your signature settings.' : 'Copy failed. Select the signature and copy it manually.', !ok);
-			if (ok) mark(btn);
+			if (ok) mark(btn, false);
 		});
 	});
 
@@ -119,7 +134,7 @@
 
 		var finish = function (ok) {
 			setStatus(status, ok ? 'Copied the HTML code. Now paste it in.' : 'Copy failed. Try again in another browser.', !ok);
-			if (ok) mark(btn);
+			if (ok) mark(btn, true);
 		};
 		var fallback = function () {
 			var ta = document.createElement('textarea');
@@ -205,8 +220,7 @@
 	// Signature style (the person's page, with more than one template): swap
 	// the signature, the HTML its copy buttons use, their record of what was
 	// copied, and the HTML code box. The templates sit in {preview id}-styles.
-	// Tabs (data-sb-emailsig-style-tabs="{preview id}", a button per template)
-	// or the older select (data-sb-emailsig-style="{preview id}").
+	// Tabs: data-sb-emailsig-style-tabs="{preview id}", a button per template.
 	document.addEventListener('click', function (e) {
 		var tab = e.target.closest ? e.target.closest('[data-sb-emailsig-style-tab]') : null;
 		var group = tab ? tab.closest('[data-sb-emailsig-style-tabs]') : null;
@@ -216,12 +230,6 @@
 			else t.removeAttribute('aria-current');
 		});
 		style(group.getAttribute('data-sb-emailsig-style-tabs'), tab.getAttribute('data-sb-emailsig-style-tab'));
-	});
-
-	document.addEventListener('change', function (e) {
-		var select = e.target;
-		if (!select.matches || !select.matches('[data-sb-emailsig-style]')) return;
-		style(select.getAttribute('data-sb-emailsig-style'), select.value);
 	});
 
 	function style(id, key) {
@@ -243,9 +251,9 @@
 		document.querySelectorAll('textarea.code').forEach(function (ta) { ta.value = sig.html; });
 	}
 
-	// Tell the site which version was copied (SB_EmailSig_Notify), so it can
-	// say when the signature changes after. Quietly: copying worked anyway.
-	function mark(btn) {
+	// Log the copy (SB_EmailSig_Notify::copied(), Sam, 1 November 2026): the
+	// template, and code when it was the HTML code. Quietly: copying worked anyway.
+	function mark(btn, code) {
 		var data;
 		try { data = JSON.parse(btn.getAttribute('data-sb-emailsig-mark') || 'null'); } catch (e) { data = null; }
 		if (!data || !data.ajax || !window.fetch) return;
@@ -253,17 +261,7 @@
 		fetch(data.ajax, {
 			method: 'POST',
 			credentials: 'same-origin',
-			body: new URLSearchParams({ action: 'sb_emailsig_copied', id: data.id, key: data.key, fp: data.fp, t: data.t || '' })
-		}).then(function (r) { return r.json(); }).then(function (res) {
-			if (!res || res.data !== 'recorded') return;
-			var card = btn.closest('[data-sb-emailsig-card]');
-			var state = card && card.querySelector('.sb-emailsig-state');
-			if (state) state.remove();
-			var send = card && card.querySelector('[data-sb-emailsig-send]');
-			if (send && send.textContent === 'Resend') {
-				send.textContent = 'Email link';
-				send.classList.remove('sb-emailsig-resend', 'btn--resend');
-			}
-		}).catch(function () { /* not recorded: no harm */ });
+			body: new URLSearchParams({ action: 'sb_emailsig_copied', id: data.id, key: data.key, t: data.t || '', w: data.w || '', c: code ? '1' : '' })
+		}).catch(function () { /* not logged: no harm */ });
 	}
 })();

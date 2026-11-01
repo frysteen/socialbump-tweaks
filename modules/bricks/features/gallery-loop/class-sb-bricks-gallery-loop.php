@@ -172,12 +172,18 @@ class SB_Bricks_Gallery_Loop {
 	 */
 	public static function run( $results, $query ) {
 		$fields = self::fields();
+		$type   = isset( $query->object_type ) ? (string) $query->object_type : '';
 
-		if ( ! isset( $query->object_type ) || ! isset( $fields[ $query->object_type ] ) ) {
+		// A loop saved under the old prefix (sbbt_gallery_) reads as the new one.
+		if ( strpos( $type, self::PREFIX_OLD ) === 0 ) {
+			$type = self::PREFIX . substr( $type, strlen( self::PREFIX_OLD ) );
+		}
+
+		if ( $type === '' || ! isset( $fields[ $type ] ) ) {
 			return $results;
 		}
 
-		$field    = $fields[ $query->object_type ];
+		$field    = $fields[ $type ];
 		$settings = ( isset( $query->settings ) && is_array( $query->settings ) ) ? $query->settings : [];
 		$ids      = self::ids( $field );
 

@@ -34,7 +34,6 @@
 
 	var status = form.querySelector('.sb-emailsig-editor__status');
 	var live = (cfg.live || []).concat(['field_sb_emailsig_photo']);
-	var EXTRA = 'field_sb_emailsig_person_templates_extra';
 	var INFO = 'acf[field_sb_emailsig_person_info]';
 	var CROP = ['sb_emailsig_crop', 'sb_emailsig_ratio', 'sb_emailsig_ratio_w', 'sb_emailsig_ratio_h', 'sb_emailsig_shape', 'sb_emailsig_radius', 'sb_emailsig_border', 'sb_emailsig_border_w', 'sb_emailsig_border_c', 'sb_emailsig_border_g'];
 	var shown = '';
@@ -50,7 +49,6 @@
 	/** What the preview is drawn from: the form's live fields, the crop box and the template tab. */
 	function values() {
 		var out = new URLSearchParams();
-		var extras = form.querySelector('[name="acf[' + EXTRA + '][]"]');
 
 		new FormData(form).forEach(function (value, name) {
 			if (typeof value !== 'string') return;
@@ -59,15 +57,11 @@
 				out.set(name, value);
 			} else if (name.indexOf(INFO) === 0 && name.indexOf('[acfcloneindex]') === -1) {
 				out.append(name, value);
-			} else if (name === 'acf[' + EXTRA + '][]') {
-				out.append('sb_extras[]', value);
 			} else if (CROP.indexOf(name) !== -1) {
 				out.set(name, value);
 			}
 		});
 
-		// None ticked still counts: an empty pick, not the saved ones.
-		if (extras) out.append('sb_extras[]', '');
 		out.set('template', shown);
 
 		return out;

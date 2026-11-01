@@ -523,17 +523,17 @@ class SB_Tweaks_Screen {
 			}
 		}
 
-		// The bar: Reorder and the collapse buttons, then Save changes. The
-		// cards sit on the page below it (Sam, 29 October 2026).
+		// The bar: how many are on with Enable all and Disable all, the
+		// collapse buttons, then Save changes. The cards sit below it and drag
+		// by their handles (Sam, 1 November 2026).
 		echo SB_Tweaks_UI::bar( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
 			[
-				[ __( 'Cards', 'sb-tweaks' ), SB_Tweaks_Cards::toolbar( $this->features->groups_option(), 'reorder' ) . SB_Tweaks_Cards::toolbar( $this->features->groups_option(), 'links' ) ],
+				[ __( 'Features', 'sb-tweaks' ), SB_Tweaks_Cards::switches( $this->features->groups_option(), $lit, $shown ) ],
+				[ __( 'Cards', 'sb-tweaks' ), SB_Tweaks_Cards::toolbar( $this->features->groups_option() ) ],
 			],
 			SB_Tweaks_UI::save_button( $form )
 		);
 
-		/* translators: %d: how many are switched on */
-		echo SB_Tweaks_UI::heading( __( 'Features', 'sb-tweaks' ), $shown, sprintf( __( '%d on', 'sb-tweaks' ), $lit ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside.
 		echo '<div class="sb-tweaks-grid"' . SB_Tweaks_Cards::container_attributes( $this->features->groups_option() ) . '>';
 
 		$states_of = $this->features->get_states();

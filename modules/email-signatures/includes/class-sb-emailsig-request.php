@@ -14,7 +14,10 @@
  * Spam, with no captcha keys yet: a hidden field people leave empty, a
  * token signed for the company and fetched when the form opens (a cached
  * page can't hand out a stale one) that must be MIN_AGE seconds old, and a
- * limit per visitor and per site each hour.
+ * limit per visitor and per site each hour. A token is only handed out
+ * with the company's own team page key (1 November 2026), so a company's
+ * number alone can't be used to send requests to it. What's typed has
+ * [ ] { } taken out (plain()), so no shortcode a visitor types is ever run.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -77,7 +80,7 @@ class SB_EmailSig_Request {
 				<label class="add__field"><span>Last Name</span><input type="text" name="last" autocomplete="family-name"></label>
 				<label class="add__field"><span>Qualifications</span><input type="text" name="quals" autocomplete="off"></label>
 				<label class="add__field"><span>Job Title</span><input type="text" name="job" autocomplete="organization-title"></label>
-				<label class="add__field"><span>Email <span aria-hidden="true">*</span></span><input type="email" name="email" required autocomplete="email" inputmode="email"></label>
+				<label class="add__field"><span>Email</span><input type="email" name="email" autocomplete="email" inputmode="email"></label>
 				<label class="add__field"><span>Mobile</span><input type="text" name="mobile" autocomplete="tel" inputmode="tel"></label>
 
 				<!-- Left empty by people; a bot that fills it in is turned away. -->
@@ -122,6 +125,8 @@ class SB_EmailSig_Request {
 		<script>var sbEmailsigRequest = <?php echo wp_json_encode( array(
 			'ajax'     => admin_url( 'admin-ajax.php' ),
 			'co'       => $co,
+			// The page's own key: the token is only given for it.
+			'key'      => isset( $_GET['sb_emailsigs'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_emailsigs'] ) ) : '', // phpcs:ignore WordPress.Security.NonceVerification
 			'maxBytes' => self::MAX_BYTES,
 			'ratio'    => (float) $look['ratio'],
 			'shape'    => (string) $look['shape'],
@@ -131,6 +136,11 @@ class SB_EmailSig_Request {
 		<?php
 	}
 
+	/** What a visitor typed, with no shortcode brackets (they'd run wherever it shows). */
+	private static function plain( $text ) {
+		return trim( str_replace( array( '[', ']', '{', '}' ), '', (string) $text ) );
+	}
+
 	/** The signature on a token: company and time. */
 	private static function sign( $co, $time ) {
 		return hash_hmac( 'sha256', 'sb_emailsig_request|' . (int) $co . '|' . (int) $time, wp_salt( 'auth' ) );
@@ -138,9 +148,12 @@ class SB_EmailSig_Request {
 
 	/** A token for company $co's form, fetched when it opens. */
 	public static function token() {
-		$co = isset( $_POST['co'] ) ? absint( $_POST['co'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification -- hands out the form's own signed token.
+		// phpcs:disable WordPress.Security.NonceVerification -- hands out the form's own signed token, for the team page's key.
+		$co  = isset( $_POST['co'] ) ? absint( $_POST['co'] ) : 0;
+		$key = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
+		// phpcs:enable
 
-		if ( ! self::offered( $co ) ) {
+		if ( ! self::offered( $co ) || SB_EmailSig_Page::team_company( $key ) !== $co ) {
 			wp_send_json_error( 'This form isn\'t available.', 403 );
 		}
 
@@ -231,7 +244,7 @@ class SB_EmailSig_Request {
 	public static function save() {
 		// phpcs:disable WordPress.Security.NonceVerification -- a public form: the signed token is the check.
 		$get = function ( $key ) {
-			return isset( $_POST[ $key ] ) ? trim( sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) ) : '';
+			return isset( $_POST[ $key ] ) ? self::plain( sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) ) : '';
 		};
 		// phpcs:enable
 
@@ -266,8 +279,9 @@ class SB_EmailSig_Request {
 			wp_send_json_error( 'Add their first name.' );
 		}
 
-		if ( ! is_email( $email ) ) {
-			wp_send_json_error( 'Add a valid email address.' );
+		// Email isn't required (Sam, 1 November 2026), but one given must be one.
+		if ( $get( 'email' ) !== '' && ! is_email( $email ) ) {
+			wp_send_json_error( 'Check the email address.' );
 		}
 
 		if ( ! self::count_one() ) {

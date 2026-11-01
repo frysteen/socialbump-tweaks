@@ -35,7 +35,16 @@
 			data.push( field.name + '=' + field.value );
 		} );
 
-		return data.join( '&' );
+		// Fields with names of their own are compared by name, not by where they
+		// sit, so moving a card (module-cards.js) is not a change. A list
+		// (name[]) keeps its order, which can matter.
+		var listed = function ( entry ) {
+			return entry.split( '=' )[0].slice( -2 ) === '[]';
+		};
+
+		return data.filter( function ( entry ) {
+			return ! listed( entry );
+		} ).sort().concat( data.filter( listed ) ).join( '&' );
 	}
 
 	/** The buttons that should follow the state of the form. */
@@ -197,7 +206,6 @@
 				button.disabled = ! changed;
 				button.classList.toggle( 'sb-save--clean', ! changed );
 				button.classList.toggle( 'sb-save--dirty', changed );
-				button.title = changed ? 'Save your changes' : 'No unsaved changes';
 				label( button, changed ? names[ i ] : LABEL_CLEAN );
 			} );
 
@@ -250,6 +258,37 @@
 		} );
 
 		paint();
+
+		// One width whichever it says (Nothing to save, Save changes), so nothing
+		// beside it moves. Measured once the fonts are in.
+		( document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve() ).then( function () {
+			keys.forEach( function ( button, i ) {
+				steady( button, [ [ true, LABEL_CLEAN ], [ false, names[ i ] ] ] );
+			} );
+		} );
+	}
+
+	/** Fix a button's width to the widest of its states: [ disabled, wording ]. */
+	function steady( button, states ) {
+		if ( ! button.offsetWidth ) {
+			return;
+		}
+
+		var was   = { disabled: button.disabled, cls: button.className, words: original( button ) };
+		var width = 0;
+
+		states.forEach( function ( s ) {
+			button.disabled = s[0];
+			button.classList.toggle( 'sb-save--clean', s[0] );
+			button.classList.toggle( 'sb-save--dirty', ! s[0] );
+			label( button, s[1] );
+			width = Math.max( width, button.getBoundingClientRect().width );
+		} );
+
+		button.disabled  = was.disabled;
+		button.className = was.cls;
+		label( button, was.words );
+		button.style.minWidth = Math.ceil( width ) + 'px';
 	}
 
 	function start() {

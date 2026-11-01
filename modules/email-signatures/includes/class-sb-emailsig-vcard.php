@@ -47,11 +47,7 @@ class SB_EmailSig_VCard {
 		$d        = SB_EmailSig_Data::get( $post_id );
 		$filename = sanitize_file_name( ( $d['name'] ? $d['name'] : 'contact' ) . '.vcf' );
 
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
-		nocache_headers();
-		header( 'X-Robots-Tag: noindex, nofollow', true );
+		SB_EmailSig_Page::private_headers();
 		header( 'Content-Type: text/vcard; charset=utf-8' );
 		header( 'Content-Disposition: inline; filename="' . $filename . '"' );
 
@@ -61,13 +57,11 @@ class SB_EmailSig_VCard {
 
 	public static function build( array $d ) {
 		$name  = $d['name'];
-		// Their own first and last names (Sam, 31 October 2026), else the name split.
+		// Their own first and last names (Sam, 31 October 2026), else the name split as everywhere else.
 		$first = (string) ( $d['first_name'] ?? '' );
 		$last  = (string) ( $d['last_name'] ?? '' );
 		if ( $first === '' && $last === '' ) {
-			$parts = preg_split( '/\s+/', $name );
-			$last  = count( $parts ) > 1 ? array_pop( $parts ) : '';
-			$first = implode( ' ', $parts );
+			list( $first, $last ) = SB_EmailSig_Names::split( $name );
 		}
 
 		$lines   = array();

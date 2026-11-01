@@ -32,7 +32,7 @@ Settings, with both pages on its flyout.
 
 | Path | What it is |
 | --- | --- |
-| module.php | the declaration: groups settings and cleaner, menu parent upload.php, waits_for, migrate, prompt, boot |
+| module.php | the declaration: ui_ready, migrate, groups settings and cleaner, menu parent upload.php, bar, prompt, boot |
 | includes/class-sb-images-module.php | SB_Images_Module: settings, page addresses, assets, old addresses and the migrate |
 | features/images/ | SB Image Settings: SB_Images and the rebuild engine, zoom, media grid and media search |
 | features/image-cleaner/ | SB Image Cleaner: SB_Images_Cleaner, SB_Images_Tools, SB_Images_Orphans |
@@ -52,6 +52,14 @@ SB_Images_Module::assets() adds images.css and images.js on the two pages and,
 for the sizes panel, on upload.php, post.php and post-new.php, with the
 framework's confirm.js, which images.js uses for every question and summary.
 
+module.php sets 'ui_ready' => true, so both pages follow the user's dark mode
+although they sit under the Media menu. The framework loads the SocialBUMP UI
+(ui.css, ui.js) on them, so the plain notices the pages print (sizes added to
+Old thumbnails to clear, a size no longer cleared, widths left out because
+another plugin has the name) show as toasts. A notice with the inline class
+stays on the page. A few icons use data-sb-tip tooltips (the padlocks, the
+Make this size boxes, the attachment id pills on the report).
+
 Site Kit's old addresses, admin.php?page=sb-site-kit-images and
 sb-site-kit-image-cleaner, redirect to the new pages. WordPress refuses an
 unknown page before admin_init, so this hangs off admin_page_access_denied.
@@ -66,6 +74,8 @@ unknown page before admin_init, so this hangs off admin_page_access_denied.
 | sb_tweaks_images_adopted_image_sizes | leftover sizes from other sources chosen for clearing |
 | sb_tweaks_images_kept_orphans | orphaned files kept on purpose |
 | sb_tweaks_images_migrated | set once the copy below has run |
+| sb_tweaks_images_seen_sizes | sizes registered when either page was last opened or a scan ran (see Leftover sizes from other sources) |
+| sb_tweaks_images_size_sources | what registers each size, with a signature (see Size sources) |
 | user meta sb_tweaks_images_cleaner_sizes | [ 'off' => [...] ], the sizes each person left unticked on the cleaner, so a size added later starts ticked. Site Kit saved the ticked ones; chosen() turns that list round the first time it reads it |
 | user meta sb_tweaks_images_media_grid | each person's grid size and fit |
 
@@ -81,13 +91,8 @@ cleaner where the split never ran. It switches the module on where Site Kit
 had either page on. A site that never had Site Kit is marked done and starts
 with the module off.
 
-On the hub it waits while standalone Site Kit is active, since its pages could
-still change what is copied. Anywhere else the Site Kit module retires the
-plugin on the same request.
-
-The module waits_for socialbump-site-kit/socialbump-site-kit.php: it sits out
-any request the standalone plugin loaded in, because both would register the
-same sizes and handle the same uploads.
+It used to wait for the standalone Site Kit plugin (waits_for, and a hold on
+the hub). Both are gone: see Standalone Site Kit retired.
 
 ## Names that moved, and names that cannot
 
@@ -97,9 +102,10 @@ mime_types, media_search/applies, media_search/file_variants,
 orphans/extensions, orphans/keep, orphans/mention_sources,
 orphans/bookkeeping_keys), the JS filters to sb-images/zoom-attributes and
 sb-images/zoom-controls, every AJAX action from sbsk_images_ to sb_images_ (16
-of them) and the nonce to sb_images, the admin-post actions (sb_images_save,
-sb_images_save_cleaner_sizes, sb_images_adopt_sizes, sb_images_unadopt_sizes,
-sb_images_media_grid_save), transients (sb_images_job, sb_images_run_,
+of them, plus sb_images_media_grid_save, which has its own nonce) and the
+nonce to sb_images, the admin-post actions (sb_images_save,
+sb_images_save_cleaner_sizes, sb_images_adopt_sizes, sb_images_unadopt_sizes),
+transients (sb_images_job, sb_images_run_,
 sb_images_stopped_, sb_images_taken_, sb_images_orphans_run_,
 sb_images_mentioned_names), form fields and query arguments, script globals
 (sbImagesGalleryZoom, sbImagesFolderFilter, sbImagesGridPicker,
@@ -126,6 +132,12 @@ Every question and every summary is the framework's popup (SBTweaksConfirm):
 ask() and confirmed() before a delete or a rebuild, tell() for a refusal, and
 open() for the summary at the end of a run, with Scan again. images.js wraps
 the four as local functions, so its code reads as it did in Site Kit.
+
+Runs on SB Image Cleaner (Build, Remove old sizes, deleting leftover
+thumbnails, taking out missing images) use the module's own progress box,
+#sb-images-progress, with Cancel, Close and a button that stops a run started
+in another window (sb_images_stop). It is not the framework's SBTweaksProgress
+popup.
 
 ## Leftover sizes from other sources
 
@@ -306,7 +318,8 @@ A locked size:
   the deep remove and Delete orphan images all skip them.
 
 Everything else can still be reset and cleaned. SB Image Cleaner lists the
-locked sizes in a notice at the top.
+locked sizes in a notice at the top, with a link to SB Image Settings. It has
+the inline class, so it stays on the page rather than becoming a toast.
 
 Replaced a whole-site lock switch that was never released.
 
@@ -457,8 +470,8 @@ sections), and the grid drops to one column at 1100px, the same breakpoint as
 SB Image Settings. Checked the plugin's other two-column pages at the same
 time: SB Image Settings, Site Kit's Robots.txt and the Publishing page already
 had both rules. The FAQ source columns and the card grids use auto-fit, which
-wraps on its own. .sb-tweaks-images and .sb-tweaks-cleaner in admin.css are
-left over from before the module split; nothing uses them.
+wraps on its own. .sb-tweaks-images and .sb-tweaks-cleaner, left over in
+admin.css from before the module split, have since been taken out.
 
 The size migration prompt (docs/size-migration-prompt.md) now mentions the
 size groups, the Found in labels and the Elementor custom size warning, and
@@ -491,3 +504,21 @@ beside the Add ticked to Old thumbnails to clear button under it
 (.sb-images-report__pick--foot), so a long list needs no scroll back up. The
 same images.js handler serves both, as it ticks the boxes of the form the link
 sits in.
+
+## Sizes only some images have (October 2026)
+
+Added for Email Signatures' logos (Sam, 30 October 2026). Another module can
+add sizes made only for certain images through two filters:
+
+- sb_images/attachment_size_groups: key => [ title, note, sizes => name =>
+  width, height, crop ]. SB_Images_Rebuild::attachment_size_groups() returns
+  these plus the site icon's group.
+- sb_images/wanted_for: the sizes wanted for one attachment.
+  SB_Images_Rebuild::wanted_for( $id ) is all_wanted(), plus the site icon's
+  sizes on that image, run through this filter.
+
+These sizes are not registered, so they are never in the ticked list on SB
+Image Cleaner. is_attachment_size() lets Build make them whatever is ticked.
+They are never leftovers on the images that want them and never asked of any
+other image. The Sizes list shows each group (not the site icon's) as a fixed
+group with nothing to tick, and the media library's sizes panel lists them too.

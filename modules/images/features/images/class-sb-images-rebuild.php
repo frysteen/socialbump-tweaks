@@ -503,14 +503,17 @@ class SB_Images_Rebuild {
 		$meta = (array) wp_get_attachment_metadata( $id );
 		$dir  = dirname( $file );
 
-		// Remove sizes we own that are no longer wanted.
+		// Remove sizes we own that are no longer wanted: not a file another
+		// size or another image still uses (as clean() checks, 1 November 2026).
 		foreach ( self::stale( $id, $meta ) as $name ) {
-			if ( ! empty( $meta['sizes'][ $name ]['file'] ) ) {
-				$result['files'] += self::delete_file( self::size_path( $dir, $meta['sizes'][ $name ]['file'] ) );
-			}
+			$stale_file = (string) ( $meta['sizes'][ $name ]['file'] ?? '' );
 
 			unset( $meta['sizes'][ $name ] );
 			$result['removed'][] = $name;
+
+			if ( $stale_file !== '' && ! self::file_has_other_owner( $id, $meta, $stale_file ) ) {
+				$result['files'] += self::delete_file( self::size_path( $dir, $stale_file ) );
+			}
 		}
 
 		// When forcing, drop our own sizes so they are built again.
@@ -715,13 +718,6 @@ class SB_Images_Rebuild {
 		}
 
 		return $result;
-	}
-	/**
-	 * The files that clearing would actually delete for one attachment:
-	 * each old thumbnail, plus any WebP copy sitting beside it.
-	 */
-	public static function stale_files( $id, ?array $meta = null ) {
-		return self::stale_usage( $id, $meta )['files'];
 	}
 
 	/**

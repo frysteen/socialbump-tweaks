@@ -1,14 +1,20 @@
 /**
- * Cards that collapse to their title, and a Reorder dialogue to arrange them.
+ * Cards that collapse to their title, drag to a new place, and switch on or
+ * off together.
  *
- * Shared by the three SocialBUMP plugins and identical in each. Works on any
- * element carrying data-sb-cards, whose children carry data-sb-card. A card's
- * first child is its head (the title and the switch): a chevron goes at its
- * start, and it is all that shows while the card is collapsed.
+ * Shared by the SocialBUMP plugins. Works on any element carrying
+ * data-sb-cards, whose children carry data-sb-card. A card's first child is
+ * its head (the title and the switch): a chevron goes at its start, a drag
+ * handle at its end, and the head is all that shows while it is collapsed.
  *
- * Reorder opens a list of the cards to drag up and down, with Cancel and Save
- * order. Nothing here touches a form field, so the save button never lights up
- * for it; the arrangement goes to the plugin's own endpoint, per user.
+ * Drag a card by its handle to move it (Sam, 1 November 2026, in place of the
+ * Reorder dialogue). The order is saved as soon as it is dropped, per user, to
+ * the plugin's own endpoint, and the menu and admin bar follow it from the
+ * next page. The arrow keys move a focused handle too.
+ *
+ * Enable all and Disable all flip every card's switch that can be changed,
+ * as clicking each would, so Save changes lights up and saves them. The count
+ * pill in the toolbar follows the switches.
  */
 ( function () {
 	'use strict';
@@ -47,14 +53,18 @@
 		return node;
 	}
 
+	function toast( message, kind ) {
+		if ( window.SBTweaksUI && window.SBTweaksUI.toast ) {
+			window.SBTweaksUI.toast( message, kind );
+		}
+	}
+
 	function setUp( grid ) {
 		var key       = grid.getAttribute( 'data-sb-cards' );
 		var action    = grid.getAttribute( 'data-sb-cards-action' );
 		var nonce     = grid.getAttribute( 'data-sb-cards-nonce' );
 		var collapsed = ( grid.getAttribute( 'data-sb-cards-collapsed' ) || '' ).split( ',' ).filter( Boolean );
-		// The links sit above the grid and the Reorder button below it, so the
-		// controls are looked for across the page rather than in one element.
-		var tools     = document;
+		var mine      = '[data-sb-cards-tools="' + key + '"] ';
 
 		function cards() {
 			return Array.prototype.slice.call( grid.children ).filter( function ( node ) {
@@ -62,21 +72,29 @@
 			} );
 		}
 
+		function order() {
+			return cards().map( function ( card ) {
+				return card.getAttribute( 'data-sb-card' );
+			} ).join( ',' );
+		}
+
 		function save() {
-			var order = [];
-			var shut  = [];
-
-			cards().forEach( function ( card ) {
-				var id = card.getAttribute( 'data-sb-card' );
-
-				order.push( id );
-
-				if ( card.classList.contains( 'is-collapsed' ) ) {
-					shut.push( id );
-				}
+			var shut = cards().filter( function ( card ) {
+				return card.classList.contains( 'is-collapsed' );
+			} ).map( function ( card ) {
+				return card.getAttribute( 'data-sb-card' );
 			} );
 
-			return post( action, { key: key, nonce: nonce, order: order, collapsed: shut } );
+			return post( action, { key: key, nonce: nonce, order: order().split( ',' ), collapsed: shut } );
+		}
+
+		/** Save a new order, saying so. */
+		function saveOrder() {
+			save().then( function ( response ) {
+				toast( response.ok ? 'Order saved' : 'The order was not saved. Try again.', response.ok ? 'ok' : 'danger' );
+			} ).catch( function () {
+				toast( 'The order was not saved. Try again.', 'danger' );
+			} );
 		}
 
 		function setCollapsed( card, shut ) {
@@ -96,159 +114,193 @@
 			return heading ? heading.textContent.trim() : card.getAttribute( 'data-sb-card' );
 		}
 
-		/** The Reorder dialogue: a list to drag, then Cancel or Save order. */
-		function reorder() {
-			var overlay = el( 'div', 'sb-reorder' );
-			var box     = el( 'div', 'sb-reorder__box' );
-			var list    = el( 'ul', 'sb-reorder__list' );
-			var foot    = el( 'div', 'sb-reorder__foot' );
-			var cancel  = el( 'button', 'button', 'Cancel' );
-			var done    = el( 'button', 'button button-primary', 'Save order' );
-			var moving  = null;
-			var ghost   = null;
-			var grab    = 0;
+		/** A card's own switch, in its head. */
+		function switchOf( card ) {
+			return card.firstElementChild ? card.firstElementChild.querySelector( '.sb-tweaks-switch input[type="checkbox"]' ) : null;
+		}
 
-			box.appendChild( el( 'h2', 'sb-reorder__title', 'Reorder' ) );
-			box.appendChild( el( 'p', 'sb-reorder__note', 'Drag the names into the order you want them, on this page, in the menu and in the admin bar.' ) );
+		/* ---------- Count, Enable all and Disable all ---------- */
 
+		function count() {
+			var number = document.querySelector( '[data-sb-cards-count="' + key + '"] b' );
+
+			if ( ! number ) {
+				return;
+			}
+
+			number.textContent = String( cards().filter( function ( card ) {
+				var box = switchOf( card );
+
+				return box && box.checked && ! box.disabled && ! card.classList.contains( 'is-unavailable' );
+			} ).length );
+		}
+
+		function setAll( on ) {
 			cards().forEach( function ( card ) {
-				var item = el( 'li', 'sb-reorder__item', title( card ) );
+				var box = switchOf( card );
 
-				item.setAttribute( 'data-sb-id', card.getAttribute( 'data-sb-card' ) );
-				item.insertBefore( el( 'span', 'sb-reorder__grip', '\u22EE\u22EE' ), item.firstChild );
-				list.appendChild( item );
+				if ( box && ! box.disabled && box.checked !== on ) {
+					box.checked = on;
+					box.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+				}
 			} );
 
-			cancel.type = 'button';
-			done.type   = 'button';
+			count();
+		}
 
-			foot.appendChild( cancel );
-			foot.appendChild( done );
-			box.appendChild( list );
-			box.appendChild( foot );
-			overlay.appendChild( box );
-			document.body.appendChild( overlay );
+		grid.addEventListener( 'change', function ( event ) {
+			if ( event.target.matches && event.target.matches( '.sb-tweaks-switch input' ) ) {
+				count();
+			}
+		} );
 
-			function close() {
-				document.removeEventListener( 'pointermove', onMove );
-				document.removeEventListener( 'pointerup', onUp );
-				overlay.parentNode.removeChild( overlay );
+		/* ---------- Dragging ---------- */
+
+		var moving = null;
+		var ghost  = null;
+		var offX   = 0;
+		var offY   = 0;
+		var before = '';
+
+		function onMove( event ) {
+			if ( ! moving ) {
+				return;
 			}
 
-			/**
-			 * Listeners live on the document, not the item, so the drag keeps
-			 * going when the pointer leaves the item it started on.
-			 */
-			function onMove( event ) {
-				if ( ! moving ) {
-					return;
-				}
+			event.preventDefault();
 
-				event.preventDefault();
+			ghost.style.left = ( event.clientX - offX ) + 'px';
+			ghost.style.top  = ( event.clientY - offY ) + 'px';
 
-				// The copy follows the pointer; the row itself is the placeholder.
-				if ( ghost ) {
-					ghost.style.top = ( event.clientY - grab ) + 'px';
-				}
-
-				var items = Array.prototype.slice.call( list.children );
-
-				for ( var i = 0; i < items.length; i++ ) {
-					var other = items[ i ];
-
-					if ( other === moving ) {
-						continue;
-					}
-
-					var rect = other.getBoundingClientRect();
-
-					if ( event.clientY < rect.top + rect.height / 2 ) {
-						if ( other.previousSibling !== moving ) {
-							list.insertBefore( moving, other );
-						}
-
-						return;
-					}
-				}
-
-				if ( list.lastChild !== moving ) {
-					list.appendChild( moving );
-				}
+			// Near the top or bottom of the window, the page scrolls.
+			if ( event.clientY < 60 ) {
+				window.scrollBy( 0, -14 );
+			} else if ( event.clientY > window.innerHeight - 60 ) {
+				window.scrollBy( 0, 14 );
 			}
 
-			function onUp() {
-				if ( ghost && ghost.parentNode ) {
-					ghost.parentNode.removeChild( ghost );
-				}
+			// The ghost lets the pointer through, so this is the card under it.
+			var under = document.elementFromPoint( event.clientX, event.clientY );
+			var over  = under && under.closest ? under.closest( '[data-sb-card]' ) : null;
 
-				ghost = null;
-
-				if ( moving ) {
-					moving.classList.remove( 'is-moving' );
-					moving = null;
-				}
+			if ( ! over || over === moving || over.parentNode !== grid ) {
+				return;
 			}
 
-			list.addEventListener( 'pointerdown', function ( event ) {
-				var item = event.target.closest( '.sb-reorder__item' );
+			var rect  = over.getBoundingClientRect();
+			var after = event.clientX > rect.left + rect.width / 2;
 
-				if ( ! item ) {
-					return;
-				}
+			// One card to a row (a narrow screen): above or below instead.
+			if ( rect.width > grid.getBoundingClientRect().width * 0.8 ) {
+				after = event.clientY > rect.top + rect.height / 2;
+			}
 
-				event.preventDefault();
-				moving = item;
-				item.classList.add( 'is-moving' );
+			if ( after && over.nextElementSibling !== moving ) {
+				grid.insertBefore( moving, over.nextElementSibling );
+			} else if ( ! after && over.previousElementSibling !== moving ) {
+				grid.insertBefore( moving, over );
+			}
+		}
 
-				var rect = item.getBoundingClientRect();
+		function onUp() {
+			document.removeEventListener( 'pointermove', onMove );
+			document.removeEventListener( 'pointerup', onUp );
+			document.removeEventListener( 'pointercancel', onUp );
+			document.body.classList.remove( 'sb-cards-dragging' );
 
-				grab  = event.clientY - rect.top;
-				ghost = item.cloneNode( true );
-				ghost.className = 'sb-reorder__item sb-reorder__ghost';
-				ghost.style.left  = rect.left + 'px';
-				ghost.style.top   = rect.top + 'px';
-				ghost.style.width = rect.width + 'px';
-				overlay.appendChild( ghost );
+			if ( ghost && ghost.parentNode ) {
+				ghost.parentNode.removeChild( ghost );
+			}
+
+			ghost = null;
+
+			if ( ! moving ) {
+				return;
+			}
+
+			moving.classList.remove( 'is-moving' );
+			moving = null;
+
+			if ( order() !== before ) {
+				saveOrder();
+			}
+		}
+
+		grid.addEventListener( 'pointerdown', function ( event ) {
+			var grip = event.target.closest ? event.target.closest( '.sb-card__grip' ) : null;
+			var card = grip ? grip.closest( '[data-sb-card]' ) : null;
+
+			if ( ! card || card.parentNode !== grid || event.button !== 0 ) {
+				return;
+			}
+
+			event.preventDefault();
+
+			var rect = card.getBoundingClientRect();
+
+			offX   = event.clientX - rect.left;
+			offY   = event.clientY - rect.top;
+			before = order();
+
+			// A copy follows the pointer. Its fields lose their names, so the
+			// form never counts them.
+			ghost = card.cloneNode( true );
+			ghost.classList.add( 'sb-card-ghost' );
+			ghost.removeAttribute( 'data-sb-card' );
+			Array.prototype.forEach.call( ghost.querySelectorAll( '[name], [id]' ), function ( node ) {
+				node.removeAttribute( 'name' );
+				node.removeAttribute( 'id' );
 			} );
+			ghost.style.width  = rect.width + 'px';
+			ghost.style.height = rect.height + 'px';
+			ghost.style.left   = rect.left + 'px';
+			ghost.style.top    = rect.top + 'px';
+			grid.parentNode.appendChild( ghost );
+
+			// The card itself stays in the grid as the gap it will drop into.
+			moving = card;
+			card.classList.add( 'is-moving' );
+			document.body.classList.add( 'sb-cards-dragging' );
 
 			document.addEventListener( 'pointermove', onMove );
 			document.addEventListener( 'pointerup', onUp );
+			document.addEventListener( 'pointercancel', onUp );
+		} );
 
-			cancel.addEventListener( 'click', close );
+		// The arrow keys on a handle move its card one place.
+		grid.addEventListener( 'keydown', function ( event ) {
+			var grip = event.target.closest ? event.target.closest( '.sb-card__grip' ) : null;
+			var card = grip ? grip.closest( '[data-sb-card]' ) : null;
+			var back = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+			var on   = event.key === 'ArrowDown' || event.key === 'ArrowRight';
 
-			overlay.addEventListener( 'click', function ( event ) {
-				if ( event.target === overlay ) {
-					close();
-				}
-			} );
+			if ( ! card || ( ! back && ! on ) ) {
+				return;
+			}
 
-			done.addEventListener( 'click', function () {
-				done.disabled = true;
+			event.preventDefault();
 
-				// The cards are left where they are: moving them inside the form made
-				// the save prompt think the settings had changed. The order goes to
-				// the server and the page reloads, which redraws the cards, the menu
-				// and the admin bar together.
-				var order = Array.prototype.map.call( list.children, function ( item ) {
-					return item.getAttribute( 'data-sb-id' );
-				} );
-				var shut = cards().filter( function ( card ) {
-					return card.classList.contains( 'is-collapsed' );
-				} ).map( function ( card ) {
-					return card.getAttribute( 'data-sb-card' );
-				} );
+			var list = cards();
+			var at   = list.indexOf( card );
 
-				post( action, { key: key, nonce: nonce, order: order, collapsed: shut } ).then( function () {
-					window.location.reload();
-				} );
-			} );
+			if ( back && at > 0 ) {
+				grid.insertBefore( card, list[ at - 1 ] );
+			} else if ( on && at < list.length - 1 ) {
+				grid.insertBefore( card, list[ at + 1 ].nextElementSibling );
+			} else {
+				return;
+			}
 
-			cancel.focus();
-		}
+			grip.focus();
+			saveOrder();
+		} );
+
+		/* ---------- Each card: collapse and its handle ---------- */
 
 		cards().forEach( function ( card ) {
 			var head   = card.firstElementChild;
 			var toggle = el( 'button', 'sb-card__toggle' );
+			var grip   = el( 'button', 'sb-card__grip' );
 
 			if ( ! head ) {
 				return;
@@ -256,6 +308,11 @@
 
 			toggle.type = 'button';
 			head.insertBefore( toggle, head.firstChild );
+
+			grip.type = 'button';
+			grip.setAttribute( 'aria-label', 'Move ' + title( card ) + ' (arrow keys)' );
+			grip.setAttribute( 'data-sb-tip', 'Drag to move' );
+			head.appendChild( grip );
 
 			// The title is a bigger target than the chevron, so it toggles too.
 			var heading = head.querySelector( 'h1, h2, h3, h4' );
@@ -276,49 +333,58 @@
 			} );
 		} );
 
-		if ( tools ) {
-			var arrange = tools.querySelector( '[data-sb-cards-tools="' + key + '"] [data-sb-cards-reorder]' );
-			var shutAll = tools.querySelector( '[data-sb-cards-tools="' + key + '"] [data-sb-cards-collapse]' );
-			var openAll = tools.querySelector( '[data-sb-cards-tools="' + key + '"] [data-sb-cards-expand]' );
-			var shutOff = tools.querySelector( '[data-sb-cards-tools="' + key + '"] [data-sb-cards-collapse-off]' );
+		/* ---------- The toolbar ---------- */
 
-			/** A card whose switch in the head is off. */
-			function disabled( card ) {
-				var box = card.firstElementChild ? card.firstElementChild.querySelector( 'input[type="checkbox"]' ) : null;
+		var shutAll = document.querySelector( mine + '[data-sb-cards-collapse]' );
+		var openAll = document.querySelector( mine + '[data-sb-cards-expand]' );
+		var shutOff = document.querySelector( mine + '[data-sb-cards-collapse-off]' );
+		var onAll   = document.querySelector( mine + '[data-sb-cards-enable]' );
+		var offAll  = document.querySelector( mine + '[data-sb-cards-disable]' );
 
-				return !! ( box && ! box.checked );
-			}
+		/** A card whose switch in the head is off. */
+		function disabled( card ) {
+			var box = switchOf( card );
 
-			if ( shutOff ) {
-				shutOff.addEventListener( 'click', function () {
-					cards().filter( disabled ).forEach( function ( card ) {
-						setCollapsed( card, true );
-					} );
-					save();
+			return !! ( box && ! box.checked );
+		}
+
+		if ( shutOff ) {
+			shutOff.addEventListener( 'click', function () {
+				cards().filter( disabled ).forEach( function ( card ) {
+					setCollapsed( card, true );
 				} );
-			}
+				save();
+			} );
+		}
 
-			if ( arrange ) {
-				arrange.addEventListener( 'click', reorder );
-			}
-
-			if ( shutAll ) {
-				shutAll.addEventListener( 'click', function () {
-					cards().forEach( function ( card ) {
-						setCollapsed( card, true );
-					} );
-					save();
+		if ( shutAll ) {
+			shutAll.addEventListener( 'click', function () {
+				cards().forEach( function ( card ) {
+					setCollapsed( card, true );
 				} );
-			}
+				save();
+			} );
+		}
 
-			if ( openAll ) {
-				openAll.addEventListener( 'click', function () {
-					cards().forEach( function ( card ) {
-						setCollapsed( card, false );
-					} );
-					save();
+		if ( openAll ) {
+			openAll.addEventListener( 'click', function () {
+				cards().forEach( function ( card ) {
+					setCollapsed( card, false );
 				} );
-			}
+				save();
+			} );
+		}
+
+		if ( onAll ) {
+			onAll.addEventListener( 'click', function () {
+				setAll( true );
+			} );
+		}
+
+		if ( offAll ) {
+			offAll.addEventListener( 'click', function () {
+				setAll( false );
+			} );
 		}
 	}
 

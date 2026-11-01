@@ -21,7 +21,7 @@
  *   click puts one in the field last typed in. Tokens are filled in when the
  *   field is read (acf/format_value), so everywhere shows the staff page's
  *   current value, and the signature changes when the page does. Signatures
- *   already pasted into Mail don't: Changed since copied shows.
+ *   already pasted into Mail don't, so the person copies it again.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

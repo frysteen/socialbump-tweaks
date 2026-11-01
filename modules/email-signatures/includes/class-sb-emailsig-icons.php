@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * with the form as PNG data, checked here and saved as files:
  *
  * - contact icons from the Edit styles page, from the template's icons/*.svg;
- * - social icons from the Edit styles page (that template) and from the
- *   Settings page (every template, since the rows changed).
+ * - social icons from the Edit styles page (that template) and from a
+ *   company's page (every template, in that company's colours).
  *
  * Kept in the option sb_emailsig_icons:
  *   [ template id => [ 'contact' => [ name => file ], 'social' => [ row => file ] ] ]
@@ -24,7 +24,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SB_EmailSig_Icons {
 
 	const OPTION = 'sb_emailsig_icons';
-	const SCALE  = 3;
 	const MAX_PX = 400;
 
 	/** The Custom SVG field's key: ACF sends it with uploads made from that field. */
@@ -324,6 +323,62 @@ class SB_EmailSig_Icons {
 		return file_exists( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore
 	}
 
+	/**
+	 * Companies whose drawn contact icons miss some their templates have now
+	 * (icons added in an update), which would show in the shipped colour.
+	 * The Email Signatures pages draw those for administrators
+	 * (assets/icons-fill.js, Sam, 1 November 2026).
+	 */
+	public static function stale() {
+		$all  = (array) get_option( self::OPTION, [] );
+		$tpls = SB_EmailSig_Templates::all();
+		$out  = [];
+
+		foreach ( SB_EmailSig_Company::all() as $co ) {
+			if ( SB_EmailSig_Switch::is_off( $co ) ) {
+				continue;
+			}
+
+			foreach ( $tpls as $id => $tpl ) {
+				$slot = self::slot( $id, $co );
+
+				if ( ! isset( $all[ $slot ]['contact'] ) || ! is_array( $all[ $slot ]['contact'] ) ) {
+					continue;
+				}
+
+				$names = (array) ( SB_EmailSig_Styles::defaults( $tpl )['icons']['names'] ?? [] );
+
+				if ( array_diff( $names, array_keys( $all[ $slot ]['contact'] ) ) ) {
+					$out[] = $co;
+					break;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/** What icons-fill.js needs to draw company $co's contact icons for every template. */
+	public static function fill_data( $co ) {
+		return SB_EmailSig_Company::with(
+			$co,
+			function () {
+				$tpls = [];
+
+				foreach ( SB_EmailSig_Styles::social_styles() as $id => $st ) {
+					if ( ! empty( $st['contact'] ) ) {
+						$tpls[ $id ] = $st['contact'];
+					}
+				}
+
+				return [
+					'templates' => (object) $tpls,
+					'brand'     => (object) wp_list_pluck( SB_EmailSig_Styles::brand(), 'hex' ),
+				];
+			}
+		);
+	}
+
 	public static function builtin_svgs() {
 		$out = [];
 
@@ -470,7 +525,6 @@ class SB_EmailSig_Icons {
 		}
 	}
 
-	/** The Settings page sends every template's social and contact icons, drawn from the rows and brand colours as they now are. */
 	/** A company saved on its page (SB_EmailSig_Companies): its icons, from the form's builder. */
 	public static function settings_saved( $post_id ) {
 		if ( ! is_numeric( $post_id ) || get_post_type( (int) $post_id ) !== SB_EmailSig_Company::CPT || ! SB_EmailSig_Companies::is_request() ) {

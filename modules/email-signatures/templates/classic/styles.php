@@ -83,7 +83,7 @@ return [
 		'label_case'   => 'none',
 		// The Info List's own, then the ones Additional Info List Items can
 		// pick (SB_EmailSig_Fields::info_icons()).
-		'names'  => [ 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'clock', 'calendar', 'info', 'link', 'award', 'star', 'heart', 'gift', 'briefcase', 'building-2', 'graduation-cap', 'message-circle', 'printer', 'car' ],
+		'names'  => [ 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'clock', 'calendar', 'info', 'link', 'award', 'star', 'heart', 'gift', 'briefcase', 'building-2', 'graduation-cap', 'message-circle', 'printer', 'car', 'thumbs-up', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz' ],
 	],
 
 	'social'  => [
@@ -145,8 +145,10 @@ return [
 				'padding' => [ 'top' => 'triple', 'right' => 0, 'bottom' => 'triple', 'left' => 0 ], // Triple (24px) top and bottom unless set (Sam, 31 October 2026; Double before the 8px base).
 				'blocks' => [
 					[ 'type' => 'logo', 'align' => 'left', 'space' => 'double' ],
-					[ 'type' => 'info', 'id' => 1, 'align' => 'left', 'space' => 'double', 'style' => 'stack', 'sep' => 'bar', 'spacing' => 'default' ], // Info List spacing Default, 8px (Sam, 1 November 2026).
-					[ 'type' => 'vcard', 'align' => 'left', 'space' => 'double' ],
+					// Info List spacing Default, 8px (Sam, 1 November 2026). Save my
+					// contact details is one of its lines now, ticked, so its own
+					// widget waits in Not in Use (Sam, 1 November 2026).
+					[ 'type' => 'info', 'id' => 1, 'align' => 'left', 'space' => 'double', 'style' => 'stack', 'sep' => 'bar', 'spacing' => 'default' ],
 					[ 'type' => 'social', 'align' => 'left', 'space' => 'double', 'heading' => 1, 'direction' => 'row', 'indent' => 1 ],
 				],
 			],
@@ -166,6 +168,7 @@ return [
 		'line_space' => 'double', // Double (16px) above, None below, as every footer part (Sam, 31 October 2026).
 		'hold'       => [
 			[ 'type' => 'logo_small', 'align' => 'left', 'space' => 'double' ],
+			[ 'type' => 'vcard', 'align' => 'left', 'space' => 'double' ],
 		],
 	],
 

@@ -6,8 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Shared engine for the SocialBUMP element conditions.
  *
- * Each condition is its own module (includes/modules/condition-...), so each
- * gets its own switch on the settings page. A condition module registers a
+ * Each condition is its own feature (features/condition-...), so each gets its
+ * own switch on the Conditions page. A condition feature registers a
  * definition array from its condition.php:
  *
  *   'key'     Unique key. Bricks saves it with the element, so never rename it.
@@ -17,8 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *             With 'multiple', check() receives an array of the chosen values.
  *   'check'   callable( $compare, $value, $post_id ). Return true to show the element.
  *
- * To add a condition: copy one of the condition module folders, give it a new
- * folder name, id and title in module.php, and write the new condition.php.
+ * To add a condition: copy one of the condition feature folders, give it a new
+ * folder name, id and title in feature.php, and write the new condition.php.
  */
 class SB_Bricks_Conditions {
 
@@ -140,7 +140,8 @@ class SB_Bricks_Conditions {
 		$definition = self::$conditions[ $key ];
 		$compare    = isset( $condition['compare'] ) ? (string) $condition['compare'] : '';
 
-		if ( ! array_key_exists( $compare, $definition['compare'] ) ) {
+		// An unknown comparison takes the first choice, unless it's an older wording the condition still reads.
+		if ( ! array_key_exists( $compare, $definition['compare'] ) && ! in_array( $compare, (array) ( $definition['legacy'] ?? [] ), true ) ) {
 			$choices = array_keys( $definition['compare'] );
 			$compare = (string) $choices[0];
 		}

@@ -130,7 +130,7 @@
 			$preview.empty();
 			shown.forEach(function (png, i) {
 				if (png) {
-					$('<img alt="">').attr({ src: png, width: st.size, height: st.size, title: rows[i].name })
+					$('<img alt="">').attr({ src: png, width: st.size, height: st.size, 'data-sb-tip': rows[i].name })
 						.css({ width: st.size + 'px', height: st.size + 'px', marginRight: st.gap + 'px' })
 						.appendTo($preview);
 				} else if (rows[i].svg !== null) {
@@ -207,13 +207,14 @@
 		e.preventDefault();
 
 		var tag = btn.getAttribute('data-sb-emailsig-tag');
-		var code = btn.querySelector('code');
 
+		// Copied shows in its tip, so the tag keeps its width (no layout shift).
 		copy(tag).then(function () {
-			code.textContent = 'Copied';
+			var tip = btn.getAttribute('data-sb-tip');
+			btn.setAttribute('data-sb-tip', 'Copied');
 			btn.classList.add('is-copied');
 			setTimeout(function () {
-				code.textContent = tag;
+				if (tip) btn.setAttribute('data-sb-tip', tip); else btn.removeAttribute('data-sb-tip');
 				btn.classList.remove('is-copied');
 			}, 1200);
 		});
@@ -278,10 +279,10 @@
 	});
 })();
 
-/* Company tab: the Main Template is always one people can use, so its box
+/* Company tab: the Default Template is always one people can use, so its box
    in Templates is ticked and locked (Sam, 30 October 2026). Ticked without
    an event, so the page doesn't count it as a change; it stays ticked when
-   it stops being the main one. */
+   it stops being the default one. */
 (function () {
 	'use strict';
 
@@ -298,7 +299,7 @@
 				box.setAttribute('aria-disabled', main ? 'true' : 'false');
 				if (label) {
 					label.classList.toggle('is-locked', main);
-					if (main) label.title = 'The main template, always available'; else label.removeAttribute('title');
+					if (main) label.setAttribute('data-sb-tip', 'The Default Template, always available'); else label.removeAttribute('data-sb-tip');
 				}
 			});
 		};
@@ -343,17 +344,6 @@
 		fit(false);
 	});
 })(jQuery);
-
-/* A company's page: the bar's company menu opens the one picked
-   (Companies::switcher()). The page's own unsaved-changes check still asks. */
-document.addEventListener('change', function (e) {
-	var sel = e.target && e.target.matches && e.target.matches('[data-sb-emailsig-switch]') ? e.target : null;
-	if (!sel || !sel.value) return;
-	var back = sel.querySelector('option[selected]');
-	window.location.href = sel.value;
-	// Left on this page (they chose to stay): show this company again.
-	setTimeout(function () { if (back) sel.value = back.value; }, 500);
-});
 
 /* Branding tab: each brand colour box gets the framework's swatch and the
    theme colour menu, as on Edit styles (SB_EmailSig_Styles::palette()). */
@@ -420,7 +410,7 @@ document.addEventListener('change', function (e) {
 			var key = ($(this).attr('data-name') || '').replace('sb_emailsig_brand_', '');
 			var $wrap = $('<span class="sb-tweaks-colour sb-emailsig-colour"></span>');
 			var swatch = $('<input type="color" class="sb-tweaks-colour__swatch" aria-label="Pick a colour">')[0];
-			var button = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" title="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')[0];
+			var button = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')[0];
 
 			$(input).addClass('sb-tweaks-colour__value code').attr({ spellcheck: 'false', autocomplete: 'off' });
 			$(input).before($wrap);
@@ -470,5 +460,30 @@ document.addEventListener('change', function (e) {
 			}
 		});
 		$(window).on('resize scroll', closeMenu);
+	});
+})(jQuery);
+
+/* Open a tab, and a field on it, from the address (Sam, 1 November 2026):
+   ?sb_tab=company&sb_field=company_email, from Person Email's note in an
+   Info List on the Layout page. */
+(function ($) {
+	'use strict';
+
+	if (!window.acf) return;
+
+	acf.addAction('ready', function () {
+		var q = new URLSearchParams(window.location.search);
+		var tab = (q.get('sb_tab') || '').replace(/[^a-z_]/g, '');
+		var field = (q.get('sb_field') || '').replace(/[^a-z_]/g, '');
+
+		if (tab) $('.acf-tab-button[data-key="field_sb_emailsig_tab_' + tab + '"]').first().trigger('click');
+		if (!field) return;
+
+		var $f = $('.acf-field[data-key="field_sb_emailsig_' + field + '"]').first();
+		if (!$f.length) return;
+		setTimeout(function () {
+			$f[0].scrollIntoView({ block: 'center' });
+			$f.find('input, textarea, select').first().trigger('focus');
+		}, 60);
 	});
 })(jQuery);
