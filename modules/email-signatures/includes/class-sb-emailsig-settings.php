@@ -102,6 +102,10 @@ class SB_EmailSig_Settings {
 				'palette'   => SB_EmailSig_Styles::palette(),
 				'colours'   => (object) SB_EmailSig_Styles::colours(),
 				'brand'     => (object) wp_list_pluck( SB_EmailSig_Styles::BRAND, 1 ),
+				// Additional Buttons' Colour (Sam, 2 November 2026): the company's
+				// brand colours as well as the theme's, and what a blank one shows.
+				'buttonPalette' => SB_EmailSig_Styles::editor_palette(),
+				'buttonDefault' => (string) ( SB_EmailSig_Styles::brand()['primary']['hex'] ?? '#000000' ),
 				// Company tab, Merge Tag Fields: each post type's fields.
 				'staffFields' => (object) array_map( 'array_keys', SB_EmailSig_Staff::field_map() ),
 			]

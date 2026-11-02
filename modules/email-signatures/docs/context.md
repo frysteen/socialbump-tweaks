@@ -904,8 +904,8 @@ Email clients decide most of this:
   x, threads, pinterest. The brand ones use the same Simple Icons paths as
   assets/social/, drawn at about 19px inside the 24px box, filled. Each
   has an SVG and a shipped teal PNG in templates/classic/icons/, and is in
-  styles.php's icons names. LinkedIn isn't in the social list, so not here
-  either.
+  styles.php's icons names. (LinkedIn wasn't in the social list then; see
+  below.)
 - They're built in the template's colours like the others on the next
   Edit styles or Layout save; until then the shipped PNG shows.
 - Google (the G, Simple Icons) is in both lists: the company Social Media
@@ -933,6 +933,121 @@ Email clients decide most of this:
   shipped PNG (54px, #407c81, drawn with icon-builder.js like the rest) in
   templates/classic/icons/, and is in styles.php's names, so
   Icons::stale() fills them in for every company on the first admin visit.
+
+- LinkedIn (Sam, 2 November 2026) in both lists: the company Social Media
+  rows and the Info List's Social Media group, after Instagram. Simple Icons
+  dropped LinkedIn, so it's Bootstrap Icons 1.11.3's linkedin (MIT, 16px
+  box): assets/social/linkedin.svg as it comes, and
+  templates/classic/icons/linkedin.svg scaled to 19px in the 24px box like
+  the other brand icons, with a shipped #407c81 PNG.
+
+- The Icon fields show the icons (Sam, 2 November 2026,
+  assets/icon-picker.js): every social_media_icon, info_icon and
+  button_icon select gets a button showing the chosen icon and its name,
+  the same box as the framework's selects, opening a menu of every icon
+  under the select's group headings, with a search box (arrows, Enter and
+  Escape work). The select stays in the form underneath, hidden: a pick
+  sets its value and sends real input and change events, so saving,
+  Unsaved changes, autolabel.js and ACF's conditional Custom SVG field
+  work as before. Rows added later are picked up through ACF's append
+  action; ACF's .acf-clone row is skipped so copies start clean. The SVGs
+  come from the first template's icons folder (sbEmailsigIconPicker,
+  SB_EmailSig_Admin::assets()), drawn in the text colour; Custom SVG shows
+  Lucide's upload, None an empty dashed box. ACF's Select2 was passed
+  over: it sends jQuery-only change events, which save-state.js and
+  autolabel.js don't hear.
+
+- Custom SVG and the full list (Sam, 2 November 2026):
+  - One Icon list everywhere (Sam, 2 November 2026): Social Media,
+    Additional Buttons and both Additional Info List Items all take their
+    choices from Fields::icon_choices(): None, the groups
+    (info_icon_groups()), Custom SVG last. Social Media leaves out None,
+    as a row there is only its icon. One script draws them all
+    (icon-picker.js), and one handles every Custom SVG field (replace.js,
+    the admin.css rules). social_icons() is the flat list plus custom.
+  - Both Additional Info List Items repeaters have Custom SVG at the end of
+    the Icon menu, which shows an Info Icon File field (ACF file, SVG only,
+    returns the ID), uploaded and cleaned the same way as on Social Media
+    (Icons::SVG_FIELDS, svg_field_upload()).
+  - Each custom upload is named u<attachment id> (Icons::custom_name(),
+    custom_names(): every *_info_icon_file whose icon is custom, in
+    postmeta and options). Styles::defaults() adds those names to the
+    template's icon names and contact_svgs() reads the file, so
+    Icons::stale() draws it in each company's colours on the next admin
+    visit, like a new built-in icon. Until it's drawn, contact_url() gives
+    nothing and the row shows with no icon (Layout::lead()).
+  - All three Custom SVG fields (keys ending _icon_file) show just the SVG
+    with Replace and Remove (assets/replace.js swaps ACF's file icon for the
+    SVG and turns the pencil into Replace, as on image fields; admin.css
+    hides the file name and size and keeps the buttons showing).
+  - Layout (Sam, 2 November 2026): Custom SVG sits straight after Icon
+    in all three, and its space is always there, empty until the row's
+    Icon is Custom SVG. That's admin.css (a :has() rule on the row's
+    selected option), not ACF conditional logic, which took the field's
+    space away and, in a table, the whole column. So the file field saves
+    whatever it holds; only rows whose icon is custom use it (Data,
+    Icons::social_svgs(), custom_names(), Settings::saved_svgs()).
+  - The company's two are tables, Link (Social Media) and Text (Info List)
+    taking what's left. A person's Info List is a block layout, after
+    Sam's mock-up: Icon and Custom SVG on one line, then Label, Text and
+    Link, with 16px of room inside each row (ACF forces td.acf-fields
+    padding to 0 with !important, so ours is !important too).
+  - Wide row numbers: ACF's table sizing (tableHelper) shares the spare
+    width among columns with no width that aren't .acf-hidden. The hidden
+    row id columns (row_id_field()) were hidden only by our CSS, so they
+    took a share that went to the row number. They carry acf-hidden now.
+  - Additional Buttons have Custom SVG too (Sam, 2 November 2026): last in
+    the Icon menu, the Custom SVG field (button_icon_file) beside Icon, its
+    space kept the same way, Link taking what's left. Data::button_icon()
+    gives a custom one's name, u<attachment id>; Icons::button_needed()
+    takes it like a built-in icon and button_config() hands
+    button-icons.js the uploaded file's SVG, so it's drawn in the button's
+    text colour and size like the rest.
+
+### Info List Icons (Branding tab, 2 November 2026)
+
+Sam: the fixed lines' icons can be changed per company. Fields::LINE_ICONS
+lists them, key => [ label, default ]: Phone (phone), Mobile (smartphone),
+Email (mail), Website (globe), Address (map-pin) and Save Contact
+(user-plus). Email covers the company's Email line too, so email looks the
+same everywhere; a different icon for one line is an Additional Info List
+Item. A person's own landline is one of those too.
+
+- Fields: an Info List Icons sub-heading after the brand colours, then per
+  line sb_emailsig_line_<key>_icon (the shared Icon menu without None,
+  defaulting to the old icon) and sb_emailsig_line_<key>_icon_file (Custom
+  SVG, beside it, its space kept the same way: admin.css's
+  .sb-emailsig-line-icon + .sb-emailsig-line-file rule).
+  split_groups() puts them in after field_sb_emailsig_brand_text_light.
+  They're in Company::FIELDS and Icons::SVG_FIELDS.
+- The picker (icon-picker.js) gives these a reset beside it, from
+  sbEmailsigIconPicker.defaults (Fields::line_icon_defaults()), hidden
+  but keeping its space while the icon is the default.
+- Data::line_icons() gives the company's choice per line ($d line_icons),
+  a Custom SVG as u<attachment id>, falling back to the default when none
+  is chosen. Layout::line_icon() reads it in rows() and vcard().
+  Icons::custom_names() includes these files, so they're drawn in each
+  company's colours like the Info List's Custom SVGs.
+
+### Button colours (2 November 2026)
+
+Sam: an Additional Button can have its own colour, such as a red one to
+draw attention; everything else comes from the template.
+
+- Fields: a Colour column (button_colour, text, blank for the template's)
+  before Outline. settings.js gives it the same swatch, box and colour menu
+  as the brand colours (box(), shared with them), its menu with the
+  company's brand colours too (sbEmailsigSettings.buttonPalette,
+  Styles::editor_palette()); a blank one shows Brand Primary dashed. Rows
+  added later get one through ACF's append. Saved cleaned
+  (Styles::clean_colour()); button_colour_valid() takes a hex, a brand
+  colour or a theme colour.
+- Data::buttons() gives each its colour as hex ('' for none).
+  Styles::button_look() makes the look: solid gets it as fill and border,
+  text as the template has it; outline gets it as border, and as text too
+  unless the template gives outline text its own colour. Layout's footer
+  and Icons::button_needed() both use it, so a button icon is drawn in the
+  text colour the button really has.
 
 ### Button icons (2 November 2026)
 
@@ -2110,4 +2225,13 @@ What arrived when. The topic sections above say how each part works now.
 - Colour menus also list Core Framework and Elementor colours, with a
   heading for each source.
 - Five new icons in an Enquiries group (Quote, Clipboard, Calculator,
-  Dollar, Receipt); Additional Buttons can have an icon.
+  Dollar, Receipt); Additional Buttons can have an icon; LinkedIn in the
+  Social Media and Info List icons; Icon fields show the icons in their
+  menu, with a search.
+- Social Media rows can use any icon; Additional Info List Items can have a
+  Custom SVG; Custom SVG fields show just the icon, with Replace and Remove;
+  a person's Info List items on two lines.
+- Info List Icons on the Branding tab: a company can change the Phone,
+  Mobile, Email, Website, Address and Save Contact icons, or use a Custom
+  SVG, with a reset back to the default.
+- Additional Buttons can each have their own colour.

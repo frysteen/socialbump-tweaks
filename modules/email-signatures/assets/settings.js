@@ -375,12 +375,16 @@
 })(jQuery);
 
 /* Branding tab: each brand colour box gets the framework's swatch and the
-   theme colour menu, as on Edit styles (SB_EmailSig_Styles::palette()). */
+   theme colour menu, as on Edit styles (SB_EmailSig_Styles::palette()).
+   Additional Buttons' Colour boxes get the same (Sam, 2 November 2026),
+   their menu with the company's brand colours too (buttonPalette), a blank
+   one showing Brand Primary dashed: blank is the template's colour. */
 (function ($) {
 	'use strict';
 
 	var cfg = window.sbEmailsigSettings || {};
 	var palette = cfg.palette || [];
+	var buttonPalette = cfg.buttonPalette || palette;
 	var all = cfg.colours || {};
 	var $menu = null;
 	var menuFor = null;
@@ -390,7 +394,54 @@
 		if (/^--[a-z0-9_-]+$/.test(value)) value = 'var(' + value + ')';
 		if (/^#[0-9a-f]{6}$/.test(value)) return value;
 		if (/^#[0-9a-f]{3}$/.test(value)) return '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
-		return Object.prototype.hasOwnProperty.call(all, value) ? all[value] : '';
+		if (Object.prototype.hasOwnProperty.call(all, value)) return all[value];
+		for (var i = 0; i < buttonPalette.length; i++) {
+			if (buttonPalette[i].value === value) return buttonPalette[i].hex;
+		}
+		return '';
+	}
+
+	/** A colour box: the field's text input with a swatch before it and the colour menu button after. */
+	function box(input, list) {
+		var $wrap = $('<span class="sb-tweaks-colour sb-emailsig-colour"></span>');
+		var swatch = $('<input type="color" class="sb-tweaks-colour__swatch" aria-label="Pick a colour">')[0];
+		var button = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')[0];
+
+		$(input).addClass('sb-tweaks-colour__value code').attr({ spellcheck: 'false', autocomplete: 'off' });
+		$(input).before($wrap);
+		$wrap.append(swatch, input);
+		if (list.length) $wrap.append(button);
+
+		swatch.addEventListener('input', function () {
+			if (input.value !== swatch.value) setValue(input, swatch.value);
+		});
+		button.addEventListener('click', function (e) {
+			e.preventDefault();
+			if (menuFor === button) closeMenu(); else openMenu(button, input, list);
+		});
+
+		return { input: input, swatch: swatch, $wrap: $wrap };
+	}
+
+	/** A box's swatch shows its own colour, or the fallback dashed. */
+	function show(b, fallback) {
+		var own = hexOf(b.input.value);
+		var shown = own || fallback;
+		b.$wrap.toggleClass('is-inherited', !own);
+		b.$wrap.toggleClass('is-unknown', b.input.value.trim() !== '' && !own);
+		if (b.swatch.value !== shown) b.swatch.value = shown;
+	}
+
+	/** Additional Buttons' Colour boxes, including rows added later (not ACF's .acf-clone row). */
+	function buttonBoxes(root) {
+		$(root).find('.sb-emailsig-button-colour .acf-input input[type="text"]').each(function () {
+			if (this._sbColour || $(this).closest('.acf-clone').length) return;
+			var b = box(this, buttonPalette);
+			this._sbColour = b;
+			var paint = function () { show(b, cfg.buttonDefault || '#000000'); };
+			this.addEventListener('input', paint);
+			paint();
+		});
 	}
 
 	function setValue(input, value) {
@@ -404,12 +455,13 @@
 		if (menuFor) { menuFor.setAttribute('aria-expanded', 'false'); menuFor = null; }
 	}
 
-	function openMenu(button, input) {
+	function openMenu(button, input, list) {
 		var rect = button.getBoundingClientRect();
+		list = list || palette;
 		closeMenu();
 		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
-		palette.forEach(function (c, i) {
-			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) $('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
+		list.forEach(function (c, i) {
+			if (c.group && (i === 0 || list[i - 1].group !== c.group)) $('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
 			$('<button type="button" role="option"></button>')
 				.append($('<i></i>').css('background', c.hex))
 				.append($('<span></span>').text(c.name))
@@ -433,29 +485,31 @@
 	$(function () {
 		var boxes = [];
 
+		// Menus close on a click elsewhere, Escape, a resize or a scroll.
+		$(document).on('mousedown', function (e) {
+			if ($menu && !$(e.target).closest('.sb-emailsig-palette, .sb-emailsig-colour__theme').length) closeMenu();
+		});
+		$(document).on('keydown', function (e) {
+			if (e.key === 'Escape' && $menu) {
+				var back = menuFor;
+				closeMenu();
+				if (back) back.focus();
+			}
+		});
+		$(window).on('resize scroll', closeMenu);
+
+		buttonBoxes(document);
+		if (window.acf && window.acf.addAction) {
+			window.acf.addAction('append', function ($el) { buttonBoxes($el); });
+		}
+
 		$('.sb-emailsig-brand-colour').each(function () {
 			var input = $(this).find('.acf-input input[type="text"]')[0];
 			if (!input) return;
 
-			var key = ($(this).attr('data-name') || '').replace('sb_emailsig_brand_', '');
-			var $wrap = $('<span class="sb-tweaks-colour sb-emailsig-colour"></span>');
-			var swatch = $('<input type="color" class="sb-tweaks-colour__swatch" aria-label="Pick a colour">')[0];
-			var button = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')[0];
-
-			$(input).addClass('sb-tweaks-colour__value code').attr({ spellcheck: 'false', autocomplete: 'off' });
-			$(input).before($wrap);
-			$wrap.append(swatch, input);
-			if (palette.length) $wrap.append(button);
-
-			swatch.addEventListener('input', function () {
-				if (input.value !== swatch.value) setValue(input, swatch.value);
-			});
-			button.addEventListener('click', function (e) {
-				e.preventDefault();
-				if (menuFor === button) closeMenu(); else openMenu(button, input);
-			});
-
-			boxes.push({ key: key, input: input, swatch: swatch, $wrap: $wrap });
+			var b = box(input, palette);
+			b.key = ($(this).attr('data-name') || '').replace('sb_emailsig_brand_', '');
+			boxes.push(b);
 		});
 
 		if (!boxes.length) return;
@@ -468,28 +522,12 @@
 				if (b.key === 'primary') primary = hexOf(b.input.value) || (cfg.brand || {}).primary || '#000000';
 			});
 			boxes.forEach(function (b) {
-				var own = hexOf(b.input.value);
-				var shown = own || (b.key === 'accent' ? primary : ((cfg.brand || {})[b.key] || '#000000'));
-				b.$wrap.toggleClass('is-inherited', !own);
-				b.$wrap.toggleClass('is-unknown', b.input.value.trim() !== '' && !own);
-				if (b.swatch.value !== shown) b.swatch.value = shown;
+				show(b, b.key === 'accent' ? primary : ((cfg.brand || {})[b.key] || '#000000'));
 			});
 		};
 
 		boxes.forEach(function (b) { b.input.addEventListener('input', paint); });
 		paint();
-
-		$(document).on('mousedown', function (e) {
-			if ($menu && !$(e.target).closest('.sb-emailsig-palette, .sb-emailsig-colour__theme').length) closeMenu();
-		});
-		$(document).on('keydown', function (e) {
-			if (e.key === 'Escape' && $menu) {
-				var back = menuFor;
-				closeMenu();
-				if (back) back.focus();
-			}
-		});
-		$(window).on('resize scroll', closeMenu);
 	});
 })(jQuery);
 

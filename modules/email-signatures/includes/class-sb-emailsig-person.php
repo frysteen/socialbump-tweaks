@@ -49,7 +49,7 @@ class SB_EmailSig_Person {
 
 	/** The person's own Info List rows (a repeater): its sub fields, by key. */
 	const INFO     = 'field_sb_emailsig_person_info';
-	const INFO_SUB = array( 'field_sb_emailsig_person_info_icon', 'field_sb_emailsig_person_info_label', 'field_sb_emailsig_person_info_text', 'field_sb_emailsig_person_info_link', 'field_sb_emailsig_person_info_id' );
+	const INFO_SUB = array( 'field_sb_emailsig_person_info_icon', 'field_sb_emailsig_person_info_label', 'field_sb_emailsig_person_info_text', 'field_sb_emailsig_person_info_link', 'field_sb_emailsig_person_info_icon_file', 'field_sb_emailsig_person_info_id' );
 
 	public static function init() {
 		add_action( 'admin_post_sb_emailsig_person_save', array( __CLASS__, 'save' ) );

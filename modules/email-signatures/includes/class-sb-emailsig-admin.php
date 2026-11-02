@@ -39,6 +39,19 @@ class SB_EmailSig_Admin {
 		// Icon pickers fill an empty Name or Label (assets/autolabel.js).
 		wp_enqueue_script( 'sb-emailsig-autolabel', SB_EMAILSIG_URL . 'assets/autolabel.js', array(), SB_EmailSig_Module::asset_version( 'assets/autolabel.js' ), true );
 
+		// Icon fields show the icons (assets/icon-picker.js): every icon's SVG, from the first template's icons folder.
+		wp_enqueue_script( 'sb-emailsig-icon-picker', SB_EMAILSIG_URL . 'assets/icon-picker.js', array(), SB_EmailSig_Module::asset_version( 'assets/icon-picker.js' ), true );
+		$picker_tpls = SB_EmailSig_Templates::all();
+		// defaults: the Branding tab's Info List Icons, which get a reset (Fields::LINE_ICONS).
+		wp_localize_script(
+			'sb-emailsig-icon-picker',
+			'sbEmailsigIconPicker',
+			array(
+				'svgs'     => (object) ( $picker_tpls ? SB_EmailSig_Styles::contact_svgs( reset( $picker_tpls ) ) : array() ),
+				'defaults' => (object) SB_EmailSig_Fields::line_icon_defaults(),
+			)
+		);
+
 		// Button icons (Sam, 2 November 2026): ones not drawn yet are drawn and
 		// kept, and previews draw theirs (assets/button-icons.js, Icons::button_config()).
 		$btn_icons = SB_EmailSig_Icons::button_config();

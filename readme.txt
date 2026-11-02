@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.2
+Stable tag: 0.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,19 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.3 =
+* Email Signatures: LinkedIn added to the Social Media icons and the Info List icons (Bootstrap Icons' LinkedIn logo, as Simple Icons no longer has one).
+* Email Signatures: the Icon fields (Social Media, Info Lists, Additional Buttons) now show each icon beside its name, in the field and in its menu, with a search box.
+* Email Signatures: Social Media rows can use any of the icons (phone, email and the rest, not just the social ones), and the company's and people's Additional Info List Items can have a Custom SVG, uploaded as on Social Media.
+* Email Signatures: Custom SVG fields show just the icon with Replace and Remove buttons, and now show the icon on a person's page too.
+* Email Signatures: a person's Additional Info List Items are laid out in two lines per item, and the row numbers on the company's Social Media and Additional Info List Items stay narrow when no Custom SVG is in use.
+* Email Signatures: a person's Additional Info List Items are laid out as Icon and Custom SVG on one line (the Custom SVG space kept while it isn't in use), then Label, Text and Link, with room round the fields.
+* Email Signatures: Custom SVG sits beside the Icon on Social Media and both Additional Info List Items, its space always kept, and the row number columns stay narrow.
+* Email Signatures: Additional Buttons can use a Custom SVG icon, uploaded beside the Icon as on Social Media.
+* Email Signatures: every Icon menu (Social Media, Additional Buttons and the Additional Info List Items) now has the same list in the same order, with Custom SVG last.
+* Email Signatures: a company's Branding tab has Info List Icons, to change the Phone, Mobile, Email, Website, Address and Save Contact icons or use a Custom SVG, each with a reset to the default.
+* Email Signatures: each Additional Button can have its own colour, picked with the colour swatch and menu; blank keeps the template's.
 
 = 0.6.2 =
 * Email Signatures: five new icons for the Info Lists and buttons (Quote, Clipboard, Calculator, Dollar and Receipt) in a new Enquiries group with Message. Additional Buttons can have an icon before the label, drawn in the button's text colour and the same height as the text, so icon buttons are the same size as the rest.

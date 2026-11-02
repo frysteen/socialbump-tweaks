@@ -29,8 +29,13 @@
 /* Fields side by side: a gap between them rather than ACF's dividing line. */
 .sb-emailsig-settings .acf-fields > .acf-field[data-width], .sb-emailsig-settings .acf-fields > .acf-field[data-width] + .acf-field[data-width] { border-left: 0; }
 .sb-emailsig-settings .acf-fields > .acf-field[data-width] + .acf-field[data-width]:not(.-c0) { padding-left: 24px; } /* Only beside another in its row: ACF marks the first row -r0, not -c0. */
-/* A Custom SVG shows itself rather than a file icon (settings.js). */
-.sb-emailsig-settings .acf-file-uploader img.sb-emailsig-svg-thumb { width: 48px; height: 48px; object-fit: contain; }
+/* A Custom SVG field (Social Media, Additional Info List Items): the SVG itself (replace.js), then Replace and Remove; no file name or size (Sam, 2 November 2026). ACF's file icon is kept hidden until it's swapped, so nothing jumps. */
+.acf-field-file[data-key^="field_sb_emailsig_"][data-key$="_icon_file"] .acf-file-uploader.has-value .file-wrap { display: inline-flex; align-items: center; gap: 8px; min-height: 0; padding: 6px 8px; border-radius: var(--sbui-r, 8px); }
+.acf-field-file[data-key^="field_sb_emailsig_"][data-key$="_icon_file"] .acf-file-uploader .file-icon { position: static; width: auto; height: auto; padding: 0; border: 0; background: none; }
+.acf-field-file[data-key^="field_sb_emailsig_"][data-key$="_icon_file"] .acf-file-uploader .file-icon img { display: block; width: 32px; height: 32px; max-width: none; max-height: none; object-fit: contain; }
+.acf-field-file[data-key^="field_sb_emailsig_"][data-key$="_icon_file"] .acf-file-uploader .file-icon img:not(.sb-emailsig-svg-thumb) { visibility: hidden; }
+.acf-field-file[data-key^="field_sb_emailsig_"][data-key$="_icon_file"] .acf-file-uploader .file-info { display: none; }
+.acf-field-file[data-key^="field_sb_emailsig_"][data-key$="_icon_file"] .acf-file-uploader .file-wrap .acf-actions.-hover { position: static; display: flex; gap: 4px; margin: 0; padding: 0; opacity: 1; }
 .sb-emailsig-settings .acf-fields > .acf-tab-wrap { margin: 0 0 8px; }
 .sb-emailsig-settings .acf-field .description { margin-top: 6px; }
 /* A card field (an ACF group): its name in a 60px header row, its fields under it. An Admin Notifications section (SB_EmailSig_AdminMail) has its Enabled switch in that row too; switched off, only the row shows. */
@@ -1017,6 +1022,17 @@ body.sb-ui .sb-tweaks-modal.sb-emailsig-layout-modal { background: rgba(18, 19, 
 .sb-emailsig-person-card .acf-fields > .acf-field { border-top: 0; padding: 8px 0; }
 .sb-emailsig-person-card .acf-fields > .acf-field[data-width], .sb-emailsig-person-card .acf-fields > .acf-field[data-width] + .acf-field[data-width] { border-left: 0; }
 .sb-emailsig-person-card .acf-fields > .acf-field[data-width] + .acf-field[data-width]:not(.-c0) { padding-left: 16px; }
+/* A person's Additional Info List Items (Sam, 2 November 2026): room round each item's fields. */
+/* !important: ACF sets td.acf-fields { padding: 0 !important }. */
+.sb-emailsig-person-card .acf-repeater.-block > table > tbody > .acf-row > td.acf-fields { padding: 8px 16px 12px !important; }
+/* Label starts the second line: no gap on its left, so it lines up with Icon (ACF doesn't mark it as a line's first, -c0, in a repeater row). */
+.sb-emailsig-person-card .acf-repeater .acf-row > .acf-fields > .acf-field[data-key="field_sb_emailsig_person_info_label"] { padding-left: 0 !important; }
+/* Custom SVG beside Icon (Social Media, Additional Buttons, the company's and a person's Additional Info List Items, Sam, 2 November 2026): its space is always there, empty until the row's Icon is Custom SVG (SB_EmailSig_Fields::info_sub_fields()). In a table only the cell's content goes, so the Custom SVG heading stays. */
+.acf-row:not(:has(.acf-field[data-key="field_sb_emailsig_social_media_icon"] option[value="custom"]:checked)) > .acf-field[data-key="field_sb_emailsig_social_media_icon_file"] > .acf-input,
+.acf-row:not(:has(.acf-field[data-key="field_sb_emailsig_info_icon"] option[value="custom"]:checked)) > .acf-field[data-key="field_sb_emailsig_info_icon_file"] > .acf-input,
+.acf-row:not(:has(.acf-field[data-key="field_sb_emailsig_button_icon"] option[value="custom"]:checked)) > .acf-field[data-key="field_sb_emailsig_button_icon_file"] > .acf-input,
+.acf-field.sb-emailsig-line-icon:not(:has(option[value="custom"]:checked)) + .acf-field.sb-emailsig-line-file > .acf-input,
+.acf-row:not(:has(.acf-field[data-key="field_sb_emailsig_person_info_icon"] option[value="custom"]:checked)) > .acf-fields > .acf-field[data-key="field_sb_emailsig_person_info_icon_file"] { visibility: hidden; }
 .sb-emailsig-person-card .sb-emailsig-crop { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--sbui-border, #dcdcde); }
 .sb-emailsig-person-editor .sb-emailsig-editor__preview { overflow-x: auto; }
 .sb-emailsig-person-editor__sig { width: max-content; max-width: none; }
@@ -1439,3 +1455,35 @@ body .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-person__who a.sb-em
 /* With no count heading above them now, the Companies and Templates grids keep their space below the bar (Sam, 31 October 2026). */
 .sb-ui-bar.sb-emailsig-bar + .sb-emailsig-people { margin-top: 28px; }
 .sb-emailsig-layout__padgrid.is-one { grid-template-columns: minmax(0, 1fr); }
+
+/* Icon pickers (assets/icon-picker.js, Sam, 2 November 2026): a button over
+   each Icon select showing the icon and its name, the same box as the
+   framework's selects (ui.css Fields), and a menu of icons with a search. */
+.sb-icon-pick__native { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); border: 0 !important; opacity: 0; pointer-events: none; }
+.sb-icon-pick { display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; height: 36px; min-height: 36px; margin: 0; padding: 0 30px 0 11px; border: 1px solid var(--sbui-border-strong, #8c8f94); border-radius: var(--sbui-r, 4px); background: var(--sbui-surface, #fff) var(--sbui-select-arrow, none) no-repeat right 7px center / 14px; box-shadow: none; color: var(--sbui-text, #1d2327); font: inherit; font-size: 13px; line-height: 1.2; text-align: left; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.sb-icon-pick:hover { border-color: var(--sbui-text-3, #787c82); }
+.sb-icon-pick:focus, .sb-icon-pick[aria-expanded="true"] { border-color: var(--sbui-green-ink, #2271b1); outline: none; box-shadow: 0 0 0 3px var(--sbui-focus, rgba(34, 113, 177, 0.3)); }
+.sb-icon-pick__text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-icon-pick__img { display: inline-flex; flex: 0 0 18px; width: 18px; height: 18px; color: var(--sbui-text, #1d2327); }
+.sb-icon-pick__img svg { width: 18px; height: 18px; display: block; }
+/* The Branding tab's Info List Icons: the picker and a reset, the reset's space kept while the icon is the default (icon-picker.js). */
+.sb-icon-pick-row { display: flex; align-items: center; gap: 6px; }
+.sb-icon-pick-row .sb-icon-pick { flex: 1 1 auto; min-width: 0; }
+.sb-icon-pick__reset { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; box-sizing: border-box; width: 32px; height: 32px; margin: 0; padding: 0; border: 1px solid var(--sbui-border, #dcdcde); border-radius: 50%; background: var(--sbui-surface, #fff); color: var(--sbui-text-2, #50575e); cursor: pointer; }
+.sb-icon-pick__reset:hover { border-color: var(--sbui-green-ink, #2271b1); color: var(--sbui-green-ink, #2271b1); }
+.sb-icon-pick__reset:focus-visible { outline: 2px solid var(--sbui-green-ink, #2271b1); outline-offset: 2px; }
+.sb-icon-pick__reset svg { width: 15px; height: 15px; }
+.sb-icon-pick__reset.is-default { visibility: hidden; }
+.sb-icon-pick__img.is-none { box-sizing: border-box; border: 1px dashed var(--sbui-border-strong, #c3c4c7); border-radius: 4px; }
+.acf-field.sb-acf-problem .sb-icon-pick, .acf-field.acf-error .sb-icon-pick { border-color: var(--sbui-danger, #d63638); box-shadow: 0 0 0 1px var(--sbui-danger, #d63638); }
+.sb-icon-menu { position: absolute; z-index: 100001; box-sizing: border-box; padding: 6px; background: var(--sbui-surface, #fff); border: 1px solid var(--sbui-border-strong, #c3c4c7); border-radius: var(--sbui-r, 6px); box-shadow: var(--sbui-shadow-2, 0 6px 24px rgba(0, 0, 0, 0.15)); font-family: var(--sbui-font, inherit); }
+.sb-icon-menu__search { box-sizing: border-box; width: 100%; height: 32px; margin: 0 0 6px; padding: 0 10px; border: 1px solid var(--sbui-border-strong, #c3c4c7); border-radius: var(--sbui-r-sm, 4px); background: var(--sbui-surface, #fff); color: var(--sbui-text, #1d2327); font: inherit; font-size: 13px; }
+.sb-icon-menu__search:focus { border-color: var(--sbui-green-ink, #2271b1); outline: none; box-shadow: 0 0 0 3px var(--sbui-focus, rgba(34, 113, 177, 0.3)); }
+.sb-icon-menu__list { max-height: 300px; overflow-y: auto; }
+.sb-icon-menu__head { padding: 8px 6px 3px; font-size: 11px; font-weight: 600; color: var(--sbui-text-3, #787c82); }
+.sb-icon-menu__head:first-child { padding-top: 2px; }
+.sb-icon-menu__opt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px; border: 0; border-radius: var(--sbui-r-sm, 4px); background: none; color: var(--sbui-text, #1d2327); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.sb-icon-menu__opt:hover, .sb-icon-menu__opt:focus { background: var(--sbui-surface-3, #f0f0f1); outline: none; }
+.sb-icon-menu__opt.is-current { background: var(--sbui-green-soft, #f0f6fc); font-weight: 600; }
+.sb-icon-menu__opt span { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-icon-menu__empty { margin: 6px; color: var(--sbui-text-3, #787c82); font-size: 12px; }

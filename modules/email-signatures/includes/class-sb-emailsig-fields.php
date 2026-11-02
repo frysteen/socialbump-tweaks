@@ -26,22 +26,93 @@ class SB_EmailSig_Fields {
 	/** Set once every row saved before rows had ids has one. */
 	const ROW_IDS_OPTION = 'sb_emailsig_row_ids';
 
-	/** Built-in social icons shipped in assets/social. */
+	/**
+	 * Icons a company's Social Media row can have: every Info List icon
+	 * (Sam, 2 November 2026: a phone or email icon among them), then Custom
+	 * SVG. The brand ones are drawn from assets/social, the rest from the
+	 * template's icons (SB_EmailSig_Icons::builtin_svg()).
+	 */
 	public static function social_icons() {
-		return array(
-			'facebook'  => 'Facebook',
-			'instagram' => 'Instagram',
-			'youtube'   => 'YouTube',
-			'tiktok'    => 'TikTok',
-			'x'         => 'X',
-			'threads'   => 'Threads',
-			'pinterest' => 'Pinterest',
-			'google'    => 'Google',
-			'whatsapp'  => 'WhatsApp',
-			'messenger' => 'Messenger',
-			'houzz'     => 'Houzz',
-			'custom'    => 'Custom SVG',
-		);
+		$all = self::info_icons();
+		unset( $all[''] );
+
+		return $all + array( 'custom' => 'Custom SVG' );
+	}
+
+	/**
+	 * The Info List lines with a fixed icon, which a company can change on
+	 * its Branding tab (Sam, 2 November 2026): key => [ label, default ].
+	 * Email covers the company's Email line too, so email looks the same
+	 * everywhere. Layout::rows() and vcard() read the company's choice from
+	 * Data's line_icons.
+	 */
+	const LINE_ICONS = array(
+		'phone'   => array( 'Phone', 'phone' ),
+		'mobile'  => array( 'Mobile', 'smartphone' ),
+		'email'   => array( 'Email', 'mail' ),
+		'website' => array( 'Website', 'globe' ),
+		'address' => array( 'Address', 'map-pin' ),
+		'vcard'   => array( 'Save Contact', 'user-plus' ),
+	);
+
+	/** The Branding tab's Info List Icons: each line's Icon menu (its default to start) with Custom SVG beside it. */
+	private static function line_icon_fields() {
+		$out = array( self::sub_heading( 'field_sb_emailsig_line_icons_head', 'Info List Icons' ) );
+
+		foreach ( self::LINE_ICONS as $key => $line ) {
+			$out[] = array(
+				'key'           => 'field_sb_emailsig_line_' . $key . '_icon',
+				'label'         => $line[0],
+				'name'          => 'sb_emailsig_line_' . $key . '_icon',
+				'type'          => 'select',
+				'choices'       => self::icon_choices( false ),
+				'default_value' => $line[1],
+				'wrapper'       => array( 'width' => '25', 'class' => 'sb-emailsig-line-icon' ),
+			);
+			$out[] = array(
+				// Its space always there, empty until the icon is Custom SVG (admin.css).
+				'key'           => 'field_sb_emailsig_line_' . $key . '_icon_file',
+				'label'         => 'Custom SVG',
+				'name'          => 'sb_emailsig_line_' . $key . '_icon_file',
+				'type'          => 'file',
+				'return_format' => 'id',
+				'library'       => 'all',
+				'mime_types'    => 'svg',
+				'wrapper'       => array( 'width' => '25', 'class' => 'sb-emailsig-line-file' ),
+			);
+		}
+
+		return $out;
+	}
+
+	/** Each Info List Icons menu's default, by field name, for the picker's reset (icon-picker.js). */
+	public static function line_icon_defaults() {
+		$out = array();
+
+		foreach ( self::LINE_ICONS as $key => $line ) {
+			$out[ 'sb_emailsig_line_' . $key . '_icon' ] = $line[1];
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Every Icon menu (Social Media, Additional Buttons, the company's and a
+	 * person's Additional Info List Items): one list, the same everywhere
+	 * (Sam, 2 November 2026). None, the groups (info_icon_groups()), then
+	 * Custom SVG, which each has a file field beside it for. Social Media
+	 * leaves out None ($none false): a row there is only its icon.
+	 */
+	public static function icon_choices( $none = true ) {
+		$out = self::info_icon_groups();
+
+		if ( ! $none ) {
+			unset( $out[''] );
+		}
+
+		$out['custom'] = 'Custom SVG';
+
+		return $out;
 	}
 
 	/**
@@ -80,6 +151,7 @@ class SB_EmailSig_Fields {
 			'thumbs-up'      => 'Thumbs up',
 			'facebook'       => 'Facebook',
 			'instagram'      => 'Instagram',
+			'linkedin'       => 'LinkedIn',
 			'youtube'        => 'YouTube',
 			'tiktok'         => 'TikTok',
 			'x'              => 'X',
@@ -102,7 +174,7 @@ class SB_EmailSig_Fields {
 			'Contact'               => array( 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'printer' ),
 			// Quotes and enquiries (Sam, 2 November 2026).
 			'Enquiries'             => array( 'message-circle', 'file-text', 'clipboard-list', 'calculator', 'dollar-sign', 'receipt' ),
-			'Social Media'          => array( 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz' ),
+			'Social Media'          => array( 'facebook', 'instagram', 'linkedin', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz' ),
 			'Bookings and Hours'    => array( 'calendar', 'clock' ),
 			'Reviews and Awards'    => array( 'star', 'heart', 'thumbs-up', 'award' ),
 			'Other'                 => array( 'info', 'link', 'gift', 'briefcase', 'building-2', 'graduation-cap', 'car' ),
@@ -119,20 +191,36 @@ class SB_EmailSig_Fields {
 	}
 
 	/**
-	 * An Additional Info List Items repeater's rows: icon, label, text, link and
+	 * An Additional Info List Items repeater's rows: icon, label, text, link,
+	 * a Custom SVG (when the icon is Custom SVG, Sam, 2 November 2026) and
 	 * the hidden row id. $p is the key part (info or person_info), $repeater
 	 * its name.
+	 *
+	 * Custom SVG comes straight after Icon and its space is always there,
+	 * empty until the Icon is Custom SVG (Sam, 2 November 2026). That's
+	 * admin.css, not ACF's conditional logic: ACF takes a hidden field's
+	 * space away and, in a table, its column. Only a row whose icon is
+	 * custom uses its file (Data::info_rows(), Icons::custom_names()).
+	 *
+	 * The company's is a table, Text taking what's left. A person's is in
+	 * blocks, as Sam's mock-up: Icon and Custom SVG on the first line, then
+	 * Label, Text and Link.
 	 */
 	private static function info_sub_fields( $p, $repeater ) {
-		return array(
+		$person = 'person_info' === $p;
+		$w      = $person
+			? array( 'icon' => '50', 'label' => '33.33', 'text' => '33.33', 'link' => '33.34', 'file' => '50' )
+			: array( 'icon' => '15', 'label' => '20', 'text' => '', 'link' => '20', 'file' => '15' );
+
+		$fields = array(
 			array(
 				'key'           => 'field_sb_emailsig_' . $p . '_icon',
 				'label'         => 'Icon',
 				'name'          => 'info_icon',
 				'type'          => 'select',
-				'choices'       => self::info_icon_groups(),
+				'choices'       => self::icon_choices(),
 				'default_value' => '',
-				'wrapper'       => array( 'width' => '15' ),
+				'wrapper'       => array( 'width' => $w['icon'] ),
 			),
 			array(
 				'key'      => 'field_sb_emailsig_' . $p . '_label',
@@ -140,7 +228,7 @@ class SB_EmailSig_Fields {
 				'name'     => 'info_label',
 				'type'     => 'text',
 				'required' => 1,
-				'wrapper'  => array( 'width' => '20' ),
+				'wrapper'  => array( 'width' => $w['label'] ),
 			),
 			array(
 				'key'      => 'field_sb_emailsig_' . $p . '_text',
@@ -148,7 +236,7 @@ class SB_EmailSig_Fields {
 				'name'     => 'info_text',
 				'type'     => 'text',
 				'required' => 1,
-				'wrapper'  => array( 'width' => '35' ),
+				'wrapper'  => array( 'width' => $w['text'] ),
 			),
 			array(
 				'key'         => 'field_sb_emailsig_' . $p . '_link',
@@ -156,10 +244,26 @@ class SB_EmailSig_Fields {
 				'name'        => 'info_link',
 				'type'        => 'text',
 				'placeholder' => 'Optional',
-				'wrapper'     => array( 'width' => '30' ),
+				'wrapper'     => array( 'width' => $w['link'] ),
+			),
+			array(
+				// As a Social Media row's (SB_EmailSig_Icons::custom_names()).
+				'key'               => 'field_sb_emailsig_' . $p . '_icon_file',
+				'label'             => 'Custom SVG',
+				'name'              => 'info_icon_file',
+				'type'              => 'file',
+				'return_format'     => 'id',
+				'library'           => 'all',
+				'mime_types'        => 'svg',
+				'wrapper'           => array( 'width' => $w['file'] ),
 			),
 			self::row_id_field( $repeater ),
 		);
+
+		$file = array_splice( $fields, 4, 1 );
+		array_splice( $fields, 1, 0, $file );
+
+		return $fields;
 	}
 
 	/** An Additional Info List Item link: a web address, mailto: or tel:. */
@@ -233,6 +337,9 @@ class SB_EmailSig_Fields {
 			add_filter( 'acf/update_value/key=field_sb_emailsig_brand_' . $key, array( __CLASS__, 'brand_value' ), 10, 3 );
 		}
 		add_filter( 'acf/load_field/key=field_sb_emailsig_campaign_width', array( __CLASS__, 'campaign_help' ) );
+		// A button's own colour: a hex, a brand colour or a theme colour, saved cleaned.
+		add_filter( 'acf/validate_value/key=field_sb_emailsig_button_colour', array( __CLASS__, 'button_colour_valid' ), 10, 2 );
+		add_filter( 'acf/update_value/key=field_sb_emailsig_button_colour', array( 'SB_EmailSig_Styles', 'clean_colour' ), 10, 1 );
 
 		// Templates: the choices (people have none of their own since 1 November 2026).
 		add_filter( 'acf/load_field/key=field_sb_emailsig_main_template', array( __CLASS__, 'template_choices' ) );
@@ -268,6 +375,21 @@ class SB_EmailSig_Fields {
 		}
 
 		return SB_EmailSig_Styles::theme_hex( $c ) !== '' ? true : 'That colour variable isn\'t in this site\'s Bricks, Core Framework, Elementor or theme colours. Pick one from the list.';
+	}
+
+	/** A button's Colour: blank (the template's), a hex, a brand colour or a theme colour. */
+	public static function button_colour_valid( $valid, $value ) {
+		if ( $valid !== true || trim( (string) $value ) === '' ) {
+			return $valid;
+		}
+
+		$c = SB_EmailSig_Styles::clean_colour( $value );
+
+		if ( $c === '' ) {
+			return 'Use a colour such as #d63638, or pick one from the list.';
+		}
+
+		return SB_EmailSig_Styles::hex( $c ) !== '' ? true : 'That colour isn\'t one of the brand or theme colours. Pick one from the list.';
 	}
 
 	/** Saved cleaned, and never blank: blank saves the default (Accent: blank, the primary). */
@@ -404,7 +526,10 @@ class SB_EmailSig_Fields {
 			'name'     => $sub[0],
 			'type'     => 'text',
 			'readonly' => 1,
-			'wrapper'  => array( 'class' => 'sb-emailsig-row-id' ),
+			// acf-hidden too: ACF's table sizing counts a column as hidden only
+			// by that class, and gave this unseen one a share of the width,
+			// which went to the row number instead (Sam, 2 November 2026).
+			'wrapper'  => array( 'class' => 'sb-emailsig-row-id acf-hidden' ),
 		);
 	}
 
@@ -520,7 +645,7 @@ class SB_EmailSig_Fields {
 						'label'        => 'Additional Info List Items',
 						'name'         => 'sb_emailsig_person_info',
 						'type'         => 'repeater',
-						'layout'       => 'table',
+						'layout'       => 'block',
 						'button_label' => 'Add Item',
 						'instructions' => 'Extra Info List lines for this person. The template\'s layout says where they go.',
 						'wrapper'      => array( 'class' => 'sb-emailsig-help-top' ),
@@ -849,9 +974,22 @@ class SB_EmailSig_Fields {
 								'label'         => 'Icon',
 								'name'          => 'social_media_icon',
 								'type'          => 'select',
-								'choices'       => self::social_icons(),
+								'choices'       => self::icon_choices( false ),
 								'default_value' => 'facebook',
 								'wrapper'       => array( 'width' => '20' ),
+							),
+							array(
+								// An SVG from the media library (28 October 2026: was pasted code).
+								// Beside Icon, its space always there and empty until the icon is
+								// Custom SVG (admin.css; see info_sub_fields(), Sam, 2 November 2026).
+								'key'           => 'field_sb_emailsig_social_media_icon_file',
+								'label'         => 'Custom SVG',
+								'name'          => 'social_media_icon_file',
+								'type'          => 'file',
+								'return_format' => 'id',
+								'library'       => 'all',
+								'mime_types'    => 'svg',
+								'wrapper'       => array( 'width' => '15' ),
 							),
 							array(
 								'key'      => 'field_sb_emailsig_social_media_name',
@@ -867,27 +1005,8 @@ class SB_EmailSig_Fields {
 								'name'     => 'social_media_link',
 								'type'     => 'url',
 								'required' => 1,
-								'wrapper'  => array( 'width' => '40' ),
-							),
-							array(
-								// An SVG from the media library (28 October 2026: was pasted code).
-								'key'               => 'field_sb_emailsig_social_media_icon_file',
-								'label'             => 'Custom SVG',
-								'name'              => 'social_media_icon_file',
-								'type'              => 'file',
-								'return_format'     => 'id',
-								'library'           => 'all',
-								'mime_types'        => 'svg',
-								'wrapper'           => array( 'width' => '20' ),
-								'conditional_logic' => array(
-									array(
-										array(
-											'field'    => 'field_sb_emailsig_social_media_icon',
-											'operator' => '==',
-											'value'    => 'custom',
-										),
-									),
-								),
+								// Takes what's left.
+								'wrapper'  => array( 'width' => '' ),
 							),
 							self::row_id_field( 'sb_emailsig_social_media' ),
 						),
@@ -915,9 +1034,21 @@ class SB_EmailSig_Fields {
 								'label'         => 'Icon',
 								'name'          => 'button_icon',
 								'type'          => 'select',
-								'choices'       => self::info_icon_groups(),
+								'choices'       => self::icon_choices(),
 								'default_value' => '',
 								'wrapper'       => array( 'width' => '15' ),
+							),
+							array(
+								// As on Social Media: beside Icon, its space always there and empty
+								// until the icon is Custom SVG (admin.css, Sam, 2 November 2026).
+								'key'           => 'field_sb_emailsig_button_icon_file',
+								'label'         => 'Custom SVG',
+								'name'          => 'button_icon_file',
+								'type'          => 'file',
+								'return_format' => 'id',
+								'library'       => 'all',
+								'mime_types'    => 'svg',
+								'wrapper'       => array( 'width' => '12' ),
 							),
 							array(
 								'key'      => 'field_sb_emailsig_button_label',
@@ -925,7 +1056,7 @@ class SB_EmailSig_Fields {
 								'name'     => 'button_label',
 								'type'     => 'text',
 								'required' => 1,
-								'wrapper'  => array( 'width' => '30' ),
+								'wrapper'  => array( 'width' => '18' ),
 							),
 							array(
 								'key'      => 'field_sb_emailsig_button_link',
@@ -933,7 +1064,19 @@ class SB_EmailSig_Fields {
 								'name'     => 'button_link',
 								'type'     => 'url',
 								'required' => 1,
-								'wrapper'  => array( 'width' => '40' ),
+								// Takes what's left.
+								'wrapper'  => array( 'width' => '' ),
+							),
+							array(
+								// This button's own colour (Sam, 2 November 2026): blank is the
+								// template's. The swatch and colour menu are settings.js's, as
+								// the brand colours'. Styles::button_look() uses it.
+								'key'         => 'field_sb_emailsig_button_colour',
+								'label'       => 'Colour',
+								'name'        => 'button_colour',
+								'type'        => 'text',
+								'placeholder' => 'Template',
+								'wrapper'     => array( 'width' => '15', 'class' => 'sb-emailsig-button-colour' ),
 							),
 							array(
 								'key'     => 'field_sb_emailsig_button_outline',
@@ -941,7 +1084,7 @@ class SB_EmailSig_Fields {
 								'name'    => 'button_outline',
 								'type'    => 'true_false',
 								'ui'      => 1,
-								'wrapper' => array( 'width' => '15' ),
+								'wrapper' => array( 'width' => '10' ),
 							),
 							self::row_id_field( 'sb_emailsig_buttons' ),
 						),
@@ -1419,7 +1562,18 @@ class SB_EmailSig_Fields {
 		$site    = array();
 		$into    = 'company';
 
+		// The Branding tab's Info List Icons go after the brand colours.
+		$fields = array();
+
 		foreach ( $group['fields'] as $field ) {
+			$fields[] = $field;
+
+			if ( ( $field['key'] ?? '' ) === 'field_sb_emailsig_brand_text_light' ) {
+				$fields = array_merge( $fields, self::line_icon_fields() );
+			}
+		}
+
+		foreach ( $fields as $field ) {
 			if ( ( $field['type'] ?? '' ) === 'tab' ) {
 				$into = in_array( $field['label'], self::COMPANY_TABS, true ) ? 'company' : 'site';
 			}

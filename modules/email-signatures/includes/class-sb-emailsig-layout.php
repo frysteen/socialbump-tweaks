@@ -2062,33 +2062,33 @@ class SB_EmailSig_Layout {
 			switch ( $item['key'] ) {
 				case 'phone':
 					if ( $d['phone'] ) {
-						$rows[] = [ 'phone', $d['phone'], $d['phone_link'], 'Phone' ];
+						$rows[] = [ self::line_icon( 'phone' ), $d['phone'], $d['phone_link'], 'Phone' ];
 					}
 					break;
 				case 'mobile':
 					if ( $d['mobile'] ) {
-						$rows[] = [ 'smartphone', $d['mobile'], $d['mobile_link'], 'Mobile' ];
+						$rows[] = [ self::line_icon( 'mobile' ), $d['mobile'], $d['mobile_link'], 'Mobile' ];
 					}
 					break;
 				case 'email':
 					if ( $d['email'] ) {
-						$rows[] = [ 'mail', $d['email'], 'mailto:' . $d['email'], 'Email' ];
+						$rows[] = [ self::line_icon( 'email' ), $d['email'], 'mailto:' . $d['email'], 'Email' ];
 					}
 					break;
 				case 'company_email':
 					// Not twice: a person without an Email shows the company's already.
 					if ( ! empty( $d['company_email'] ) && strtolower( $d['company_email'] ) !== $mailed ) {
-						$rows[] = [ 'mail', $d['company_email'], 'mailto:' . $d['company_email'], 'Email' ];
+						$rows[] = [ self::line_icon( 'email' ), $d['company_email'], 'mailto:' . $d['company_email'], 'Email' ];
 					}
 					break;
 				case 'website':
 					if ( $d['website'] ) {
-						$rows[] = [ 'globe', $d['website_label'], $d['website_link'], 'Website' ];
+						$rows[] = [ self::line_icon( 'website' ), $d['website_label'], $d['website_link'], 'Website' ];
 					}
 					break;
 				case 'address':
 					if ( $d['address_lines'] ) {
-						$rows[] = [ 'map-pin', $d['address_lines'], $d['maps'], 'Address' ];
+						$rows[] = [ self::line_icon( 'address' ), $d['address_lines'], $d['maps'], 'Address' ];
 					}
 					break;
 				case 'info_person':
@@ -2097,7 +2097,7 @@ class SB_EmailSig_Layout {
 				case 'vcard':
 					// As its own block draws it, when Settings has it on.
 					if ( ! empty( $d['vcard_show'] ) && ! empty( $d['vcard_url'] ) ) {
-						$rows[] = [ 'user-plus', $d['vcard_label'], $d['vcard_url'], '' ];
+						$rows[] = [ self::line_icon( 'vcard' ), $d['vcard_label'], $d['vcard_url'], '' ];
 					}
 					break;
 				default:
@@ -2137,7 +2137,8 @@ class SB_EmailSig_Layout {
 		$key = self::$variant['contact'];
 		$src = $row[0] !== '' && $key !== '' ? SB_EmailSig_Icons::contact_variant_url( self::$tpl, $row[0], $key ) : '';
 		$src = $src !== '' ? $src : ( $row[0] !== '' ? SB_EmailSig_Icons::contact_url( self::$tpl, $row[0] ) : '' );
-		$img = $row[0] !== '' ? '<img src="' . esc_url( $src ) . '" width="' . $size . '" height="' . $size . '" alt="" style="display:block;width:' . $size . 'px;height:' . $size . 'px;border:0;outline:none;"' . self::mark( 'data-sbes-icon', $row[0] ) . ( $key !== '' ? self::mark( 'data-sbes-variant', $key ) : '' ) . ' />' : '';
+		// A Custom SVG not drawn yet: nothing in a signature, a stand-in the page draws in a preview.
+		$img = $row[0] !== '' && ( $src !== '' || self::preview() ) ? '<img src="' . ( $src !== '' ? esc_url( $src ) : esc_attr( self::BLANK ) ) . '" width="' . $size . '" height="' . $size . '" alt="" style="display:block;width:' . $size . 'px;height:' . $size . 'px;border:0;outline:none;"' . self::mark( 'data-sbes-icon', $row[0] ) . ( $key !== '' ? self::mark( 'data-sbes-variant', $key ) : '' ) . ' />' : '';
 
 		return '<td valign="' . $va . '" width="' . ( $size + 8 ) . '" style="width:' . ( $size + 8 ) . 'px;min-width:' . ( $size + 8 ) . 'px;padding:' . $pad . ';vertical-align:' . $va . ';">' . $img . '</td>';
 	}
@@ -2192,7 +2193,17 @@ class SB_EmailSig_Layout {
 		return $out . '</table>';
 	}
 
-	/** Save my contact details: one line, like an Info List's, with the user-plus icon. */
+	/**
+	 * A fixed Info List line's icon: the company's choice on its Branding
+	 * tab (Data's line_icons), else the default (Fields::LINE_ICONS).
+	 */
+	private static function line_icon( $key ) {
+		$pick = self::$d['line_icons'][ $key ] ?? '';
+
+		return $pick !== '' ? (string) $pick : ( SB_EmailSig_Fields::LINE_ICONS[ $key ][1] ?? '' );
+	}
+
+	/** Save my contact details: one line, like an Info List's, with the company's Save Contact icon. */
 	private static function vcard( array $b ) {
 		$d = self::$d;
 
@@ -2201,7 +2212,7 @@ class SB_EmailSig_Layout {
 		}
 
 		$va  = esc_attr( self::$s['icons']['valign'] ?? 'top' );
-		$row = [ 'user-plus', $d['vcard_label'], $d['vcard_url'], '' ];
+		$row = [ self::line_icon( 'vcard' ), $d['vcard_label'], $d['vcard_url'], '' ];
 
 		return self::table( $b['align'] ) . '<tr>' . self::lead( $row, $va, '0' ) . self::text( $row, $va, '0' ) . '</tr></table>';
 	}
@@ -2274,7 +2285,7 @@ class SB_EmailSig_Layout {
 			$blast = count( $d['buttons'] ) - 1;
 
 			foreach ( array_values( $d['buttons'] ) as $bi => $button ) {
-				$look  = $button['outline'] ? $btn['outline'] : $btn['solid'];
+				$look  = SB_EmailSig_Styles::button_look( $btn, ! empty( $button['outline'] ), (string) ( $button['colour'] ?? '' ) );
 				$href  = esc_url( $button['link'], [ 'http', 'https', 'mailto', 'tel' ] );
 				$py    = (int) $btn['pad_y'];
 				$px    = (int) $btn['pad_x'];

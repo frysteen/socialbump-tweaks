@@ -345,6 +345,33 @@ class SB_EmailSig_Styles {
 		return self::$colours;
 	}
 
+	/**
+	 * How a button looks (Layout's footer, Icons' button icons): the
+	 * template's solid or outline look ($btn from resolve()), in $colour
+	 * (hex) when the button has its own (Sam, 2 November 2026). Solid: its
+	 * fill and border, the text as the template has it. Outline: its border,
+	 * and its text too unless the template gives outline text a colour of
+	 * its own.
+	 */
+	public static function button_look( array $btn, $outline, $colour = '' ) {
+		$look = $outline ? $btn['outline'] : $btn['solid'];
+
+		if ( (string) $colour === '' ) {
+			return $look;
+		}
+
+		if ( $outline ) {
+			$follows        = strtolower( (string) $look['text'] ) === strtolower( (string) $look['border'] );
+			$look['border'] = $colour;
+			$look['text']   = $follows ? $colour : $look['text'];
+		} else {
+			$look['bg']     = $colour;
+			$look['border'] = $colour;
+		}
+
+		return $look;
+	}
+
 	/** A saved colour as hex: brand and theme colours looked up, '' when it can't be. */
 	public static function hex( $v ) {
 		$v = (string) $v;
@@ -587,6 +614,12 @@ class SB_EmailSig_Styles {
 			foreach ( $def['items'] as $item => $props ) {
 				$def['items'][ $item ]['line'] = self::lh( $props['line'] ?? '', '' );
 			}
+		}
+
+		// Custom SVGs on Info List items are contact icons too, so every place
+		// that draws and keeps those does them as well (u<attachment id>).
+		if ( isset( $def['icons']['names'] ) && is_array( $def['icons']['names'] ) && class_exists( 'SB_EmailSig_Icons' ) ) {
+			$def['icons']['names'] = array_values( array_unique( array_merge( $def['icons']['names'], array_keys( SB_EmailSig_Icons::custom_names() ) ) ) );
 		}
 
 		// The design's layout in its exact shape, so it compares as saved.
@@ -1118,7 +1151,17 @@ class SB_EmailSig_Styles {
 	public static function contact_svgs( array $tpl ) {
 		$out = [];
 
+		$custom = SB_EmailSig_Icons::custom_names();
+
 		foreach ( (array) ( self::defaults( $tpl )['icons']['names'] ?? [] ) as $name ) {
+			if ( isset( $custom[ $name ] ) ) {
+				$svg = SB_EmailSig_Icons::file_svg( $custom[ $name ] );
+				if ( $svg !== '' ) {
+					$out[ $name ] = $svg;
+				}
+				continue;
+			}
+
 			$file = $tpl['path'] . 'icons/' . $name . '.svg';
 			if ( file_exists( $file ) ) {
 				$out[ $name ] = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions

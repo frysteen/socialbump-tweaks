@@ -29,6 +29,9 @@ class SB_EmailSig_Icons {
 	/** The Custom SVG field's key: ACF sends it with uploads made from that field. */
 	const SVG_FIELD = 'field_sb_emailsig_social_media_icon_file';
 
+	/** The Info List items' Custom SVG fields (2 November 2026), the company's and a person's. */
+	const SVG_FIELDS = [ self::SVG_FIELD, 'field_sb_emailsig_info_icon_file', 'field_sb_emailsig_person_info_icon_file', 'field_sb_emailsig_button_icon_file', 'field_sb_emailsig_line_phone_icon_file', 'field_sb_emailsig_line_mobile_icon_file', 'field_sb_emailsig_line_email_icon_file', 'field_sb_emailsig_line_website_icon_file', 'field_sb_emailsig_line_address_icon_file', 'field_sb_emailsig_line_vcard_icon_file' ];
+
 	public static function init() {
 		add_action( 'acf/save_post', [ __CLASS__, 'settings_saved' ], 20 );
 		add_action( 'wp_ajax_sb_emailsig_button_icons', [ __CLASS__, 'button_icons_ajax' ] );
@@ -48,7 +51,7 @@ class SB_EmailSig_Icons {
 	private static function svg_field_upload() {
 		$field = isset( $_POST['_acfuploader'] ) ? sanitize_text_field( wp_unslash( $_POST['_acfuploader'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification -- checked by WordPress's upload handler.
 
-		return $field === self::SVG_FIELD && current_user_can( 'manage_options' );
+		return in_array( $field, self::SVG_FIELDS, true ) && current_user_can( 'manage_options' );
 	}
 
 	public static function upload_mimes( $mimes ) {
@@ -179,6 +182,11 @@ class SB_EmailSig_Icons {
 
 		if ( $file && file_exists( $dir['path'] . '/' . $file ) ) {
 			return $dir['url'] . '/' . $file;
+		}
+
+		// A Custom SVG not drawn yet has no shipped PNG to fall back on.
+		if ( isset( self::custom_names()[ $name ] ) ) {
+			return '';
 		}
 
 		return SB_EmailSig_Templates::asset_url( $tpl, 'icons/' . $name . '.png' );
@@ -318,10 +326,70 @@ class SB_EmailSig_Icons {
 		return $out;
 	}
 
+	/**
+	 * A built-in icon's SVG for a Social Media row: the brand ones from
+	 * assets/social, the rest (phone, mail ...) from the first template's
+	 * icons (Sam, 2 November 2026).
+	 */
 	public static function builtin_svg( $key ) {
-		$file = SB_EMAILSIG_DIR . 'assets/social/' . sanitize_key( $key ) . '.svg';
+		$key  = sanitize_key( $key );
+		$file = SB_EMAILSIG_DIR . 'assets/social/' . $key . '.svg';
 
-		return file_exists( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore
+		if ( ! file_exists( $file ) ) {
+			$tpls = SB_EmailSig_Templates::all();
+			$tpl  = $tpls ? reset( $tpls ) : null;
+			$file = $tpl ? $tpl['path'] . 'icons/' . $key . '.svg' : '';
+		}
+
+		return $file && file_exists( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore
+	}
+
+	/**
+	 * Custom SVGs on Info List items (Sam, 2 November 2026), the company's
+	 * and every person's: [ 'u<attachment id>' => attachment id ], for rows
+	 * whose icon is Custom SVG and whose file is an SVG that can be used.
+	 * They join the template's contact icon names (Styles::defaults()), so
+	 * they're drawn and kept like the others, and Icons::stale() has a
+	 * new one drawn on the next admin visit.
+	 */
+	public static function custom_names() {
+		static $out = null;
+
+		if ( $out !== null ) {
+			return $out;
+		}
+
+		global $wpdb;
+		$ids = [];
+
+		// The Additional Info List Items' Custom SVGs, and the Branding tab's
+		// Info List Icons' (sb_emailsig_line_*_icon_file, Sam, 2 November 2026).
+		foreach ( [ [ 'sb\\_emailsig\\_%', '%' . $wpdb->esc_like( 'info_icon_file' ) ], [ 'sb\\_emailsig\\_line\\_%', '%' . $wpdb->esc_like( '_icon_file' ) ] ] as $q ) {
+			$ids = array_merge(
+				$ids,
+				(array) $wpdb->get_col( $wpdb->prepare( "SELECT f.meta_value FROM {$wpdb->postmeta} f INNER JOIN {$wpdb->postmeta} i ON i.post_id = f.post_id AND i.meta_key = LEFT( f.meta_key, CHAR_LENGTH( f.meta_key ) - 5 ) WHERE f.meta_key LIKE %s AND f.meta_key LIKE %s AND i.meta_value = 'custom' AND f.meta_value <> ''", $q[0], $q[1] ) ),
+				(array) $wpdb->get_col( $wpdb->prepare( "SELECT f.option_value FROM {$wpdb->options} f INNER JOIN {$wpdb->options} i ON i.option_name = LEFT( f.option_name, CHAR_LENGTH( f.option_name ) - 5 ) WHERE f.option_name LIKE %s AND f.option_name LIKE %s AND i.option_value = 'custom' AND f.option_value <> ''", 'options\\_' . $q[0], $q[1] ) )
+			);
+		}
+
+		$out = [];
+
+		foreach ( array_unique( array_map( 'absint', $ids ) ) as $id ) {
+			if ( $id && get_post_mime_type( $id ) === 'image/svg+xml' ) {
+				$out[ 'u' . $id ] = $id;
+			}
+		}
+
+		ksort( $out );
+
+		return $out;
+	}
+
+	/** A Custom SVG's icon name (u<attachment id>), or '' for none or one that isn't an SVG. */
+	public static function custom_name( $id ) {
+		$id = absint( $id );
+
+		return $id && get_post_mime_type( $id ) === 'image/svg+xml' ? 'u' . $id : '';
 	}
 
 	/**
@@ -599,9 +667,8 @@ class SB_EmailSig_Icons {
 	 * [ key => [ name, size, colour ] ]. Companies switched off are skipped.
 	 */
 	public static function button_needed() {
-		$out   = [];
-		$names = SB_EmailSig_Fields::info_icons();
-		$cos   = SB_EmailSig_Company::all();
+		$out = [];
+		$cos = SB_EmailSig_Company::all();
 
 		foreach ( $cos ? $cos : [ 0 ] as $co ) {
 			if ( $co && SB_EmailSig_Switch::is_off( $co ) ) {
@@ -610,16 +677,19 @@ class SB_EmailSig_Icons {
 
 			SB_EmailSig_Company::with(
 				$co,
-				function () use ( &$out, $names ) {
+				function () use ( &$out ) {
 					$rows = get_field( 'sb_emailsig_buttons', SB_EmailSig_Company::source() );
 					$used = [];
 
 					foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+						// A built-in icon or a Custom SVG's u<id> (Data::button_icon() checks both).
 						$icon = SB_EmailSig_Data::button_icon( $row );
 						$look = empty( $row['button_outline'] ) ? 'solid' : 'outline';
+						// The button's own colour can change its text's, which the icon is drawn in.
+						$own = SB_EmailSig_Styles::hex( SB_EmailSig_Styles::clean_colour( $row['button_colour'] ?? '' ) );
 
-						if ( $icon !== '' && isset( $names[ $icon ] ) ) {
-							$used[ $icon . '|' . $look ] = [ $icon, $look ];
+						if ( $icon !== '' ) {
+							$used[ $icon . '|' . $look . '|' . $own ] = [ $icon, $look, $own ];
 						}
 					}
 
@@ -637,7 +707,7 @@ class SB_EmailSig_Icons {
 						$size = self::button_size( $btn );
 
 						foreach ( $used as $u ) {
-							$hex = (string) ( $btn[ $u[1] ]['text'] ?? '' );
+							$hex = (string) ( SB_EmailSig_Styles::button_look( $btn, $u[1] === 'outline', $u[2] )['text'] ?? '' );
 
 							if ( $hex !== '' ) {
 								$out[ self::button_key( $u[0], $size, $hex ) ] = [
@@ -678,6 +748,12 @@ class SB_EmailSig_Icons {
 		$svgs = [];
 
 		foreach ( $needed as $n ) {
+			// A Custom SVG (u<attachment id>): the uploaded file.
+			if ( ! isset( $svgs[ $n['name'] ] ) && preg_match( '/^u(\d+)$/', $n['name'], $m ) ) {
+				$svgs[ $n['name'] ] = self::file_svg( (int) $m[1] );
+				continue;
+			}
+
 			$file = $tpl ? $tpl['path'] . 'icons/' . $n['name'] . '.svg' : '';
 
 			if ( ! isset( $svgs[ $n['name'] ] ) && $file && file_exists( $file ) ) {

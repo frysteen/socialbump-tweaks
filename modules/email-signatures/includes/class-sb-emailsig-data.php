@@ -233,6 +233,32 @@ class SB_EmailSig_Data {
 		);
 	}
 
+	/**
+	 * The icon each fixed Info List line uses for the company being drawn
+	 * (its Branding tab's Info List Icons, Sam, 2 November 2026): key =>
+	 * icon name. A Custom SVG is u<attachment id>; one not chosen yet, or an
+	 * icon that's gone, falls back to the default.
+	 */
+	public static function line_icons() {
+		$o     = self::co_src();
+		$icons = SB_EmailSig_Fields::info_icons();
+		$out   = array();
+
+		foreach ( SB_EmailSig_Fields::LINE_ICONS as $key => $line ) {
+			$pick = (string) get_field( 'sb_emailsig_line_' . $key . '_icon', $o, false );
+
+			if ( $pick === 'custom' ) {
+				$pick = SB_EmailSig_Icons::custom_name( get_field( 'sb_emailsig_line_' . $key . '_icon_file', $o, false ) );
+			} elseif ( $pick === '' || ! isset( $icons[ $pick ] ) ) {
+				$pick = '';
+			}
+
+			$out[ $key ] = $pick !== '' ? $pick : $line[1];
+		}
+
+		return $out;
+	}
+
 	/** Where the company fields are read: the company being drawn. */
 	private static function co_src() {
 		return class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::source() : 'option';
@@ -305,6 +331,7 @@ class SB_EmailSig_Data {
 			'address'       => $one,
 			'address_lines' => $lines,
 			'maps'          => $go( 'm' ),
+			'line_icons'    => self::line_icons(),
 			// The Additional Info List Items: both together, and each on its
 			// own for the layout's Info Lists.
 			'info'          => array_merge( $info['company'], $info['person'] ),
@@ -482,7 +509,7 @@ class SB_EmailSig_Data {
 			$out[] = array(
 				'i'     => $i,
 				'ref'   => self::ref( $row['info_id'] ?? '', $i ),
-				'icon'  => isset( $icons[ $icon ] ) ? $icon : '',
+				'icon'  => $icon === 'custom' ? SB_EmailSig_Icons::custom_name( $row['info_icon_file'] ?? 0 ) : ( isset( $icons[ $icon ] ) ? $icon : '' ),
 				'label' => $label !== '' ? $label : $text,
 				'text'  => $text,
 				'link'  => $link,
@@ -605,6 +632,8 @@ class SB_EmailSig_Data {
 					'link'    => $go( self::key_for( $targets, 'b', $i ) ),
 					'outline' => ! empty( $row['button_outline'] ),
 					'icon'    => self::button_icon( $row ),
+					// Its own colour as hex, '' for the template's (Styles::button_look()).
+					'colour'  => SB_EmailSig_Styles::hex( SB_EmailSig_Styles::clean_colour( $row['button_colour'] ?? '' ) ),
 				);
 			}
 		}
@@ -615,6 +644,11 @@ class SB_EmailSig_Data {
 	/** A button row's icon name, '' for none or one that isn't in the list. */
 	public static function button_icon( $row ) {
 		$icon = (string) ( is_array( $row ) ? ( $row['button_icon'] ?? '' ) : '' );
+
+		// A Custom SVG (Sam, 2 November 2026): its name, u<attachment id>, as on the Info List.
+		if ( $icon === 'custom' ) {
+			return SB_EmailSig_Icons::custom_name( $row['button_icon_file'] ?? 0 );
+		}
 
 		return $icon !== '' && isset( SB_EmailSig_Fields::info_icons()[ $icon ] ) ? $icon : '';
 	}
@@ -766,6 +800,7 @@ class SB_EmailSig_Data {
 			'address'       => '{Address}',
 			'address_lines' => array( '{Address}' ),
 			'maps'          => '',
+			'line_icons'    => self::line_icons(),
 			'info'          => array(),
 			'info_company'  => array(),
 			'info_person'   => array(),
