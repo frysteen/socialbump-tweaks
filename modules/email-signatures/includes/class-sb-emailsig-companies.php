@@ -127,7 +127,7 @@ class SB_EmailSig_Companies {
 				return array(
 					'templates' => SB_EmailSig_Styles::social_styles(),
 					'rows'      => SB_EmailSig_Icons::social_svgs(),
-					'brand'     => (object) wp_list_pluck( SB_EmailSig_Styles::brand(), 'hex' ),
+					'brand'     => (object) wp_list_pluck( SB_EmailSig_Styles::brand_all(), 'hex' ),
 				);
 			}
 		);

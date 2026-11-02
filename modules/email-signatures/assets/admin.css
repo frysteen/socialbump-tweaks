@@ -870,11 +870,18 @@ body .sb-tweaks-dialog__buttons .button.sb-emailsig-layout__copy { display: inli
 	margin: 0 0 10px;
 }
 
-/* Edit styles and Settings colour menus: a line between the brand colours and the theme's. */
-.sb-emailsig-palette .sb-emailsig-palette__sep {
-	margin: 4px 2px;
-	border: 0;
-	border-top: 1px solid var(--sbui-border, #dcdcde);
+/* Colour menus: a heading for each source (Brand colours, Bricks: Theme Colours, Core Framework, Elementor, Theme). */
+.sb-emailsig-palette .sb-emailsig-palette__head {
+	padding: 8px 6px 3px;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--sbui-text-3, #787c82);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.sb-emailsig-palette .sb-emailsig-palette__head:first-child {
+	padding-top: 2px;
 }
 
 /* Settings, Branding: the brand colour boxes (assets/settings.js), the swatch,

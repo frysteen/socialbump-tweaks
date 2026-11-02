@@ -100,6 +100,92 @@ class SB_EmailSig_Data {
 	}
 
 	/**
+	 * Footer Text as it is kept (Sam, 2 November 2026): bold, italic, links
+	 * and line breaks, nothing else. Scripts and styles go entirely; the
+	 * editor's paragraphs and breaks, and the end of any other block
+	 * (heading, list item, row), become line breaks; b becomes strong and i
+	 * em; and a link that isn't a web address, mailto: or tel: keeps only
+	 * its words. Text saved before (plain, with line breaks) comes through
+	 * unchanged.
+	 */
+	public static function footer_clean( $html ) {
+		$v = str_replace( array( "\r\n", "\r" ), "\n", is_string( $html ) ? $html : '' );
+		$v = str_replace( '&nbsp;', ' ', $v );
+		$v = preg_replace( '#<(script|style)\b[^>]*>.*?</\1\s*>#is', '', $v );
+		$v = preg_replace( '#<br\s*/?>#i', "\n", $v );
+		$v = preg_replace( '#</p>\s*<p[^>]*>#i', "\n\n", $v );
+		$v = preg_replace( '#</(p|h[1-6]|div|li|tr|blockquote|pre|ul|ol|table)\s*>#i', "\n", $v );
+		$v = preg_replace( '#</?(p|div)(\s[^>]*)?>#i', '', $v );
+		$v = preg_replace( '#<(/?)b(\s[^>]*)?>#i', '<$1strong>', $v );
+		$v = preg_replace( '#<(/?)i(\s[^>]*)?>#i', '<$1em>', $v );
+		$v = wp_kses( $v, array( 'strong' => array(), 'em' => array(), 'a' => array( 'href' => true ) ) );
+		$v = preg_replace_callback(
+			'#<a\s[^>]*>(.*?)</a>#is',
+			function ( $m ) {
+				$href = self::footer_href( $m[0] );
+
+				return $href !== '' ? '<a href="' . esc_url( $href, array( 'http', 'https', 'mailto', 'tel' ) ) . '">' . $m[1] . '</a>' : $m[1];
+			},
+			$v
+		);
+		$v = preg_replace( '#<a(\s[^>]*)?>(?![\s\S]*?</a>)#i', '', $v );
+		$v = preg_replace( "/[ \t]+\n/", "\n", $v );
+		$v = preg_replace( "/\n{3,}/", "\n\n", $v );
+
+		return trim( $v );
+	}
+
+	/** A link tag's address, decoded, if it's a web address, mailto: or tel:; '' if not. */
+	private static function footer_href( $tag ) {
+		if ( ! preg_match( '/href\s*=\s*("([^"]*)"|\'([^\']*)\')/i', $tag, $h ) ) {
+			return '';
+		}
+
+		$href = trim( html_entity_decode( $h[2] !== '' ? $h[2] : ( $h[3] ?? '' ) ) );
+
+		return preg_match( '#^(https?://|mailto:|tel:)#i', $href ) ? $href : '';
+	}
+
+	/** The company's Footer Text, its shortcodes run, cleaned (footer_clean()). */
+	public static function footer_raw( $o ) {
+		$raw = (string) get_field( 'sb_emailsig_fine_print', $o, false );
+
+		return self::footer_clean( self::expand( $raw, false ) );
+	}
+
+	/** The links in Footer Text, in order: [ [ url, text ], ... ]. */
+	public static function footer_links( $html ) {
+		$out = array();
+
+		if ( preg_match_all( '#<a\s[^>]*>(.*?)</a>#is', (string) $html, $m, PREG_SET_ORDER ) ) {
+			foreach ( $m as $a ) {
+				$out[] = array(
+					'url'  => self::footer_href( $a[0] ),
+					'text' => trim( wp_strip_all_tags( $a[1] ) ),
+				);
+			}
+		}
+
+		return $out;
+	}
+
+	/** Footer Text for a signature: each link through $link, as f1, f2 ... */
+	private static function footer_html( $o, $link ) {
+		$i = 0;
+
+		return preg_replace_callback(
+			'#<a\s[^>]*>(.*?)</a>#is',
+			function ( $m ) use ( &$i, $link ) {
+				$i++;
+				$url = (string) $link( 'f' . $i, self::footer_href( $m[0] ), 'footer-' . $i );
+
+				return $url !== '' ? '<a href="' . esc_url( $url, array( 'http', 'https', 'mailto', 'tel' ) ) . '">' . $m[1] . '</a>' : $m[1];
+			},
+			self::footer_raw( $o )
+		);
+	}
+
+	/**
 	 * Text with Dynamic Shortcodes (dynamic.ooo, when the site has it) and
 	 * shortcodes run. $plain: tags taken out, for fields drawn as text.
 	 */
@@ -189,7 +275,7 @@ class SB_EmailSig_Data {
 		$vcard_show = get_field( 'sb_emailsig_vcard_show', $o );
 		$vcard_show = ( null === $vcard_show ) ? true : (bool) $vcard_show;
 		$signoff    = get_field( 'sb_emailsig_signoff', $o );
-		$signoff    = ( null === $signoff ) ? 'Kind Regards,' : trim( (string) $signoff );
+		$signoff    = trim( (string) $signoff ); // Blank by default (Sam, 2 November 2026).
 		$info       = self::info( $post_id, $targets, $go, $link );
 
 		return array(
@@ -237,7 +323,8 @@ class SB_EmailSig_Data {
 			'vcard_show'    => $vcard_show,
 			'vcard_label'   => trim( (string) get_field( 'sb_emailsig_vcard_label', $o ) ) ?: 'Save my contact details',
 			'vcard_url'     => SB_EmailSig_VCard::url( $post_id, $tpl_id ),
-			'fine_print'    => trim( (string) get_field( 'sb_emailsig_fine_print', $o ) ),
+			// Bold, links (through the short links, f1, f2 ...) and line breaks.
+			'fine_print'    => self::footer_html( $o, $link ),
 			// Their staff page (SB_EmailSig_Staff), for the photo and name.
 			'profile_link'  => $link( 'p', SB_EmailSig_Staff::page_url( $post_id ), 'profile' ),
 		);
@@ -316,6 +403,17 @@ class SB_EmailSig_Data {
 				'url'   => trim( (string) self::expand( (string) ( $row['field_sb_emailsig_banner_link'] ?? ( $row['banner_link'] ?? '' ) ) ) ),
 				'name'  => 'banner-' . ( $i + 1 ),
 				'label' => 'Banner ' . ( $i + 1 ),
+				'row'   => $i,
+			);
+		}
+
+		// Links in the Footer Text, by their place: f1, f2 ... (Sam, 2 November 2026).
+		foreach ( self::footer_links( self::footer_raw( $o ) ) as $i => $l ) {
+			$t[ 'f' . ( $i + 1 ) ] = array(
+				'kind'  => 'f',
+				'url'   => $l['url'],
+				'name'  => 'footer-' . ( $i + 1 ),
+				'label' => 'Footer: ' . ( $l['text'] !== '' ? $l['text'] : $l['url'] ),
 				'row'   => $i,
 			);
 		}

@@ -257,7 +257,7 @@ class SB_EmailSig_Photo {
 					return array(
 						'palette' => SB_EmailSig_Styles::editor_palette(),
 						'colours' => (object) SB_EmailSig_Styles::colours(),
-						'brand'   => (object) wp_list_pluck( SB_EmailSig_Styles::brand(), 'hex' ),
+						'brand'   => (object) wp_list_pluck( SB_EmailSig_Styles::brand_all(), 'hex' ),
 					);
 				}
 			)

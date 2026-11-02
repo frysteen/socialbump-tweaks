@@ -104,23 +104,28 @@ class SB_EmailSig_Styles {
 	}
 
 	/**
-	 * The site's theme colours: [ [ name, value, hex ], ... ], value being
-	 * what is saved (var(--name), or the hex for a colour with no variable).
+	 * The site's theme colours: [ [ name, value, hex, group ], ... ], value
+	 * being what is saved (var(--name), or the hex for a colour with no
+	 * variable) and group the menu heading it sits under.
 	 *
-	 * Read from Bricks' colour palettes (Core Framework fills these too), then
-	 * the theme.json palette for colours it gives a real value. Filterable
-	 * through sb_emailsig/palette. The generated shades (var(--primary-d-4)
-	 * and so on) are left out of this list, to keep the menu short, but can
-	 * still be typed in: see colours().
+	 * Read from, in order: Bricks' colour palettes (Advanced Themer's and
+	 * Core Framework's land there on a Bricks site), Core Framework (its
+	 * preset for the names, its generated CSS for every variable), Elementor's
+	 * kit (system and custom colours, var(--e-global-color-<id>)), then the
+	 * theme.json palette. A colour already listed isn't listed again.
+	 * Filterable through sb_emailsig/palette. Shades (var(--primary-d-4) and
+	 * so on) stay out of the menu, to keep it short, but can still be typed
+	 * in: see colours().
 	 */
 	public static function palette() {
 		if ( self::$palette !== null ) {
 			return self::$palette;
 		}
 
-		$out  = [];
-		$all  = [];
-		$add  = function ( $name, $value, $raw, $menu = true ) use ( &$out, &$all ) {
+		$out   = [];
+		$all   = [];
+		$group = '';
+		$add   = function ( $name, $value, $raw, $menu = true ) use ( &$out, &$all, &$group ) {
 			$hex = self::to_hex( $raw );
 
 			if ( $hex === '' || isset( $all[ $value ] ) ) {
@@ -134,11 +139,14 @@ class SB_EmailSig_Styles {
 					'name'  => (string) $name,
 					'value' => $value,
 					'hex'   => $hex,
+					'group' => $group,
 				];
 			}
 		};
 
 		foreach ( (array) get_option( 'bricks_color_palette', [] ) as $pal ) {
+			$group = 'Bricks' . ( ! empty( $pal['name'] ) ? ': ' . $pal['name'] : '' );
+
 			foreach ( (array) ( $pal['colors'] ?? [] ) as $c ) {
 				if ( ! is_array( $c ) ) {
 					continue;
@@ -153,7 +161,35 @@ class SB_EmailSig_Styles {
 			}
 		}
 
+		$cf = self::core_framework();
+
+		foreach ( $cf['groups'] as $name => $vars ) {
+			$group = 'Core Framework' . ( $name !== '' ? ': ' . $name : '' );
+
+			foreach ( $vars as $v ) {
+				$add( substr( $v, 2 ), 'var(' . $v . ')', self::cf_value( $cf['vars'][ $v ] ?? '', $cf['vars'] ) );
+			}
+		}
+
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			$kit = (int) get_option( 'elementor_active_kit' );
+			$set = $kit ? get_post_meta( $kit, '_elementor_page_settings', true ) : [];
+
+			foreach ( [ 'system_colors' => 'Elementor: System Colours', 'custom_colors' => 'Elementor: Custom Colours' ] as $key => $label ) {
+				$group = $label;
+
+				foreach ( (array) ( is_array( $set ) ? ( $set[ $key ] ?? [] ) : [] ) as $c ) {
+					if ( ! is_array( $c ) || empty( $c['color'] ) || ! preg_match( '/^[a-z0-9_-]+$/i', (string) ( $c['_id'] ?? '' ) ) ) {
+						continue;
+					}
+
+					$add( ! empty( $c['title'] ) ? $c['title'] : $c['_id'], 'var(--e-global-color-' . strtolower( $c['_id'] ) . ')', (string) $c['color'] );
+				}
+			}
+		}
+
 		if ( function_exists( 'wp_get_global_settings' ) ) {
+			$group = 'Theme';
 			$theme = (array) wp_get_global_settings( [ 'color', 'palette', 'theme' ] );
 
 			foreach ( $theme as $c ) {
@@ -165,7 +201,12 @@ class SB_EmailSig_Styles {
 			}
 		}
 
-		$out = array_slice( (array) apply_filters( 'sb_emailsig/palette', $out ), 0, 80 );
+		// Core Framework's shades, tints and other colour variables: typed in, not listed.
+		foreach ( $cf['vars'] as $v => $raw ) {
+			$add( '', 'var(' . $v . ')', self::cf_value( $raw, $cf['vars'] ), false );
+		}
+
+		$out = array_slice( (array) apply_filters( 'sb_emailsig/palette', $out ), 0, 120 );
 
 		foreach ( $out as $c ) {
 			if ( isset( $c['value'], $c['hex'] ) && ! isset( $all[ $c['value'] ] ) ) {
@@ -177,6 +218,124 @@ class SB_EmailSig_Styles {
 		self::$palette = $out;
 
 		return $out;
+	}
+
+	/**
+	 * Core Framework's colours, when it's active: [ 'vars' => [ '--name' =>
+	 * value ], 'groups' => [ group name => [ '--name', ... ] ] ]. Every
+	 * variable comes from its generated CSS (uploads/core-framework/css),
+	 * the first :root value of each; the groups and the colours in them
+	 * from the preset in use (its own table), leaving out colours that just
+	 * point at another (var(--primary)). The preset fills in a variable the
+	 * CSS file doesn't have.
+	 */
+	private static function core_framework() {
+		$out    = [ 'vars' => [], 'groups' => [] ];
+		$active = (array) get_option( 'active_plugins', [] );
+
+		if ( is_multisite() ) {
+			$active = array_merge( $active, array_keys( (array) get_site_option( 'active_sitewide_plugins', [] ) ) );
+		}
+
+		$on = false;
+		foreach ( $active as $p ) {
+			if ( substr( (string) $p, -19 ) === '/core-framework.php' ) {
+				$on = true;
+				break;
+			}
+		}
+
+		if ( ! $on ) {
+			return $out;
+		}
+
+		$up   = wp_upload_dir( null, false );
+		$file = trailingslashit( $up['basedir'] ) . 'core-framework/css/core_framework.css';
+		$css  = is_readable( $file ) ? (string) file_get_contents( $file ) : '';
+
+		if ( preg_match_all( '/:root\s*\{([^}]*)\}/i', $css, $blocks ) ) {
+			foreach ( $blocks[1] as $b ) {
+				if ( preg_match_all( '/(--[a-z0-9_-]+)\s*:\s*([^;]+)/i', $b, $m, PREG_SET_ORDER ) ) {
+					foreach ( $m as $d ) {
+						$k = strtolower( $d[1] );
+
+						if ( ! isset( $out['vars'][ $k ] ) ) {
+							$out['vars'][ $k ] = trim( $d[2] );
+						}
+					}
+				}
+			}
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'core_framework_presets';
+
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			return $out;
+		}
+
+		$main = get_option( 'core_framework_main' );
+		$id   = is_array( $main ) ? (string) ( $main['selected_id'] ?? '' ) : '';
+		$data = $id !== '' ? $wpdb->get_var( $wpdb->prepare( "SELECT data FROM {$table} WHERE id = %s", $id ) ) : null;
+
+		if ( ! $data ) {
+			$data = $wpdb->get_var( "SELECT data FROM {$table} LIMIT 1" );
+		}
+
+		$json = json_decode( (string) $data, true );
+		$name = function ( $n ) {
+			$n = strtolower( trim( (string) $n ) );
+
+			return preg_match( '/^[a-z0-9_-]+$/', $n ) ? '--' . $n : '';
+		};
+
+		foreach ( (array) ( $json['modulesData']['COLOR_SYSTEM']['groups'] ?? [] ) as $g ) {
+			foreach ( (array) ( $g['colors'] ?? [] ) as $c ) {
+				$k = $name( $c['name'] ?? '' );
+				$v = trim( (string) ( $c['value'] ?? '' ) );
+
+				if ( $k === '' || $v === '' ) {
+					continue;
+				}
+
+				if ( ! isset( $out['vars'][ $k ] ) ) {
+					$out['vars'][ $k ] = $v;
+				}
+
+				foreach ( [ 'shades', 'tints' ] as $more ) {
+					foreach ( (array) ( $c[ $more ] ?? [] ) as $sh ) {
+						$sk = $name( $sh['name'] ?? '' );
+
+						if ( $sk !== '' && ! empty( $sh['value'] ) && ! isset( $out['vars'][ $sk ] ) ) {
+							$out['vars'][ $sk ] = trim( (string) $sh['value'] );
+						}
+					}
+				}
+
+				if ( stripos( $v, 'var(' ) !== 0 && ! in_array( $k, $out['groups'][ (string) ( $g['name'] ?? '' ) ] ?? [], true ) ) {
+					$out['groups'][ (string) ( $g['name'] ?? '' ) ][] = $k;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/** A value that points at another variable (var(--primary), with or without a fallback) followed to the end. */
+	private static function cf_value( $v, array $vars, $depth = 0 ) {
+		$v = trim( (string) $v );
+
+		if ( $depth < 6 && preg_match( '/^var\(\s*(--[a-z0-9_-]+)\s*(?:,\s*(.+))?\)$/i', $v, $m ) ) {
+			$k = strtolower( $m[1] );
+
+			if ( isset( $vars[ $k ] ) ) {
+				return self::cf_value( $vars[ $k ], $vars, $depth + 1 );
+			}
+
+			return isset( $m[2] ) ? self::cf_value( $m[2], $vars, $depth + 1 ) : '';
+		}
+
+		return $v;
 	}
 
 	/** Every theme colour, shades too, as [ 'var(--name)' => '#rrggbb' ]. */
@@ -192,7 +351,7 @@ class SB_EmailSig_Styles {
 
 		if ( strpos( $v, 'var(' ) === 0 ) {
 			if ( strpos( $v, 'var(--sb-brand-' ) === 0 ) {
-				foreach ( self::brand() as $b ) {
+				foreach ( self::brand_all() as $b ) {
 					if ( $b['value'] === $v ) {
 						return $b['hex'];
 					}
@@ -262,12 +421,71 @@ class SB_EmailSig_Styles {
 		return strpos( $v, 'var(' ) === 0 ? ( self::colours()[ $v ] ?? '' ) : self::to_hex( $v );
 	}
 
-	/** The Edit styles colour menu: the brand colours first, then the theme's. */
+	/**
+	 * Brand Primary's and Brand Accent's shades, made from them (Sam, 2
+	 * November 2026): key => [ label, mix with, how much ]. Not settings of
+	 * their own; they follow the colour, in every colour menu after it.
+	 */
+	const SHADES = [
+		'lighter' => [ 'Lighter', '#ffffff', 0.6 ],
+		'light'   => [ 'Light', '#ffffff', 0.3 ],
+		'dark'    => [ 'Dark', '#000000', 0.2 ],
+		'darker'  => [ 'Darker', '#000000', 0.4 ],
+	];
+
+	/** The brand colours with shades. */
+	const SHADED = [ 'primary', 'accent' ];
+
+	/** $hex mixed with $to by $t (0 to 1), as #rrggbb. assets/settings.js shade() does the same. */
+	public static function mix( $hex, $to, $t ) {
+		$a = self::to_hex( $hex );
+		$b = self::to_hex( $to );
+
+		if ( $a === '' || $b === '' ) {
+			return $a;
+		}
+
+		$c = [];
+		for ( $i = 1; $i < 7; $i += 2 ) {
+			$x   = hexdec( substr( $a, $i, 2 ) );
+			$y   = hexdec( substr( $b, $i, 2 ) );
+			$c[] = (int) round( $x + ( $y - $x ) * $t );
+		}
+
+		return sprintf( '#%02x%02x%02x', $c[0], $c[1], $c[2] );
+	}
+
+	/**
+	 * The brand colours and their shades, in menu order: Brand Primary, its
+	 * Lighter, Light, Dark and Darker, Brand Accent and its, then the rest.
+	 * Tokens such as var(--sb-brand-primary-light).
+	 */
+	public static function brand_all() {
+		$out = [];
+
+		foreach ( self::brand() as $key => $b ) {
+			$out[ $key ] = $b;
+
+			if ( in_array( $key, self::SHADED, true ) ) {
+				foreach ( self::SHADES as $s => $how ) {
+					$out[ $key . '_' . $s ] = [
+						'name'  => $b['name'] . ' ' . $how[0],
+						'value' => self::brand_token( $key . '_' . $s ),
+						'hex'   => self::mix( $b['hex'], $how[1], $how[2] ),
+					];
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/** The Edit styles colour menu: the brand colours (and shades) first, then the theme's. */
 	public static function editor_palette() {
 		$out = [];
 
-		foreach ( self::brand() as $b ) {
-			$out[] = $b + [ 'group' => 'brand' ];
+		foreach ( self::brand_all() as $b ) {
+			$out[] = $b + [ 'group' => 'Brand colours' ];
 		}
 
 		return array_merge( $out, self::palette() );
@@ -413,7 +631,7 @@ class SB_EmailSig_Styles {
 		}
 
 		foreach ( (array) ( $defaults['items'] ?? [] ) as $item => $props ) {
-			foreach ( [ 'size', 'weight', 'style', 'case', 'colour', 'line' ] as $k ) {
+			foreach ( [ 'size', 'weight', 'style', 'case', 'colour', 'line', 'link' ] as $k ) {
 				if ( isset( $saved['items'][ $item ] ) && array_key_exists( $k, $saved['items'][ $item ] ) ) {
 					$out['items'][ $item ][ $k ] = $saved['items'][ $item ][ $k ];
 				}
@@ -480,6 +698,10 @@ class SB_EmailSig_Styles {
 
 			if ( ( $p['colour'] ?? '' ) === '' && isset( $brand[ $fb ] ) ) {
 				$out['items'][ $item ]['colour'] = $brand[ $fb ]['hex'];
+			}
+
+			if ( array_key_exists( 'link', $p ) && $p['link'] === '' ) {
+				$out['items'][ $item ]['link'] = $brand['primary']['hex'];
 			}
 		}
 
@@ -548,6 +770,11 @@ class SB_EmailSig_Styles {
 				'colour' => self::clean_colour( $p['colour'] ?? '' ),
 				'line'   => self::lh( $p['line'] ?? '', '' ),
 			];
+
+			// A part with links of its own (Footer text): their colour, '' the brand primary.
+			if ( array_key_exists( 'link', $props ) ) {
+				$out['items'][ $item ]['link'] = self::clean_colour( $p['link'] ?? '' );
+			}
 		}
 
 		if ( array_key_exists( 'line_height', $defaults ) ) {
@@ -672,6 +899,7 @@ class SB_EmailSig_Styles {
 			'lines'   => self::hex( $v['lines'] ?? '' ) ?: $primary,
 			'css'     => [],
 			'colour'  => [],
+			'link'    => [],
 			'case'    => [],
 			'icons'   => [],
 			'social'  => [],
@@ -693,6 +921,10 @@ class SB_EmailSig_Styles {
 			$out['css'][ $item ]    = 'font-family:' . $font . ';font-size:' . $size . 'px;line-height:' . $lh_of( $item ) . ';font-weight:' . $p['weight'] . ';font-style:' . $p['style'] . ';color:' . $color . ';';
 			$out['colour'][ $item ] = $color;
 			$out['case'][ $item ]   = $p['case'] ?? 'none';
+
+			if ( array_key_exists( 'link', $p ) ) {
+				$out['link'][ $item ] = self::hex( $p['link'] ) ?: $brand['primary']['hex'];
+			}
 		}
 
 		if ( isset( $v['icons'] ) ) {
@@ -956,7 +1188,7 @@ class SB_EmailSig_Styles {
 
 					return [
 						'id'      => (int) $co,
-						'brand'   => (object) wp_list_pluck( $brand, 'hex' ),
+						'brand'   => (object) wp_list_pluck( self::brand_all(), 'hex' ),
 						'palette' => self::editor_palette(),
 						'social'  => SB_EmailSig_Icons::social_svgs(),
 						'primary' => self::hex( $v['primary'] ?? '' ) ?: $brand['primary']['hex'],
@@ -1093,7 +1325,7 @@ class SB_EmailSig_Styles {
 					// The colour fields: the theme colours menu, and what a blank one shows.
 					'palette' => self::editor_palette(),
 					'colours' => self::colours(),
-					'brand'   => wp_list_pluck( self::brand(), 'hex' ),
+					'brand'   => wp_list_pluck( self::brand_all(), 'hex' ),
 					'lines'   => self::resolve( $tpl )['lines'],
 					'styles'  => SB_EmailSig_Layout::STYLES,
 					'maxLine' => SB_EmailSig_Layout::MAX_LINE,
@@ -1123,7 +1355,7 @@ class SB_EmailSig_Styles {
 				'defaults' => self::defaults( $tpl ),
 				'palette'  => self::editor_palette(),
 				'colours'  => self::colours(),
-				'brand'    => wp_list_pluck( self::brand(), 'hex' ),
+				'brand'    => wp_list_pluck( self::brand_all(), 'hex' ),
 				// Each company's colours and social icons, and the previewed person's company.
 				'companies' => self::company_setups( self::values( $tpl ) ),
 				'company'   => self::preview_company(),
@@ -1533,6 +1765,9 @@ class SB_EmailSig_Styles {
 		self::select_field( 'Style', $base . '[style]', $p['style'], [ 'normal' => 'Normal', 'italic' => 'Italic' ], $props['style'] );
 		self::select_field( 'Case', $base . '[case]', $p['case'] ?? 'none', self::cases(), $props['case'] ?? 'none' );
 		self::colour_field( 'Colour', $base . '[colour]', $p['colour'], $props['colour'], ! empty( $props['fallback'] ) ? 'brand_' . $props['fallback'] : 'text' );
+		if ( array_key_exists( 'link', $props ) ) {
+			self::colour_field( 'Link colour', $base . '[link]', $p['link'] ?? '', $props['link'], 'brand_primary' );
+		}
 		if ( array_key_exists( 'line', $props ) ) {
 			self::lh_field( 'Line height', $base . '[line]', $p['line'] ?? '', $props['line'], 'Default' );
 		}

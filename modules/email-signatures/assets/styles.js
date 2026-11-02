@@ -181,9 +181,9 @@
 		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
 
 		palette.forEach(function (c, i) {
-			// A line between the brand colours and the theme's.
-			if (i > 0 && palette[i - 1].group === 'brand' && c.group !== 'brand') {
-				$('<hr class="sb-emailsig-palette__sep">').appendTo($menu);
+			// A heading where the colours' source changes (Brand colours, Bricks: Theme Colours, ...).
+			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) {
+				$('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
 			}
 			$('<button type="button" role="option"></button>')
 				.append($('<i></i>').css('background', c.hex))

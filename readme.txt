@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,13 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.1 =
+* Email Signatures: new companies start with a confidentiality notice as their Footer Text and a blank Sign-off; Social Media rows put the icon first; picking an icon fills an empty Name or Label (Social Media and both Info List lists); the Additional Banners moved to the Campaign Banner tab, now called Banners.
+* Email Signatures: the default Footer Text for new companies is now a general confidentiality and privacy notice, suitable for any business.
+* Email Signatures: Footer Text has Bold and Link buttons (nothing else is kept); its links are underlined, counted in Reports, and take a Link colour set on Edit styles (the brand primary by default). Brand Primary and Brand Accent each get Lighter, Light, Dark and Darker shades in every colour menu, made from the colour automatically.
+* Email Signatures: the colour menus now also list Core Framework's colours and Elementor's system and custom colours, under a heading for each source (Brand colours, Bricks, Core Framework, Elementor, Theme). Core Framework shades such as var(--primary-d-3) can be typed in.
+* Email Signatures: Footer Text's editor now shows only Bold, Italic, Link and Unlink (it was showing the full toolbar), italic is kept, and pasted headings or lists keep their line breaks.
 
 = 0.6.0 =
 * Email Signatures: a person's Email isn't required any more, here or on the team page form. Companies have an Email, used in the signature for anyone without their own.

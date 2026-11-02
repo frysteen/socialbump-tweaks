@@ -36,6 +36,8 @@ class SB_EmailSig_Admin {
 		wp_enqueue_script( 'sb-emailsig-copy', SB_EMAILSIG_URL . 'assets/copy.js', array(), SB_EmailSig_Module::asset_version( 'assets/copy.js' ), true );
 		// Image fields: the pencil replaces the image (assets/replace.js).
 		wp_enqueue_script( 'sb-emailsig-replace', SB_EMAILSIG_URL . 'assets/replace.js', array(), SB_EmailSig_Module::asset_version( 'assets/replace.js' ), true );
+		// Icon pickers fill an empty Name or Label (assets/autolabel.js).
+		wp_enqueue_script( 'sb-emailsig-autolabel', SB_EMAILSIG_URL . 'assets/autolabel.js', array(), SB_EmailSig_Module::asset_version( 'assets/autolabel.js' ), true );
 
 		// Email link: the Signatures page and a person's edit screen.
 		$signatures = strpos( (string) $hook, SB_EmailSig_Module::SLUG . '-signatures' ) !== false;

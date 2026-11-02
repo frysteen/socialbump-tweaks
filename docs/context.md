@@ -1563,3 +1563,52 @@ module needs them.
   tip. (.sb-installs-actions, .sb-installs-menu, styles in the Installs page)
 - A filter over cards is a .sb-ui-seg of buttons with aria-pressed and a
   count in each, beside a search box in the bar.
+
+## Planned: SB Menus (November 2026)
+
+A module to replace Admin and Site Enhancements' admin menu organiser (Sam,
+1 November 2026). Not built. To do list order: running without ACF Pro (see
+the Email Signatures notes, Later), conditional logic for Email Signatures
+widgets, staff page fields from other plugins, help documentation, then this.
+
+Side menu:
+- Reorder, rename and hide, with a Reset for each submenu as well as the
+  whole menu. New plugin items go in beside the item WordPress puts them
+  next to, not at the bottom (save neighbours, not one fixed list).
+- One Separator item: line only, text, text with a line, icon, or icon with
+  text, all sharing one default style, each able to override it, and
+  Duplicate (keeping its style). Separators other plugins force in
+  (WooCommerce, Crocoblock) can be hidden or removed.
+- Click to toggle on a text separator folds everything down to the next text
+  separator; line separators and spacers sit inside a section. Solo mode for
+  the whole menu: one section open at a time. Items above the first text
+  separator always show. The current page's section opens by itself; state
+  kept per user. Handle the collapsed (icons only) menu and phones.
+- Two kinds of hiding: tuck away (behind a show hidden toggle) and remove for
+  chosen roles, each rule with exceptions (the person setting it ticked by
+  default), so hiding for Administrators doesn't hide it from Sam.
+- Import from ASE: everything is in admin_site_enhancements_extra['admin_menu']
+  (custom_menu_order, custom_menu_titles, custom_menu_hidden,
+  custom_submenus_order, custom_menu_always_hidden,
+  custom_submenu_always_hidden, custom_menu_new_separators,
+  custom_menu_deleted_separators, custom_menu_new_items). ASE's text
+  separators are its custom items with target_type none, each with its own
+  style; its delete button only knows WordPress's separator1, separator2 and
+  separator-last. Checked on the hub, ASE Pro 9.3.0.1.
+
+Top admin bar:
+- Reorder, hide, and move items between the left and right sides; hiding can
+  differ for admin pages and the front end.
+- A Hidden item at the end (eye-slash icon) lists tucked away items on hover,
+  each with its usual submenu as a flyout. An item with custom content in its
+  submenu (forms, search, panels) shows there as a plain link.
+- Every flyout on the bar, other plugins' included (Bricks Navigator's three
+  levels run off the window now), opens to the left when it would not fit on
+  the right. Drill-down mode (the dropdown swaps to the next level, with Back)
+  switches on below a set window width and can be set to always.
+
+Hub only: Push to child sites. A popup with the custom separators to tick, the
+sites to tick (each listing the separators it already has), Select all, None
+and Sites with no custom separators. The default separator style goes too. A
+pushed separator lands above the same menu item as on the hub, or at the
+bottom when the site has no such item.

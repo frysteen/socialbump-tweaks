@@ -29,7 +29,7 @@ notes, Modules of pages):
 | --- | --- |
 | Signatures (sb-email-signatures-signatures) | everyone as a card, in Active, Inactive and Deleted, grouped by company when there is more than one; the menu and the module's own address open here |
 | A person (...-signatures&person=<id>, or person=new) | the module's own Add and Edit person page, in place of WordPress's post screen |
-| Companies (sb-email-signatures-companies) | a card per company; &company=<id> or &company=new is a company's page, by tab: Company, Branding, Additional Content, Social Media, Footer, Campaign Banner (Fields::COMPANY_TABS) |
+| Companies (sb-email-signatures-companies) | a card per company; &company=<id> or &company=new is a company's page, by tab: Company, Branding, Additional Content, Social Media, Footer, Banners (Fields::COMPANY_TABS) |
 | Templates (sb-email-signatures-templates) | a card per template with Preview, Edit styles, Layout, Duplicate, Export and Delete |
 | Edit styles (...-templates&edit=<id>) | one template's colours, font, text styles, icons, sizes and buttons, with a live preview |
 | Layout (...-templates&edit=<id>&view=layout) | the template's rows, columns and widgets, with a live preview |
@@ -581,6 +581,45 @@ where a company field is read from.
   (_mail_*) stayed site-wide, on Settings' Tracking and Signature Emails
   tabs.
 
+### Company field details (2 November 2026)
+
+- New companies start with a confidentiality notice as their Footer Text and
+  a blank Sign-off (default_value; Data::get() no longer falls back to Kind
+  Regards). A company that has saved either keeps what it saved.
+- Social Media rows put the Icon first. Picking an icon in Social Media or
+  either Additional Info List Items list fills an empty Name or Label with
+  the icon's name (assets/autolabel.js, on every module page). A name filled
+  this way follows the icon while untouched; one typed by hand stays. None
+  and Custom SVG fill nothing.
+- The Additional Banners (field_sb_emailsig_banners, same key and name) moved
+  from Footer to the Campaign Banner tab, renamed Banners (its key,
+  field_sb_emailsig_tab_campaign, unchanged), after the campaign banner's
+  fields.
+- Footer Text is a short WYSIWYG with Bold, Italic, Link and Unlink only
+  (toolbar 'SB Footer'; Visual tab only; no media). ACF keys a toolbar by
+  its label through sanitize_title() with dashes made underscores, so the
+  field's toolbar is sb_footer: with sb-footer, as first deployed, ACF
+  quietly showed the Full toolbar. settings.js also sets toolbar1 and
+  empties toolbar2 to 4, so another plugin's buttons (the hub's font
+  plugin adds size and font menus) don't show. Data::footer_clean() runs
+  on save (acf/update_value) and when drawn: script and style blocks
+  removed whole, line breaks kept, the end of a paragraph, heading, list
+  item or other block becomes a line break, b becomes strong and i em,
+  only strong, em and a[href] kept, and a link that isn't http(s),
+  mailto: or tel: loses its link. settings.js limits TinyMCE to p, br,
+  strong, em and a, and saves the editor on every input so the page's
+  change watching sees it.
+- Footer links are underlined and tracked like other links: keys f1, f2
+  and so on by position (Data::targets(), "Footer: <link text>" in
+  Reports). Their colour is the Footer Text item's Link colour on Edit
+  styles (styles key 'link'), blank meaning Brand Primary.
+- Brand Primary and Brand Accent each get Lighter, Light, Dark and Darker
+  shades (Styles::SHADES: mixed 60% and 30% with white, 20% and 40% with
+  black), worked out from the colour, not saved. Styles::brand_all() lists
+  them after their colour, as var(--sb-brand-primary-light) and so on, in
+  every colour menu and icon drawing; settings.js shade() does the same
+  sum in the browser.
+
 ### Settings tabs
 
 - Settings tabs (Sam, 31 October 2026), in this order (Fields::SITE_TABS, sorted in split_groups()): Admin Branding, Admin Notifications, Signature Emails (was Emails), Tracking.
@@ -965,12 +1004,37 @@ Words), applied to the text itself in PHP (SB_EmailSig_Styles::cased(),
 called through $case() in the template) rather than CSS text-transform, so
 it holds in every mail client and in the plain text copy.
 
-A colour is a hex or a theme colour, var(--name). SB_EmailSig_Styles::
-palette() lists the theme colours from Bricks' colour palettes (Core
-Framework fills these; rawValue.light used) and theme.json colours that have
-a real value, for the menu. The generated shades (var(--primary-d-4) and so
-on, isShade in Bricks) are left out of the menu but can be typed: colours()
+A colour is a hex or a theme colour, var(--name). Email apps don't read
+CSS variables, so every var has to be found and turned into a hex: that is
+why a var the module can't find is refused (brand_valid(): "That colour
+variable isn't in this site's Bricks, Core Framework, Elementor or theme
+colours"), rather than the check being switched off. SB_EmailSig_Styles::
+palette() lists the theme colours for the menu, each with a group that the
+menu shows as a heading (2 November 2026), in this order:
+- Bricks' colour palettes, one group per palette ("Bricks: Theme Colours";
+  Advanced Themer's and, on a Bricks site, Core Framework's land here;
+  rawValue.light used; isShade entries left out of the menu).
+- Core Framework, when a plugin ending /core-framework.php is active:
+  every :root variable of its generated CSS
+  (uploads/core-framework/css/core_framework.css, the first value of each),
+  and the groups and names from the preset in use (table
+  {prefix}core_framework_presets, row core_framework_main['selected_id'],
+  data.modulesData.COLOR_SYSTEM.groups, "Core Framework: Main Colours").
+  Colours that only point at another (the button colours, var(--primary))
+  stay out of the menu. A var pointing at another is followed (cf_value()).
+  The preset fills in any variable the CSS file lacks.
+- Elementor, when ELEMENTOR_VERSION is defined: the active kit's
+  (elementor_active_kit) _elementor_page_settings system_colors and
+  custom_colors, as var(--e-global-color-<id>) ("Elementor: System
+  Colours", "Elementor: Custom Colours").
+- theme.json colours that have a real value ("Theme").
+A colour already listed isn't listed again. Shades and tints (Core
+Framework's 10 of each, var(--primary-d-3), var(--primary-l-2), and
+Bricks' isShade ones) are left out of the menu but can be typed: colours()
 maps every var, shades too, to its hex, and hex() and styles.js use that.
+Checked on epoxyflooringco.com.au (Elementor and Core Framework, no
+Bricks), read only: 11 Core Framework and 18 Elementor colours listed, 197
+vars found.
 to_hex() turns hsl()/rgb()/hex into #rrggbb, see-through ones over white.
 The var is what is saved, and resolve() turns it into the hex each time the
 signature is drawn, so text and lines follow the theme. Icons are PNGs, so
@@ -988,7 +1052,7 @@ SB_EmailSig_Styles::brand() reads them each time, as [ key => name, value,
 hex ]; their value is a token, var(--sb-brand-primary), var(--sb-brand-
 accent), var(--sb-brand-text), var(--sb-brand-text-light), which templates
 save like a theme colour and hex() looks up. The Edit styles colour menu
-lists them first (editor_palette(), a line before the theme's). A template's
+lists them first (editor_palette(), under a Brand colours heading). A template's
 Primary and Text left blank are the brand's (placeholder Brand Primary and
 Brand Text), and every other colour defaults from those as before, so a
 template follows the brand until it sets its own; Reset to defaults goes
@@ -1888,6 +1952,40 @@ Ideas talked about and not built. Nothing here is promised.
   simple "show only if a field has a value, or is empty" rules for widgets,
   rows and columns; a marker on widgets with conditions (not amber, which
   means unsaved); Copy and Paste leaving conditions out.
+- Running without ACF Pro (agreed with Sam, 1 November 2026), the first job
+  after the 0.6.0 release, ahead of conditional logic. Email Signatures uses no Pro
+  feature but the repeater, and no ACF options pages (every page is ours;
+  ACF only draws and saves fields inside them).
+  1. SB Repeater: our own flat repeater field type, registered with
+     acf_register_field_type (in free ACF and SCF alike), so it sits in ACF
+     tabs and field groups and gets show and hide rules like any field. The
+     fields in each row are drawn by ACF itself, as free ACF's Group field
+     does. Rows are saved the way ACF Pro saves a repeater (a count, then
+     name_0_sub and so on), so saved data carries over without moving. It
+     replaces the six repeaters here (company and person Info List items,
+     Social Media, Additional Buttons, Banners, Campaigns) and Site Kit's
+     FAQ repeater; none of them nest. Other Pro features (nested repeaters,
+     gallery, flexible content, clone) only when a module needs one, each
+     under its own name so it never clashes with Pro's. SCF's code (GPLv2 or
+     later, as SB Tweaks is) is the one to study.
+  2. Tests on the hub (Sam), once SB Repeater and the bundled SCF (3) are
+     both in: ACF Pro off and free ACF on; then no ACF at all, so the
+     bundled SCF runs; then the SCF plugin on (activating it switches ACF
+     off by itself). Each time: every module page, Email Signatures' forms,
+     previews and signatures, and Bricks Tweaks' ACF features. ACF Pro is
+     only switched off, never deleted. Then the same on Gimage.
+  3. A bundled SCF for sites with no ACF at all: in the plugin's vendor
+     folder, loaded only after every other plugin has loaded and only when no
+     ACF or SCF is running, its menu hidden. A minimum ACF or SCF version,
+     below which a module that needs it stays off and says why. The
+     Publishing page shows when a newer SCF is out, with a button to pull it
+     in before publishing. Test activating ACF or SCF while the bundled copy
+     runs.
+  4. Staff page fields from other plugins: plain post meta for any post
+     type (public or not) first, then readers with proper labels for Meta
+     Box, Pods and JetEngine (Toolset maybe), and a filter for anything else.
+  Not doing: rebuilding the fields on plain WordPress (about 100 fields), or
+  a renamed fork of SCF.
 - The template editable in the admin as HTML: discussed and put off.
 - A short reply signature.
 - Photo crop extras offered, not asked for yet: rotate and flip (the GD
@@ -1962,3 +2060,13 @@ What arrived when. The topic sections above say how each part works now.
 - Copy results as toasts, Copied in the tooltip; the vCard splits a full
   name itself when a person has no first or last name.
 - Photo Max width undone (Apple Mail).
+
+2 November 2026
+- New companies' default Footer Text (a confidentiality notice) and a blank
+  Sign-off; icons first in Social Media rows, filling an empty name; the
+  Additional Banners on a Banners tab with the campaign banner.
+- Footer Text with Bold, Italic, Link and Unlink only; footer links underlined, tracked and
+  in a Link colour; Lighter, Light, Dark and Darker shades of Brand Primary
+  and Brand Accent.
+- Colour menus also list Core Framework and Elementor colours, with a
+  heading for each source.

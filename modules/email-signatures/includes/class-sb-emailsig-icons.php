@@ -373,7 +373,7 @@ class SB_EmailSig_Icons {
 
 				return [
 					'templates' => (object) $tpls,
-					'brand'     => (object) wp_list_pluck( SB_EmailSig_Styles::brand(), 'hex' ),
+					'brand'     => (object) wp_list_pluck( SB_EmailSig_Styles::brand_all(), 'hex' ),
 				];
 			}
 		);

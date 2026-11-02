@@ -66,7 +66,8 @@ return [
 		'contact'    => [ 'label' => 'Contact details', 'size' => 14, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '' ],
 		// Styled on the Social icons card, not the Text card ('card').
 		'social_heading' => [ 'label' => 'Heading', 'size' => 14, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '', 'card' => 'social' ],
-		'fine_print' => [ 'label' => 'Footer text', 'size' => 11, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '', 'fallback' => 'text_light' ],
+		// link: the Footer Text's links ('' the brand primary; Sam, 2 November 2026).
+		'fine_print' => [ 'label' => 'Footer text', 'size' => 11, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '', 'fallback' => 'text_light', 'link' => '' ],
 	],
 
 	'icons'   => [

@@ -1934,6 +1934,42 @@ class SB_EmailSig_Layout {
 		);
 	}
 
+	/**
+	 * Footer Text in the signature (Sam, 2 November 2026): its line breaks,
+	 * bold, italic, and links underlined in the footer's Link colour (Edit styles,
+	 * Text, Footer text; blank, the brand primary), each in a new window.
+	 * The case applies to the words only.
+	 */
+	private static function footer_text( $html ) {
+		$html = wp_kses( (string) $html, [ 'strong' => [], 'em' => [], 'a' => [ 'href' => true ] ] );
+		$case = (string) ( self::$s['case']['fine_print'] ?? 'none' );
+		$hex  = (string) ( self::$s['link']['fine_print'] ?? '' );
+
+		if ( $case !== '' && $case !== 'none' ) {
+			$html = preg_replace_callback(
+				'/(^|>)([^<]+)/',
+				function ( $m ) use ( $case ) {
+					return $m[1] . SB_EmailSig_Styles::cased( [ 'case' => [ 't' => $case ] ], 't', $m[2] );
+				},
+				$html
+			);
+		}
+
+		$html = preg_replace_callback(
+			'/<a\s([^>]*)>/i',
+			function ( $m ) use ( $hex ) {
+				$href = preg_match( '/href\s*=\s*("([^"]*)"|\'([^\']*)\')/i', $m[1], $h ) ? html_entity_decode( $h[2] !== '' ? $h[2] : ( $h[3] ?? '' ) ) : '';
+
+				return '<a href="' . esc_url( $href, [ 'http', 'https', 'mailto', 'tel' ] ) . '"' . self::NEW_WINDOW . ' style="' . esc_attr( ( $hex !== '' ? 'color:' . $hex . ';' : 'color:inherit;' ) . 'text-decoration:underline;' ) . '">';
+			},
+			$html
+		);
+		$html = nl2br( $html, false );
+
+		// A space beside a link or bold stays: Render drops whitespace around tags.
+		return preg_replace( '/(?<=>) | (?=<)/', '&#32;', $html );
+	}
+
 	private static function company() {
 		$d = self::$d;
 
@@ -2235,7 +2271,7 @@ class SB_EmailSig_Layout {
 		// -webkit-text-size-adjust: iPhone Mail enlarges text under about 13px,
 		// so small footer text stays its own size there (Sam, 30 October 2026).
 		if ( $d['fine_print'] && ! $hide( 'text' ) ) {
-			$out .= $ttd . '<div style="max-width:' . $width . 'px;-webkit-text-size-adjust:100%;' . esc_attr( $s['css']['fine_print'] ?? '' ) . '">' . wp_kses( self::cased( 'fine_print', $d['fine_print'] ), [ 'br' => [] ] ) . '</div></td></tr>';
+			$out .= $ttd . '<div style="max-width:' . $width . 'px;-webkit-text-size-adjust:100%;' . esc_attr( $s['css']['fine_print'] ?? '' ) . '">' . self::footer_text( $d['fine_print'] ) . '</div></td></tr>';
 		}
 
 		if ( $d['campaign'] && ! $hide( 'campaign' ) ) {

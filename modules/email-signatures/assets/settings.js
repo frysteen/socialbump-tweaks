@@ -78,6 +78,28 @@
 			out[key] = colourHex(box) || cfg.brand[key] || '';
 		});
 		if (!out.accent) out.accent = out.primary;
+		// Brand Primary's and Accent's shades, as SB_EmailSig_Styles::brand_all() makes them.
+		['primary', 'accent'].forEach(function (key) {
+			Object.keys(SHADES).forEach(function (s) {
+				out[key + '_' + s] = shade(out[key], SHADES[s][0], SHADES[s][1]);
+			});
+		});
+		return out;
+	}
+
+	/** SB_EmailSig_Styles::SHADES: mixed with white or black, by how much. */
+	var SHADES = { lighter: ['#ffffff', 0.6], light: ['#ffffff', 0.3], dark: ['#000000', 0.2], darker: ['#000000', 0.4] };
+
+	/** $hex mixed with $to by t, as SB_EmailSig_Styles::mix() does. */
+	function shade(hex, to, t) {
+		if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return hex || '';
+		var out = '#';
+		for (var i = 1; i < 7; i += 2) {
+			var x = parseInt(hex.substr(i, 2), 16);
+			var y = parseInt(to.substr(i, 2), 16);
+			var c = Math.round(x + (y - x) * t);
+			out += (c < 16 ? '0' : '') + c.toString(16);
+		}
 		return out;
 	}
 
@@ -379,7 +401,8 @@
 		var rect = button.getBoundingClientRect();
 		closeMenu();
 		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
-		palette.forEach(function (c) {
+		palette.forEach(function (c, i) {
+			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) $('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
 			$('<button type="button" role="option"></button>')
 				.append($('<i></i>').css('background', c.hex))
 				.append($('<span></span>').text(c.name))
@@ -487,3 +510,38 @@
 		}, 60);
 	});
 })(jQuery);
+
+/* Footer Text (Sam, 2 November 2026): Bold and Link only (the SB Footer
+   toolbar), nothing else kept when pasted, a short box, and typing counts
+   as a change straight away (ACF's editor only passes it on when it loses
+   focus, and as a jQuery event the unsaved changes check doesn't hear). */
+(function () {
+	'use strict';
+
+	var KEY = 'field_sb_emailsig_fine_print';
+
+	if (!window.acf || !window.acf.addFilter) return;
+
+	function isFooter(field) {
+		return !!(field && field.get && field.get('key') === KEY);
+	}
+
+	window.acf.addFilter('wysiwyg_tinymce_settings', function (init, id, field) {
+		if (!isFooter(field)) return init;
+		init.valid_elements = 'p,br,strong/b,em/i,a[href]';
+		// Only the SB Footer toolbar's buttons (Bold, Italic, Link, Unlink), whatever other plugins add.
+		init.toolbar1 = 'bold,italic,link,unlink';
+		init.toolbar2 = init.toolbar3 = init.toolbar4 = '';
+		init.height = 150;
+		return init;
+	});
+
+	window.acf.addAction('wysiwyg_tinymce_init', function (ed, id, init, field) {
+		if (!isFooter(field)) return;
+		ed.on('input change undo redo', function () {
+			ed.save();
+			var box = document.getElementById(id);
+			if (box) box.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+	});
+})();

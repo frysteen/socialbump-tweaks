@@ -67,11 +67,12 @@
 		menu.setAttribute('role', 'listbox');
 
 		palette.forEach(function (c, i) {
-			// A line between the brand colours and the theme's.
-			if (i > 0 && palette[i - 1].group === 'brand' && c.group !== 'brand') {
-				var hr = document.createElement('hr');
-				hr.className = 'sb-emailsig-palette__sep';
-				menu.appendChild(hr);
+			// A heading where the colours' source changes (Brand colours, Bricks: Theme Colours, ...).
+			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) {
+				var head = document.createElement('div');
+				head.className = 'sb-emailsig-palette__head';
+				head.textContent = c.group;
+				menu.appendChild(head);
 			}
 			var b = document.createElement('button');
 			var dot = document.createElement('i');

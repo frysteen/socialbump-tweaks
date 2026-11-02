@@ -215,6 +215,9 @@ class SB_EmailSig_Fields {
 		}
 
 		add_filter( 'acf/load_field/key=field_sb_emailsig_banners', array( __CLASS__, 'banner_help' ) );
+		// Footer Text: a toolbar with Bold and Link only, and only those kept.
+		add_filter( 'acf/fields/wysiwyg/toolbars', array( __CLASS__, 'toolbars' ) );
+		add_filter( 'acf/update_value/key=field_sb_emailsig_fine_print', array( __CLASS__, 'footer_value' ) );
 		add_filter( 'acf/validate_value/key=field_sb_emailsig_info_link', array( __CLASS__, 'info_link_valid' ), 10, 2 );
 		add_filter( 'acf/validate_value/key=field_sb_emailsig_person_info_link', array( __CLASS__, 'info_link_valid' ), 10, 2 );
 
@@ -233,6 +236,18 @@ class SB_EmailSig_Fields {
 		add_filter( 'acf/prepare_field/key=field_sb_emailsig_person_company', array( __CLASS__, 'when_companies' ) );
 	}
 
+	/** The SB Footer toolbar: Bold, Italic, Link and Unlink. ACF keys it sb_footer (the label through sanitize_title(), dashes made underscores). */
+	public static function toolbars( $toolbars ) {
+		$toolbars['SB Footer'] = array( 1 => array( 'bold', 'italic', 'link', 'unlink' ) );
+
+		return $toolbars;
+	}
+
+	/** Footer Text as saved: bold, links and line breaks only (SB_EmailSig_Data::footer_clean()). */
+	public static function footer_value( $value ) {
+		return SB_EmailSig_Data::footer_clean( $value );
+	}
+
 	/** A brand colour: a hex or a theme colour, not another brand colour. */
 	public static function brand_valid( $valid, $value ) {
 		if ( $valid !== true || trim( (string) $value ) === '' ) {
@@ -245,7 +260,7 @@ class SB_EmailSig_Fields {
 			return 'Use a colour such as #098b97, or pick a theme colour.';
 		}
 
-		return SB_EmailSig_Styles::theme_hex( $c ) !== '' ? true : 'That theme colour isn\'t on this site. Pick one from the list.';
+		return SB_EmailSig_Styles::theme_hex( $c ) !== '' ? true : 'That colour variable isn\'t in this site\'s Bricks, Core Framework, Elementor or theme colours. Pick one from the list.';
 	}
 
 	/** Saved cleaned, and never blank: blank saves the default (Accent: blank, the primary). */
@@ -749,7 +764,8 @@ class SB_EmailSig_Fields {
 						'label'         => 'Sign-off',
 						'name'          => 'sb_emailsig_signoff',
 						'type'          => 'text',
-						'default_value' => 'Kind Regards,',
+						'default_value' => '',
+						'placeholder'   => 'e.g. Kind Regards,',
 						'instructions'  => 'Shown above the signature. Leave blank to hide.',
 					),
 					array(
@@ -820,6 +836,16 @@ class SB_EmailSig_Fields {
 						'layout'       => 'table',
 						'button_label' => 'Add Social Link',
 						'sub_fields'   => array(
+							// Icon first: picking one fills an empty Name (assets/autolabel.js).
+							array(
+								'key'           => 'field_sb_emailsig_social_media_icon',
+								'label'         => 'Icon',
+								'name'          => 'social_media_icon',
+								'type'          => 'select',
+								'choices'       => self::social_icons(),
+								'default_value' => 'facebook',
+								'wrapper'       => array( 'width' => '20' ),
+							),
 							array(
 								'key'      => 'field_sb_emailsig_social_media_name',
 								'label'    => 'Name',
@@ -835,15 +861,6 @@ class SB_EmailSig_Fields {
 								'type'     => 'url',
 								'required' => 1,
 								'wrapper'  => array( 'width' => '40' ),
-							),
-							array(
-								'key'           => 'field_sb_emailsig_social_media_icon',
-								'label'         => 'Icon',
-								'name'          => 'social_media_icon',
-								'type'          => 'select',
-								'choices'       => self::social_icons(),
-								'default_value' => 'facebook',
-								'wrapper'       => array( 'width' => '20' ),
 							),
 							array(
 								// An SVG from the media library (28 October 2026: was pasted code).
@@ -913,51 +930,27 @@ class SB_EmailSig_Fields {
 						),
 					),
 					array(
-						'key'          => 'field_sb_emailsig_banners',
-						'label'        => 'Banners',
-						'name'         => 'sb_emailsig_banners',
-						'type'         => 'repeater',
-						'layout'       => 'table',
-						'button_label' => 'Add Banner',
-						'instructions' => '', // Its size advice: SB_EmailSig_Fields::banner_help().
-						'wrapper'      => array( 'class' => 'sb-emailsig-help-top' ),
-						'sub_fields'   => array(
-							array(
-								'key'           => 'field_sb_emailsig_banner_image',
-								'label'         => 'Image',
-								'name'          => 'banner_image',
-								'type'          => 'image',
-								'required'      => 1,
-								'return_format' => 'id',
-								'preview_size'  => 'medium',
-								'library'       => 'all',
-								'mime_types'    => 'png,jpg,jpeg,gif',
-								'wrapper'       => array( 'width' => '40' ),
-							),
-							array(
-								'key'     => 'field_sb_emailsig_banner_link',
-								'label'   => 'Link',
-								'name'    => 'banner_link',
-								'type'    => 'url',
-								'wrapper' => array( 'width' => '60' ),
-							),
-							self::row_id_field( 'sb_emailsig_banners' ),
-						),
-					),
-					array(
+						// Bold, italic and links only (Sam, 2 November 2026): the SB Footer
+						// toolbar, anything else taken out on save (footer_value()).
 						'key'          => 'field_sb_emailsig_fine_print',
 						'label'        => 'Footer Text',
 						'name'         => 'sb_emailsig_fine_print',
-						'type'         => 'textarea',
-						'rows'         => 4,
-						'new_lines'    => 'br',
-						'instructions' => 'Optional. Small text under the bottom line, e.g. a confidentiality notice.',
+						'type'         => 'wysiwyg',
+						'toolbar'      => 'sb_footer',
+						'tabs'         => 'visual',
+						'media_upload' => 0,
+						'delay'        => 0,
+						'instructions' => 'Optional. Small text under the bottom line, e.g. a confidentiality notice. Bold, italic and links only.',
+						// New companies start with this (Sam, 2 November 2026); saved text is kept.
+						'default_value' => 'Confidentiality Notice: This email and any attachments are confidential and intended only for the named recipient. If you have received it in error, please let the sender know and delete it, including any copies. Any unauthorised use, copying or distribution is prohibited. We handle personal information in line with our privacy policy and applicable privacy laws. While we take care to keep our emails free of viruses, we can\'t accept responsibility for any loss or damage arising from this email or its attachments.',
 					),
 
-					// Campaign banner (SB_EmailSig_Campaign).
+					// Banners: the campaign banner (SB_EmailSig_Campaign), then the
+					// Additional Banners (moved here from Footer, Sam, 2 November 2026;
+					// the tab key keeps its old name, so nothing saved moves).
 					array(
 						'key'   => 'field_sb_emailsig_tab_campaign',
-						'label' => 'Campaign Banner',
+						'label' => 'Banners',
 						'type'  => 'tab',
 					),
 					array(
@@ -1070,6 +1063,39 @@ class SB_EmailSig_Fields {
 								'first_day'      => 1,
 								'wrapper'        => array( 'width' => '15' ),
 							),
+						),
+					),
+
+					array(
+						'key'          => 'field_sb_emailsig_banners',
+						'label'        => 'Additional Banners',
+						'name'         => 'sb_emailsig_banners',
+						'type'         => 'repeater',
+						'layout'       => 'table',
+						'button_label' => 'Add Banner',
+						'instructions' => '', // Its size advice: SB_EmailSig_Fields::banner_help().
+						'wrapper'      => array( 'class' => 'sb-emailsig-help-top' ),
+						'sub_fields'   => array(
+							array(
+								'key'           => 'field_sb_emailsig_banner_image',
+								'label'         => 'Image',
+								'name'          => 'banner_image',
+								'type'          => 'image',
+								'required'      => 1,
+								'return_format' => 'id',
+								'preview_size'  => 'medium',
+								'library'       => 'all',
+								'mime_types'    => 'png,jpg,jpeg,gif',
+								'wrapper'       => array( 'width' => '40' ),
+							),
+							array(
+								'key'     => 'field_sb_emailsig_banner_link',
+								'label'   => 'Link',
+								'name'    => 'banner_link',
+								'type'    => 'url',
+								'wrapper' => array( 'width' => '60' ),
+							),
+							self::row_id_field( 'sb_emailsig_banners' ),
 						),
 					),
 
@@ -1361,7 +1387,7 @@ class SB_EmailSig_Fields {
 	const SITE_TABS = array( 'Admin Branding', 'Admin Notifications', 'Signature Emails', 'Tracking' );
 
 	/** Tabs that belong to a company (SB_EmailSig_Company); the rest stay in Settings. */
-	const COMPANY_TABS = array( 'Company', 'Branding', 'Additional Content', 'Social Media', 'Footer', 'Campaign Banner' );
+	const COMPANY_TABS = array( 'Company', 'Branding', 'Additional Content', 'Social Media', 'Footer', 'Banners' );
 
 	/**
 	 * The settings fields as two groups (Sam, 30 October 2026): a company's

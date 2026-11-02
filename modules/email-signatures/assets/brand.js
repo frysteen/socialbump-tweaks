@@ -77,7 +77,8 @@
 		var rect = button.getBoundingClientRect();
 		closeMenu();
 		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
-		palette.forEach(function (c) {
+		palette.forEach(function (c, i) {
+			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) $('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
 			$('<button type="button" role="option"></button>')
 				.append($('<i></i>').css('background', c.hex))
 				.append($('<span></span>').text(c.name))
