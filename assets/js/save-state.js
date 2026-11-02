@@ -22,12 +22,21 @@
 		var data = [];
 
 		Array.prototype.forEach.call( form.elements, function ( field ) {
-			if ( ! field.name || field.type === 'submit' || field.type === 'button' || field.type === 'file' ) {
+			// ACF's own bookkeeping (_acf_changed and the like) isn't something you edited.
+			if ( ! field.name || field.type === 'submit' || field.type === 'button' || field.type === 'file' || field.name.indexOf( '_acf_' ) === 0 ) {
 				return;
 			}
 
 			if ( field.type === 'checkbox' || field.type === 'radio' ) {
 				data.push( field.name + '=' + ( field.checked ? '1' : '0' ) );
+
+				return;
+			}
+
+			// An editor (TinyMCE) box: compared without the paragraph and line
+			// break tags and spaces it adds, so text put back is no change.
+			if ( field.classList && field.classList.contains( 'wp-editor-area' ) ) {
+				data.push( field.name + '=' + field.value.replace( /<\/?p[^>]*>|<br\s*\/?>|&nbsp;/gi, ' ' ).replace( /\s+/g, ' ' ).trim() );
 
 				return;
 			}
@@ -174,6 +183,17 @@
 		var dirty  = null;
 		var saving = false;
 
+		// Until someone first touches the page, anything that changes is the
+		// page settling (ACF setting up its editors, menus and rows), not an
+		// edit, so it becomes the starting point (Sam, 2 November 2026).
+		var touched = false;
+
+		[ 'pointerdown', 'keydown', 'paste', 'drop' ].forEach( function ( type ) {
+			document.addEventListener( type, function () {
+				touched = true;
+			}, true );
+		} );
+
 		// A save button that only looks like one still needs to save.
 		keys.forEach( function ( button ) {
 			if ( button.type !== 'button' ) {
@@ -188,6 +208,10 @@
 		} );
 
 		function paint() {
+			if ( ! touched ) {
+				saved = snapshot( form );
+			}
+
 			var changed = snapshot( form ) !== saved;
 
 			if ( changed === dirty ) {
@@ -232,6 +256,20 @@
 		form.addEventListener( 'sb:saved', function () {
 			saved = snapshot( form );
 			paint();
+		} );
+
+		// The page settled again before anyone touched it (acf-forms.js).
+		form.addEventListener( 'sb:baseline', paint );
+
+		// A save stopped before it left (ACF found a field to fix): still unsaved,
+		// so the reminder and the leave warning come back.
+		form.addEventListener( 'sb:save-failed', function () {
+			saving = false;
+
+			if ( dirty ) {
+				pending++;
+				note.removeAttribute( 'hidden' );
+			}
 		} );
 
 		// Leaving to save should not warn, or flash the reminder on the way out.

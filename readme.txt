@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.1
+Stable tag: 0.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,14 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.2 =
+* Email Signatures: five new icons for the Info Lists and buttons (Quote, Clipboard, Calculator, Dollar and Receipt) in a new Enquiries group with Message. Additional Buttons can have an icon before the label, drawn in the button's text colour and the same height as the text, so icon buttons are the same size as the rest.
+* Framework: ACF forms on SocialBUMP Tweaks pages (Email Signatures companies, Settings and people) now notice a change put back, so Save goes back to Nothing to save and there's no leave warning; ACF's own leave warning is off. A save stopped by a required field shows a popup naming each field with its tab and row, Show me goes to it, and tabs holding one get a red dot.
+* Framework: ACF forms skip the browser's own checks so ACF's run every time, so an empty required field on another tab now shows the Can't save yet popup instead of nothing; fields with an error get a red outline.
+* Framework: on ACF forms a field that stopped a save keeps its red outline (and its tab its dot) until it has something in it, and Show me no longer clicks into the field, which made ACF drop its message.
+* Email Signatures: picking an icon on an Additional Button fills an empty Label with the icon's name, as the Info Lists and Social Media rows do.
+* Framework: on ACF forms, ACF's Validation failed banner is now a toast that goes by itself, and editor (TinyMCE) text put back counts as no change.
 
 = 0.6.1 =
 * Email Signatures: new companies start with a confidentiality notice as their Footer Text and a blank Sign-off; Social Media rows put the icon first; picking an icon fills an empty Name or Label (Social Media and both Info List lists); the Additional Banners moved to the Campaign Banner tab, now called Banners.

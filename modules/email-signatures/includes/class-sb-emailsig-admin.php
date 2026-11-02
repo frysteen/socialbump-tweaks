@@ -39,6 +39,15 @@ class SB_EmailSig_Admin {
 		// Icon pickers fill an empty Name or Label (assets/autolabel.js).
 		wp_enqueue_script( 'sb-emailsig-autolabel', SB_EMAILSIG_URL . 'assets/autolabel.js', array(), SB_EmailSig_Module::asset_version( 'assets/autolabel.js' ), true );
 
+		// Button icons (Sam, 2 November 2026): ones not drawn yet are drawn and
+		// kept, and previews draw theirs (assets/button-icons.js, Icons::button_config()).
+		$btn_icons = SB_EmailSig_Icons::button_config();
+		if ( $btn_icons ) {
+			wp_enqueue_script( 'sb-emailsig-icon-builder', SB_EMAILSIG_URL . 'assets/icon-builder.js', array(), SB_EmailSig_Module::asset_version( 'assets/icon-builder.js' ), true );
+			wp_enqueue_script( 'sb-emailsig-button-icons', SB_EMAILSIG_URL . 'assets/button-icons.js', array( 'sb-emailsig-icon-builder' ), SB_EmailSig_Module::asset_version( 'assets/button-icons.js' ), true );
+			wp_localize_script( 'sb-emailsig-button-icons', 'sbEmailsigButtonIcons', $btn_icons );
+		}
+
 		// Email link: the Signatures page and a person's edit screen.
 		$signatures = strpos( (string) $hook, SB_EmailSig_Module::SLUG . '-signatures' ) !== false;
 		if ( $signatures || ( $ours && $screen->base === 'post' ) ) {

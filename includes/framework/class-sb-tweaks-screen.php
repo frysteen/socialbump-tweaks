@@ -887,6 +887,12 @@ class SB_Tweaks_Screen {
 			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/confirm.js' ) ) {
 				wp_enqueue_script( 'sb-tweaks-confirm', SB_TWEAKS_URL . 'assets/js/confirm.js', [ 'jquery' ], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/confirm.js' ), true );
 			}
+
+			// ACF forms: one leave warning (ours), a fair starting point, and a
+			// popup naming what stops a save (Sam, 2 November 2026).
+			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/acf-forms.js' ) ) {
+				wp_enqueue_script( 'sb-tweaks-acf-forms', SB_TWEAKS_URL . 'assets/js/acf-forms.js', [ 'jquery', 'sb-tweaks-confirm' ], SB_TWEAKS_VERSION . '.' . filemtime( SB_TWEAKS_PATH . 'assets/js/acf-forms.js' ), true );
+			}
 		}
 
 		// Shared cards that drag and collapse.

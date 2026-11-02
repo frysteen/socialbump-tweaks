@@ -1,7 +1,8 @@
 /**
  * Icon pickers in repeater rows fill the row's name (Sam, 2 November 2026):
  * a company's Social Media rows (Icon, then Name) and the company's and a
- * person's Additional Info List Items (Icon, then Label). Picking an icon
+ * person's Additional Info List Items (Icon, then Label), and Additional
+ * Buttons (Icon, then Label). Picking an icon
  * puts its name in an empty box. A name filled this way follows the icon
  * when it changes; one typed by hand is left alone. None and Custom SVG fill
  * nothing.
@@ -11,7 +12,8 @@
 
 	var PAIRS = {
 		social_media_icon: 'social_media_name',
-		info_icon: 'info_label'
+		info_icon: 'info_label',
+		button_icon: 'button_label' // Additional Buttons (2 November 2026)
 	};
 	var SKIP = { '': 1, custom: 1 };
 

@@ -31,6 +31,7 @@ class SB_EmailSig_Icons {
 
 	public static function init() {
 		add_action( 'acf/save_post', [ __CLASS__, 'settings_saved' ], 20 );
+		add_action( 'wp_ajax_sb_emailsig_button_icons', [ __CLASS__, 'button_icons_ajax' ] );
 
 		// SVG uploads from the Custom SVG field, for sites that don't allow
 		// them already (Bricks does), cleaned of anything that can run.
@@ -546,6 +547,199 @@ class SB_EmailSig_Icons {
 			if ( is_array( $icons ) ) {
 				// Contact icons too: their colour can come from the brand colours.
 				self::save( sanitize_key( (string) $tpl_id ), $icons, [ 'social', 'contact' ], (int) $post_id );
+			}
+		}
+	}
+
+	/* ------------------------------------------------------------------ *
+	 * Button icons (Sam, 2 November 2026)
+	 *
+	 * An Additional Button's icon is one of the Info List's, drawn in the
+	 * button's text colour (solid or outline) at the button's line height.
+	 * That depends only on the icon, size and colour, so they are kept once
+	 * for the site: [ button_key() => file ] in BUTTON_OPTION, files in
+	 * icons/buttons (out of tidy()'s way). The icons the companies' buttons
+	 * need (button_needed()) and aren't drawn yet are drawn by an
+	 * administrator's browser on any Email Signatures page
+	 * (assets/button-icons.js) and kept through button_icons_ajax(), which
+	 * also drops ones no button needs any more.
+	 * ------------------------------------------------------------------ */
+
+	const BUTTON_OPTION = 'sb_emailsig_button_icons';
+
+	/** What a button icon is drawn as: its name, size and colour, such as file-text-16-ffffff. */
+	public static function button_key( $name, $size, $hex ) {
+		return sanitize_key( (string) $name ) . '-' . (int) $size . '-' . strtolower( ltrim( (string) $hex, '#' ) );
+	}
+
+	/** A button's icon size: its text line's height, so an icon button is as tall as one without. */
+	public static function button_size( array $btn ) {
+		return max( 10, (int) ( $btn['line'] ?? 16 ) );
+	}
+
+	private static function button_dir() {
+		$dir = self::dir();
+
+		return [
+			'path' => $dir['path'] . '/buttons',
+			'url'  => $dir['url'] . '/buttons',
+		];
+	}
+
+	/** A button icon's address, '' when it isn't drawn yet. */
+	public static function button_url( $key ) {
+		$file = ( (array) get_option( self::BUTTON_OPTION, [] ) )[ (string) $key ] ?? '';
+		$dir  = self::button_dir();
+
+		return ( $file && file_exists( $dir['path'] . '/' . $file ) ) ? $dir['url'] . '/' . $file : '';
+	}
+
+	/**
+	 * Every button icon the companies' buttons need now, for every template:
+	 * [ key => [ name, size, colour ] ]. Companies switched off are skipped.
+	 */
+	public static function button_needed() {
+		$out   = [];
+		$names = SB_EmailSig_Fields::info_icons();
+		$cos   = SB_EmailSig_Company::all();
+
+		foreach ( $cos ? $cos : [ 0 ] as $co ) {
+			if ( $co && SB_EmailSig_Switch::is_off( $co ) ) {
+				continue;
+			}
+
+			SB_EmailSig_Company::with(
+				$co,
+				function () use ( &$out, $names ) {
+					$rows = get_field( 'sb_emailsig_buttons', SB_EmailSig_Company::source() );
+					$used = [];
+
+					foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+						$icon = SB_EmailSig_Data::button_icon( $row );
+						$look = empty( $row['button_outline'] ) ? 'solid' : 'outline';
+
+						if ( $icon !== '' && isset( $names[ $icon ] ) ) {
+							$used[ $icon . '|' . $look ] = [ $icon, $look ];
+						}
+					}
+
+					if ( ! $used ) {
+						return;
+					}
+
+					foreach ( SB_EmailSig_Templates::all() as $tpl ) {
+						$btn = SB_EmailSig_Styles::resolve( $tpl )['buttons'] ?? null;
+
+						if ( ! $btn ) {
+							continue;
+						}
+
+						$size = self::button_size( $btn );
+
+						foreach ( $used as $u ) {
+							$hex = (string) ( $btn[ $u[1] ]['text'] ?? '' );
+
+							if ( $hex !== '' ) {
+								$out[ self::button_key( $u[0], $size, $hex ) ] = [
+									'name'   => $u[0],
+									'size'   => $size,
+									'colour' => $hex,
+								];
+							}
+						}
+					}
+				}
+			);
+		}
+
+		return $out;
+	}
+
+	/** What assets/button-icons.js needs on this page, or [] when there are no button icons. */
+	public static function button_config() {
+		$needed = self::button_needed();
+		$have   = (array) get_option( self::BUTTON_OPTION, [] );
+		$admin  = current_user_can( 'manage_options' );
+		$prune  = (bool) array_diff_key( $have, $needed );
+		$miss   = [];
+
+		foreach ( $needed as $key => $n ) {
+			if ( self::button_url( $key ) === '' ) {
+				$miss[ $key ] = $n;
+			}
+		}
+
+		if ( ! $needed && ! ( $admin && $prune ) ) {
+			return [];
+		}
+
+		$tpls = SB_EmailSig_Templates::all();
+		$tpl  = $tpls ? reset( $tpls ) : null;
+		$svgs = [];
+
+		foreach ( $needed as $n ) {
+			$file = $tpl ? $tpl['path'] . 'icons/' . $n['name'] . '.svg' : '';
+
+			if ( ! isset( $svgs[ $n['name'] ] ) && $file && file_exists( $file ) ) {
+				$svgs[ $n['name'] ] = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			}
+		}
+
+		return [
+			'svgs'    => (object) $svgs,
+			'missing' => (object) ( $admin ? $miss : [] ),
+			'save'    => $admin && ( $miss || $prune ),
+			'ajax'    => admin_url( 'admin-ajax.php' ),
+			'nonce'   => $admin ? wp_create_nonce( 'sb_emailsig_button_icons' ) : '',
+		];
+	}
+
+	/** Button icons drawn by button-icons.js: [ key => data URL ]. Only needed ones are kept. */
+	public static function button_icons_ajax() {
+		check_ajax_referer( 'sb_emailsig_button_icons', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( null, 403 );
+		}
+
+		$icons = json_decode( wp_unslash( (string) ( $_POST['icons'] ?? '' ) ), true ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- each one is checked as a PNG.
+
+		self::save_buttons( is_array( $icons ) ? array_slice( $icons, 0, 200, true ) : [] );
+		wp_send_json_success();
+	}
+
+	/** Keep the needed ones of $icons ([ key => data URL ]), and drop icons no button needs. */
+	public static function save_buttons( array $icons ) {
+		$needed = self::button_needed();
+		$keep   = array_intersect_key( (array) get_option( self::BUTTON_OPTION, [] ), $needed );
+		$dir    = self::button_dir();
+
+		foreach ( $icons as $key => $data_url ) {
+			$key = (string) $key;
+			$bin = isset( $needed[ $key ] ) ? self::png( $data_url ) : '';
+
+			if ( $bin === '' ) {
+				continue;
+			}
+
+			$name = sanitize_key( $key ) . '-' . substr( md5( $bin ), 0, 10 ) . '.png';
+
+			wp_mkdir_p( $dir['path'] );
+
+			if ( ! file_exists( $dir['path'] . '/' . $name ) ) {
+				file_put_contents( $dir['path'] . '/' . $name, $bin ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			}
+
+			$keep[ $key ] = $name;
+		}
+
+		update_option( self::BUTTON_OPTION, $keep, false );
+
+		$used = array_flip( $keep );
+
+		foreach ( (array) glob( $dir['path'] . '/*.png' ) as $file ) {
+			if ( ! isset( $used[ basename( $file ) ] ) ) {
+				wp_delete_file( $file );
 			}
 		}
 	}

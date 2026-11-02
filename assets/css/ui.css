@@ -1963,3 +1963,25 @@ body.sb-ui [data-sb-card].is-moving { border: 1.5px dashed var(--sbui-green-line
 body.sb-ui [data-sb-card].is-moving > * { visibility: hidden; }
 body.sb-ui .sb-card-ghost { position: fixed; z-index: 100000; margin: 0; pointer-events: none; box-shadow: var(--sbui-shadow-3); transform: rotate(-1deg); }
 body.sb-ui.sb-cards-dragging, body.sb-ui.sb-cards-dragging * { cursor: grabbing !important; user-select: none; }
+
+/* ACF forms (assets/js/acf-forms.js, 2 November 2026): a red dot on a tab
+   holding a field to fix, in the corner so the tabs don't move, and the
+   list in the Can't save yet popup. */
+body.sb-ui .acf-tab-group li.sb-acf-tab-error a { position: relative; }
+body.sb-ui .acf-tab-group li.sb-acf-tab-error a::after { content: ''; position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--sbui-danger, #d63638); }
+body.sb-ui .sb-acf-problems { margin: 0 0 4px; padding: 0; list-style: none; }
+body.sb-ui .sb-acf-problems li { margin: 0 0 8px; }
+body.sb-ui .sb-acf-problems .button-link { text-align: left; color: var(--sbui-text, #1d2327); text-decoration: underline; text-underline-offset: 2px; }
+body.sb-ui .sb-acf-problems span { display: block; margin-top: 2px; font-size: 12px; color: var(--sbui-danger, #d63638); }
+/* ACF's Validation failed notice goes first in the form: on a form laid out as a grid (a person's page, Edit styles, Layout) it spans every column, above them, rather than taking one. */
+body.sb-ui form > .acf-notice { grid-column: 1 / -1; }
+body.sb-ui .acf-field.acf-error .acf-input input:not([type=checkbox]):not([type=radio]):not([type=hidden]),
+body.sb-ui .acf-field.acf-error .acf-input select,
+body.sb-ui .acf-field.acf-error .acf-input textarea,
+body.sb-ui .acf-field.acf-error .acf-input .select2-selection,
+body.sb-ui .acf-field.acf-error .acf-input .wp-editor-container,
+body.sb-ui .acf-field.sb-acf-problem .acf-input input:not([type=checkbox]):not([type=radio]):not([type=hidden]),
+body.sb-ui .acf-field.sb-acf-problem .acf-input select,
+body.sb-ui .acf-field.sb-acf-problem .acf-input textarea,
+body.sb-ui .acf-field.sb-acf-problem .acf-input .select2-selection,
+body.sb-ui .acf-field.sb-acf-problem .acf-input .wp-editor-container { border-color: var(--sbui-danger, #d63638) !important; box-shadow: 0 0 0 1px var(--sbui-danger, #d63638) !important; }

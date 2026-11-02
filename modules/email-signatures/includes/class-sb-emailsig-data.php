@@ -591,7 +591,7 @@ class SB_EmailSig_Data {
 		return $out;
 	}
 
-	/** Buttons with a label and a link: [ [ label, link, outline ], ... ]. */
+	/** Buttons with a label and a link: [ [ label, link, outline, icon ], ... ], icon '' for none. */
 	private static function buttons( array $targets, $go ) {
 		$out = array();
 
@@ -604,11 +604,19 @@ class SB_EmailSig_Data {
 					'label'   => $label,
 					'link'    => $go( self::key_for( $targets, 'b', $i ) ),
 					'outline' => ! empty( $row['button_outline'] ),
+					'icon'    => self::button_icon( $row ),
 				);
 			}
 		}
 
 		return $out;
+	}
+
+	/** A button row's icon name, '' for none or one that isn't in the list. */
+	public static function button_icon( $row ) {
+		$icon = (string) ( is_array( $row ) ? ( $row['button_icon'] ?? '' ) : '' );
+
+		return $icon !== '' && isset( SB_EmailSig_Fields::info_icons()[ $icon ] ) ? $icon : '';
 	}
 
 	/** Banners with an image: [ [ image, link ], ... ]. */

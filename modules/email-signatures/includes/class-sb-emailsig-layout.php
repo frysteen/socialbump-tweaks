@@ -1239,6 +1239,36 @@ class SB_EmailSig_Layout {
 		return self::preview() ? ' ' . $attr . '="' . esc_attr( $value ) . '"' : '';
 	}
 
+	/** A clear 1px GIF: a button icon's stand-in until the page draws it (assets/button-icons.js). */
+	const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+	/**
+	 * A button's icon (Sam, 2 November 2026): a PNG in the button's text
+	 * colour, as tall as its text line (SB_EmailSig_Icons::button_url()), ''
+	 * for none. One not drawn yet is left out of a signature, so the button
+	 * shows without it; in previews it is a stand-in the page draws.
+	 */
+	private static function button_icon( array $button, array $look, array $btn ) {
+		$name = (string) ( $button['icon'] ?? '' );
+
+		if ( $name === '' ) {
+			return '';
+		}
+
+		$size = SB_EmailSig_Icons::button_size( $btn );
+		$hex  = (string) $look['text'];
+		$key  = SB_EmailSig_Icons::button_key( $name, $size, $hex );
+		$src  = SB_EmailSig_Icons::button_url( $key );
+
+		if ( $src === '' && ! self::preview() ) {
+			return '';
+		}
+
+		$mark = self::preview() ? ' data-sbes-btn-icon="' . esc_attr( $name ) . '" data-sbes-btn-size="' . $size . '" data-sbes-btn-colour="' . esc_attr( $hex ) . '" data-sbes-btn-key="' . esc_attr( $key ) . '"' : '';
+
+		return '<img src="' . ( $src !== '' ? esc_url( $src ) : esc_attr( self::BLANK ) ) . '" width="' . $size . '" height="' . $size . '" alt="" style="display:block;width:' . $size . 'px;height:' . $size . 'px;border:0;outline:none;"' . $mark . ' />';
+	}
+
 	/** A grey stand-in for something not set yet, in previews only. */
 	private static function ph( $label, $style = '' ) {
 		if ( ! self::preview() ) {
@@ -2244,10 +2274,29 @@ class SB_EmailSig_Layout {
 			$blast = count( $d['buttons'] ) - 1;
 
 			foreach ( array_values( $d['buttons'] ) as $bi => $button ) {
-				$look = $button['outline'] ? $btn['outline'] : $btn['solid'];
-				$out .= '<td style="padding:0 ' . ( $bi < $blast ? $bgap : 0 ) . 'px 0 0;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;"><tr>';
-				$out .= '<td' . ( $look['bg'] ? ' bgcolor="' . esc_attr( $look['bg'] ) . '"' : '' ) . ' style="border:2px solid ' . esc_attr( $look['border'] ) . ';border-radius:' . (int) $btn['radius'] . 'px;' . ( $look['bg'] ? 'background:' . esc_attr( $look['bg'] ) . ';' : '' ) . '">';
-				$out .= '<a href="' . esc_url( $button['link'], [ 'http', 'https', 'mailto', 'tel' ] ) . '"' . self::NEW_WINDOW . ' style="display:inline-block;padding:' . (int) $btn['pad_y'] . 'px ' . (int) $btn['pad_x'] . 'px;font-family:' . esc_attr( $s['font'] ) . ';font-size:' . (int) $btn['font'] . 'px;line-height:' . (int) $btn['line'] . 'px;font-weight:' . esc_attr( $btn['weight'] ) . ';color:' . esc_attr( $look['text'] ) . ';text-decoration:none;white-space:nowrap;">' . esc_html( self::cased( 'buttons', $button['label'] ) ) . '</a>';
+				$look  = $button['outline'] ? $btn['outline'] : $btn['solid'];
+				$href  = esc_url( $button['link'], [ 'http', 'https', 'mailto', 'tel' ] );
+				$py    = (int) $btn['pad_y'];
+				$px    = (int) $btn['pad_x'];
+				$icon  = self::button_icon( $button, $look, $btn );
+				$label = function ( $left ) use ( $href, $py, $px, $s, $btn, $look, $button ) {
+					return '<a href="' . $href . '"' . self::NEW_WINDOW . ' style="display:inline-block;padding:' . $py . 'px ' . $px . 'px ' . $py . 'px ' . (int) $left . 'px;font-family:' . esc_attr( $s['font'] ) . ';font-size:' . (int) $btn['font'] . 'px;line-height:' . (int) $btn['line'] . 'px;font-weight:' . esc_attr( $btn['weight'] ) . ';color:' . esc_attr( $look['text'] ) . ';text-decoration:none;white-space:nowrap;">' . esc_html( self::cased( 'buttons', $button['label'] ) ) . '</a>';
+				};
+				$out  .= '<td style="padding:0 ' . ( $bi < $blast ? $bgap : 0 ) . 'px 0 0;"><table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;"><tr>';
+				$out  .= '<td' . ( $look['bg'] ? ' bgcolor="' . esc_attr( $look['bg'] ) . '"' : '' ) . ' style="border:2px solid ' . esc_attr( $look['border'] ) . ';border-radius:' . (int) $btn['radius'] . 'px;' . ( $look['bg'] ? 'background:' . esc_attr( $look['bg'] ) . ';' : '' ) . '">';
+
+				if ( $icon === '' ) {
+					$out .= $label( $px );
+				} else {
+					// Icon and label in cells of their own (margins and inline
+					// images are unreliable in Outlook): the icon is as tall as
+					// the text line, so the button is the same height either way.
+					$out .= '<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;"><tr>';
+					$out .= '<td valign="middle" style="padding:' . $py . 'px 0 ' . $py . 'px ' . $px . 'px;"><a href="' . $href . '"' . self::NEW_WINDOW . ' style="text-decoration:none;">' . $icon . '</a></td>';
+					$out .= '<td valign="middle">' . $label( max( 4, (int) round( (int) $btn['font'] * 0.5 ) ) ) . '</td>';
+					$out .= '</tr></table>';
+				}
+
 				$out .= '</td></tr></table></td>';
 			}
 

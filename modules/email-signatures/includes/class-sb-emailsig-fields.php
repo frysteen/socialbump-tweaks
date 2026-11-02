@@ -69,6 +69,11 @@ class SB_EmailSig_Fields {
 			'building-2'     => 'Building',
 			'graduation-cap' => 'Graduation cap',
 			'message-circle' => 'Message',
+			'file-text'      => 'Quote',
+			'clipboard-list' => 'Clipboard',
+			'calculator'     => 'Calculator',
+			'dollar-sign'    => 'Dollar',
+			'receipt'        => 'Receipt',
 			'printer'        => 'Printer',
 			'car'            => 'Car',
 			'user-plus'      => 'Contact',
@@ -94,7 +99,9 @@ class SB_EmailSig_Fields {
 	public static function info_icon_groups() {
 		$all    = self::info_icons();
 		$groups = array(
-			'Contact'               => array( 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'message-circle', 'printer' ),
+			'Contact'               => array( 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'printer' ),
+			// Quotes and enquiries (Sam, 2 November 2026).
+			'Enquiries'             => array( 'message-circle', 'file-text', 'clipboard-list', 'calculator', 'dollar-sign', 'receipt' ),
 			'Social Media'          => array( 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz' ),
 			'Bookings and Hours'    => array( 'calendar', 'clock' ),
 			'Reviews and Awards'    => array( 'star', 'heart', 'thumbs-up', 'award' ),
@@ -902,13 +909,23 @@ class SB_EmailSig_Fields {
 						'instructions' => 'Shown in one row, such as Book Online. Styled on the template\'s Edit styles page.',
 						'wrapper'      => array( 'class' => 'sb-emailsig-help-top' ),
 						'sub_fields'   => array(
+							// An icon before the label (Sam, 2 November 2026): the Info List's icons, None by default.
+							array(
+								'key'           => 'field_sb_emailsig_button_icon',
+								'label'         => 'Icon',
+								'name'          => 'button_icon',
+								'type'          => 'select',
+								'choices'       => self::info_icon_groups(),
+								'default_value' => '',
+								'wrapper'       => array( 'width' => '15' ),
+							),
 							array(
 								'key'      => 'field_sb_emailsig_button_label',
 								'label'    => 'Label',
 								'name'     => 'button_label',
 								'type'     => 'text',
 								'required' => 1,
-								'wrapper'  => array( 'width' => '35' ),
+								'wrapper'  => array( 'width' => '30' ),
 							),
 							array(
 								'key'      => 'field_sb_emailsig_button_link',
@@ -916,7 +933,7 @@ class SB_EmailSig_Fields {
 								'name'     => 'button_link',
 								'type'     => 'url',
 								'required' => 1,
-								'wrapper'  => array( 'width' => '50' ),
+								'wrapper'  => array( 'width' => '40' ),
 							),
 							array(
 								'key'     => 'field_sb_emailsig_button_outline',

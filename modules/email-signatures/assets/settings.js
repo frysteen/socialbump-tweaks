@@ -182,6 +182,13 @@
 				$input.attr('name', 'sb_emailsig_icons');
 				$nonce.attr('name', 'sb_emailsig_icons_nonce');
 			}, true);
+
+			// A save ACF stopped (a field to fix): nameless again, or they
+			// count as a change that putting things back never undoes.
+			form.addEventListener('sb:save-failed', function () {
+				$input.removeAttr('name');
+				$nonce.removeAttr('name');
+			});
 		}
 
 		// Anything the user does, as against what ACF and this script do on load.

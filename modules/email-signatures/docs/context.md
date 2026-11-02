@@ -926,6 +926,45 @@ Email clients decide most of this:
   assets/social/houzz.svg, templates/classic/icons/houzz.svg and .png,
   social_icons(), info_icons(), the Social Media group and the template's
   names. Only in Social Media, so the Icon menu never lists it twice.
+- Enquiries group (Sam, 2 November 2026): Message (moved from Contact),
+  then five new Lucide icons (lucide-static 1.62.0, as the others):
+  file-text (Quote), clipboard-list (Clipboard), calculator (Calculator),
+  dollar-sign (Dollar) and receipt (Receipt). Each has its SVG and a
+  shipped PNG (54px, #407c81, drawn with icon-builder.js like the rest) in
+  templates/classic/icons/, and is in styles.php's names, so
+  Icons::stale() fills them in for every company on the first admin visit.
+
+### Button icons (2 November 2026)
+
+- Additional Buttons have an Icon column first (button_icon, the same
+  grouped menu as the Info Lists, None by default). Data::buttons() gives
+  each button its 'icon' (Data::button_icon(): '' unless it's in
+  info_icons()).
+- The icon is a PNG in the button's text colour (solid: its text colour,
+  outline: its outline text colour), as tall as the text line (the
+  button's 'line', so 16px at the default 13px text): an icon button is
+  exactly as tall as one without. Layout::button_icon() and the buttons
+  loop draw it in a cell of its own before the label's cell (both linked),
+  rather than inline with a margin, which Outlook ignores. The gap is half
+  the text size (7px at 13px).
+- The PNG depends only on icon, size and colour, so it's kept once for the
+  site: option sb_emailsig_button_icons, [ key => file ], key
+  Icons::button_key() such as file-text-16-ffffff, files in
+  uploads/sb-email-signatures/icons/buttons (a folder of their own so
+  Icons::tidy() leaves them alone).
+- Icons::button_needed() lists what every company's buttons need for every
+  template (switched off companies skipped). On any Email Signatures admin
+  page an administrator's browser draws the missing ones and sends them to
+  wp_ajax_sb_emailsig_button_icons (assets/button-icons.js,
+  Icons::button_config(), button_icons_ajax(), save_buttons()), which keeps
+  only needed ones and deletes the rest. So after a company or Edit styles
+  save, the reload draws them.
+- A signature drawn before its icon exists shows the button without it. In
+  previews the icon is a clear GIF with data-sbes-btn-icon, -size, -colour
+  and -key, which button-icons.js draws on the spot (also for unsaved
+  colours, and previews added later, through a MutationObserver).
+- Checked on the hub: SocialBUMP's Icon Button (Quote) and Icon Button
+  Outline (Calculator) drawn and kept; all four buttons render 30px tall.
 
 ## Templates
 
@@ -2070,3 +2109,5 @@ What arrived when. The topic sections above say how each part works now.
   and Brand Accent.
 - Colour menus also list Core Framework and Elementor colours, with a
   heading for each source.
+- Five new icons in an Enquiries group (Quote, Clipboard, Calculator,
+  Dollar, Receipt); Additional Buttons can have an icon.
