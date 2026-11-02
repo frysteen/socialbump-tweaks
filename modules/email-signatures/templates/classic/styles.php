@@ -84,7 +84,7 @@ return [
 		'label_case'   => 'none',
 		// The Info List's own, then the ones Additional Info List Items can
 		// pick (SB_EmailSig_Fields::info_icons()).
-		'names'  => [ 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'clock', 'calendar', 'info', 'link', 'award', 'star', 'heart', 'gift', 'briefcase', 'building-2', 'graduation-cap', 'message-circle', 'file-text', 'clipboard-list', 'calculator', 'dollar-sign', 'receipt', 'printer', 'car', 'thumbs-up', 'facebook', 'instagram', 'linkedin', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz' ],
+		'names'  => [ 'phone', 'smartphone', 'mail', 'globe', 'map-pin', 'user-plus', 'clock', 'calendar', 'info', 'link', 'award', 'star', 'heart', 'gift', 'briefcase', 'building-2', 'graduation-cap', 'message-circle', 'file-text', 'clipboard-list', 'calculator', 'dollar-sign', 'receipt', 'printer', 'car', 'thumbs-up', 'facebook', 'instagram', 'linkedin', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz', 'file-pdf', 'download', 'file', 'book-open', 'square-play' ],
 	],
 
 	'social'  => [

@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.3
+Stable tag: 0.6.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.4 =
+* Email Signatures: new icons in a Downloads group (PDF, Download, File, Book and Video), and LinkedIn is now the plain "in"; companies' icons are redrawn on the next admin visit.
 
 = 0.6.3 =
 * Email Signatures: LinkedIn added to the Social Media icons and the Info List icons (Bootstrap Icons' LinkedIn logo, as Simple Icons no longer has one).

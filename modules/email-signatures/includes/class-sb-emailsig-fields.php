@@ -161,6 +161,12 @@ class SB_EmailSig_Fields {
 			'whatsapp'       => 'WhatsApp',
 			'messenger'      => 'Messenger',
 			'houzz'          => 'Houzz',
+			// Downloads (Sam, 2 November 2026).
+			'file-pdf'       => 'PDF',
+			'download'       => 'Download',
+			'file'           => 'File',
+			'book-open'      => 'Book',
+			'square-play'    => 'Video',
 		);
 	}
 
@@ -177,6 +183,8 @@ class SB_EmailSig_Fields {
 			'Social Media'          => array( 'facebook', 'instagram', 'linkedin', 'youtube', 'tiktok', 'x', 'threads', 'pinterest', 'google', 'whatsapp', 'messenger', 'houzz' ),
 			'Bookings and Hours'    => array( 'calendar', 'clock' ),
 			'Reviews and Awards'    => array( 'star', 'heart', 'thumbs-up', 'award' ),
+			// Guides, brochures and the like (Sam, 2 November 2026).
+			'Downloads'             => array( 'file-pdf', 'download', 'file', 'book-open', 'square-play' ),
 			'Other'                 => array( 'info', 'link', 'gift', 'briefcase', 'building-2', 'graduation-cap', 'car' ),
 		);
 		$out    = array( '' => $all[''] );

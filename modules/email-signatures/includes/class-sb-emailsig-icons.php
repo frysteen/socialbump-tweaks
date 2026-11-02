@@ -26,6 +26,13 @@ class SB_EmailSig_Icons {
 	const OPTION = 'sb_emailsig_icons';
 	const MAX_PX = 400;
 
+	/**
+	 * Raised when a contact icon's drawing changes (2: LinkedIn became the
+	 * plain "in", Sam, 2 November 2026). A company's set drawn before it is
+	 * stale(), so the next admin visit draws it again.
+	 */
+	const CONTACT_REV = 2;
+
 	/** The Custom SVG field's key: ACF sends it with uploads made from that field. */
 	const SVG_FIELD = 'field_sb_emailsig_social_media_icon_file';
 
@@ -417,7 +424,7 @@ class SB_EmailSig_Icons {
 
 				$names = (array) ( SB_EmailSig_Styles::defaults( $tpl )['icons']['names'] ?? [] );
 
-				if ( array_diff( $names, array_keys( $all[ $slot ]['contact'] ) ) ) {
+				if ( (int) ( $all[ $slot ]['contact_rev'] ?? 1 ) < self::CONTACT_REV || array_diff( $names, array_keys( $all[ $slot ]['contact'] ) ) ) {
 					$out[] = $co;
 					break;
 				}
@@ -523,7 +530,8 @@ class SB_EmailSig_Icons {
 				}
 			}
 
-			$mine['contact'] = $contact;
+			$mine['contact']     = $contact;
+			$mine['contact_rev'] = self::CONTACT_REV;
 		}
 
 		if ( in_array( 'social', $kinds, true ) && isset( $payload['social'] ) && is_array( $payload['social'] ) ) {

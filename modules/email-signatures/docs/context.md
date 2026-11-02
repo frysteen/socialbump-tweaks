@@ -939,7 +939,20 @@ Email clients decide most of this:
   dropped LinkedIn, so it's Bootstrap Icons 1.11.3's linkedin (MIT, 16px
   box): assets/social/linkedin.svg as it comes, and
   templates/classic/icons/linkedin.svg scaled to 19px in the 24px box like
-  the other brand icons, with a shipped #407c81 PNG.
+  the other brand icons, with a shipped #407c81 PNG. Later the same day Sam
+  chose his own plain "in" (no box, from the plugins site's media library,
+  512 box): assets/social/linkedin.svg as it comes, the template's scaled
+  to 19px (translate(2.5 2.5) scale(0.037109)). Icons::CONTACT_REV went to
+  2 for it: Icons::save() stamps a company's contact set with contact_rev,
+  and stale() counts a set with an older one, so the next admin visit
+  redraws it. Social Media rows already drawn keep the old LinkedIn until
+  the company is saved.
+- Downloads group (Sam, 2 November 2026): PDF (file-pdf: Bootstrap Icons
+  1.11.3 file-earmark-pdf, MIT, scaled 1.25 into the 24px box), Download,
+  File, Book (book-open) and Video (square-play), the last four
+  lucide-static 1.62.0. Thin line icons to match the set; Sam's solid ones
+  were passed over as too heavy beside them. Each has its SVG and shipped
+  PNG and is in styles.php's names.
 
 - The Icon fields show the icons (Sam, 2 November 2026,
   assets/icon-picker.js): every social_media_icon, info_icon and
@@ -2235,3 +2248,5 @@ What arrived when. The topic sections above say how each part works now.
   Mobile, Email, Website, Address and Save Contact icons, or use a Custom
   SVG, with a reset back to the default.
 - Additional Buttons can each have their own colour.
+- New icons in a Downloads group: PDF, Download, File, Book and Video;
+  LinkedIn is now the plain "in".
