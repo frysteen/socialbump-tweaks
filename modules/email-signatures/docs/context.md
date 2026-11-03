@@ -2448,3 +2448,12 @@ as they were; a template that isn't one is refused).
   every card; a Move of a throwaway copy went through, logged, showed the
   notice, then the copy and its log rows were deleted for good.
 - Later (Sam): drag people between companies.
+
+### Template switch on the person page (3 November 2026)
+
+- copy.js setStatus() with no message only clears the status beside the button.
+  style() clears all three (Copy signature and both Copy HTML code buttons) on
+  every template switch, and once the page had SocialBUMP UI toasts each clear
+  floated up an empty toast, three a switch, logged in or not (Sam). ui.js
+  ignores empty toasts as well. Tested with a copy of the page: none on a
+  switch, the copy messages still show.

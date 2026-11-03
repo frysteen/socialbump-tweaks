@@ -67,6 +67,11 @@
 	}
 
 	function toast( message, kind, more ) {
+		// No words, no toast: an empty one is only a tick and Dismiss.
+		if ( ! String( message === undefined || message === null ? '' : message ).trim() ) {
+			return null;
+		}
+
 		kind = ICONS[ kind ] ? kind : 'ok';
 
 		var el   = document.createElement( 'div' );

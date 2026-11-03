@@ -734,6 +734,13 @@ and summary at the end").
   report fields and left 0.6.4 as it was. The popup tested in a browser with
   a pretend run, finishing and failing. Beta releases still show the spinner.
 
+### Empty toasts (3 November 2026)
+
+SBTweaksUI.toast() shows nothing and returns null when the message is empty or
+only spaces: an empty toast is only a tick and Dismiss. Found on Email
+Signatures' person page, where switching template cleared three copy
+messages and each became an empty toast.
+
 ### Confirm popup (assets/js/confirm.js, window.SBTweaksConfirm)
 
 Every question asked before acting uses this, never the browser's confirm().

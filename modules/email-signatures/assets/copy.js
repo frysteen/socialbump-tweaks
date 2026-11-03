@@ -9,6 +9,16 @@
 	// A toast where the page has them (SocialBUMP UI), so nothing on the page
 	// moves; else the words in the status beside the button.
 	function setStatus(el, msg, isError) {
+		// Nothing to say (switching template clears the last message): just
+		// clear it. It used to float up an empty toast per copy button, three a
+		// switch on the person's page (Sam, 3 November 2026).
+		if (!msg) {
+			if (el) {
+				el.textContent = '';
+				el.classList.remove('is-error');
+			}
+			return;
+		}
 		if (window.SBTweaksUI && window.SBTweaksUI.toast) {
 			if (el) el.textContent = '';
 			window.SBTweaksUI.toast(msg, isError ? 'danger' : 'ok');
