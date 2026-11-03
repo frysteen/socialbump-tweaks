@@ -199,4 +199,40 @@ class SB_Tweaks_Cards {
 
 		wp_send_json_success( $all[ $key ] );
 	}
+	/**
+	 * One row of a card's list as a small switch (Sam, 3 November 2026): the
+	 * groups on the Modules page and the features on a Features page. The row
+	 * is a label, so its words flip it too. A disabled row says why as a tip.
+	 */
+	public static function toggle_row( $name, $label, $on, $disabled = false, $tip = '' ) {
+		$q   = chr( 34 );
+		$tip = trim( wp_strip_all_tags( (string) $tip ) );
+
+		return '<li class=' . $q . 'has-toggle ' . ( $on && ! $disabled ? 'is-on' : 'is-off' ) . $q . '>'
+			. '<label class=' . $q . 'sb-tweaks-features__toggle' . ( $disabled ? ' is-disabled' : '' ) . $q . ( $tip !== '' ? ' data-sb-tip=' . $q . esc_attr( $tip ) . $q : '' ) . '>'
+			. '<span class=' . $q . 'sb-tweaks-switch sb-tweaks-switch--small' . $q . '>'
+			. '<input type=' . $q . 'checkbox' . $q . ' name=' . $q . esc_attr( $name ) . $q . ' value=' . $q . '1' . $q . checked( (bool) $on, true, false ) . disabled( (bool) $disabled, true, false ) . '>'
+			. '<span class=' . $q . 'sb-tweaks-switch__track' . $q . '><span class=' . $q . 'sb-tweaks-switch__dot' . $q . '></span></span></span>'
+			. '<span class=' . $q . 'sb-tweaks-features__label' . $q . '>' . esc_html( $label ) . '</span>'
+			. '</label></li>';
+	}
+
+	/** One row of a card's list as a link to a page, or plain words when there is no page to go to. */
+	public static function link_row( $url, $label, $on = true ) {
+		$q    = chr( 34 );
+		$text = esc_html( $label );
+
+		if ( $url !== '' ) {
+			$text = '<a class=' . $q . 'sb-tweaks-features__link' . $q . ' href=' . $q . esc_url( $url ) . $q . '>' . $text . '</a>';
+		}
+
+		return '<li class=' . $q . ( $on ? 'is-on' : 'is-off' ) . $q . '><span class=' . $q . 'sb-tweaks-dot' . $q . '></span>' . $text . '</li>';
+	}
+
+	/** One row of a card's list as a dot: lit or not, nothing to click. */
+	public static function dot_row( $label, $on, $class = '' ) {
+		$q = chr( 34 );
+
+		return '<li class=' . $q . ( $on ? 'is-on' : 'is-off' ) . ( $class !== '' ? ' ' . esc_attr( $class ) : '' ) . $q . '><span class=' . $q . 'sb-tweaks-dot' . $q . '></span>' . esc_html( $label ) . '</li>';
+	}
 }

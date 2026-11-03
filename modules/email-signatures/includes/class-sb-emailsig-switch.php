@@ -186,7 +186,7 @@ class SB_EmailSig_Switch {
 	/** The icon files company $co's signatures use: those in its own slots (SB_EmailSig_Icons::slot()). */
 	private static function icon_files( $co ) {
 		$co    = (int) $co;
-		$def   = (int) SB_EmailSig_Company::default_id();
+		$def   = (int) SB_EmailSig_Company::legacy_id();
 		$files = array();
 
 		foreach ( (array) get_option( SB_EmailSig_Icons::OPTION, array() ) as $slot => $set ) {

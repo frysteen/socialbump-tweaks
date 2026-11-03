@@ -32,7 +32,7 @@ class SB_EmailSig_Admin {
 		if ( ! $ours && strpos( (string) $hook, SB_EmailSig_Module::SLUG ) === false ) {
 			return;
 		}
-		wp_enqueue_style( 'sb-emailsig-admin', SB_EMAILSIG_URL . 'assets/admin.css', array(), SB_EmailSig_Module::asset_version( 'assets/admin.css' ) );
+		wp_enqueue_style( 'sb-emailsig-admin', SB_EMAILSIG_URL . 'assets/admin.css', array( 'sb-tweaks-colour' ), SB_EmailSig_Module::asset_version( 'assets/admin.css' ) );
 		wp_enqueue_script( 'sb-emailsig-copy', SB_EMAILSIG_URL . 'assets/copy.js', array(), SB_EmailSig_Module::asset_version( 'assets/copy.js' ), true );
 		// Image fields: the pencil replaces the image (assets/replace.js).
 		wp_enqueue_script( 'sb-emailsig-replace', SB_EMAILSIG_URL . 'assets/replace.js', array(), SB_EmailSig_Module::asset_version( 'assets/replace.js' ), true );
@@ -74,7 +74,7 @@ class SB_EmailSig_Admin {
 
 		if ( $templates ) {
 			SB_EmailSig_Notify::register_confirm();
-			wp_enqueue_script( 'sb-emailsig-templates', SB_EMAILSIG_URL . 'assets/templates.js', array( 'sb-tweaks-confirm' ), SB_EmailSig_Module::asset_version( 'assets/templates.js' ), true );
+			wp_enqueue_script( 'sb-emailsig-templates', SB_EMAILSIG_URL . 'assets/templates.js', array( 'sb-tweaks-confirm', 'sb-tweaks-sync' ), SB_EmailSig_Module::asset_version( 'assets/templates.js' ), true );
 		}
 
 		// The Companies page: Delete asks first.
@@ -89,7 +89,7 @@ class SB_EmailSig_Admin {
 		if ( ( $companies_list || $signatures ) && current_user_can( 'manage_options' ) ) {
 			SB_EmailSig_Notify::register_confirm();
 			wp_enqueue_script( 'sb-emailsig-icon-builder', SB_EMAILSIG_URL . 'assets/icon-builder.js', array(), SB_EmailSig_Module::asset_version( 'assets/icon-builder.js' ), true );
-			wp_enqueue_script( 'sb-emailsig-brand', SB_EMAILSIG_URL . 'assets/brand.js', array( 'jquery', 'sb-tweaks-confirm', 'sb-emailsig-icon-builder' ), SB_EmailSig_Module::asset_version( 'assets/brand.js' ), true );
+			wp_enqueue_script( 'sb-emailsig-brand', SB_EMAILSIG_URL . 'assets/brand.js', array( 'jquery', 'sb-tweaks-confirm', 'sb-emailsig-icon-builder', 'sb-tweaks-colour', 'sb-tweaks-sync' ), SB_EmailSig_Module::asset_version( 'assets/brand.js' ), true );
 			wp_localize_script(
 				'sb-emailsig-brand',
 				'sbEmailsigBrand',
@@ -127,6 +127,12 @@ class SB_EmailSig_Admin {
 			);
 		}
 
+		// The Export People popup (people-export.js): the company bars on the
+		// Signatures page and the Import/Export page (Sam, 3 November 2026).
+		if ( ( $signatures || strpos( (string) $hook, SB_EmailSig_Module::SLUG . '-transfer' ) !== false ) && current_user_can( 'manage_options' ) ) {
+			SB_EmailSig_Transfer::enqueue_export();
+		}
+
 		// Live updating on the Signatures page's list (not a person's Add or Edit page, or an import being checked).
 		if ( $signatures && ! SB_EmailSig_Person::is_screen() && ! SB_EmailSig_Transfer::previewing() ) {
 			wp_enqueue_script( 'sb-emailsig-live', SB_EMAILSIG_URL . 'assets/live.js', array( 'sb-emailsig-list' ), SB_EmailSig_Module::asset_version( 'assets/live.js' ), true );
@@ -136,7 +142,9 @@ class SB_EmailSig_Admin {
 		// The Signatures page's Active switches, the Preview popup there and on
 		// Templates, and the companies' on or off switches on the Companies list.
 		$companies_page = strpos( (string) $hook, SB_EmailSig_Module::SLUG . '-companies' ) !== false;
-		if ( $signatures || $templates || $companies_page ) {
+		// And the Import/Export page: picking the people file and Export's company (list.js).
+		$transfer = strpos( (string) $hook, SB_EmailSig_Module::SLUG . '-transfer' ) !== false;
+		if ( $signatures || $templates || $companies_page || $transfer ) {
 			wp_enqueue_script( 'sb-emailsig-list', SB_EMAILSIG_URL . 'assets/list.js', $templates || $companies_page ? array( 'sb-tweaks-confirm' ) : array(), SB_EmailSig_Module::asset_version( 'assets/list.js' ), true );
 			wp_localize_script(
 				'sb-emailsig-list',
@@ -208,8 +216,8 @@ class SB_EmailSig_Admin {
 	}
 
 	/**
-	 * The Signatures page: a bar with the team page's link, the people file
-	 * (Export, Import) and Add person (SB_EmailSig_Person's page), then,
+	 * The Signatures page: a bar with the team page's link and Add person
+	 * (SB_EmailSig_Person's page), then,
 	 * straight on the page, a card per person with
 	 * their photo (or a grey stand-in), name, job title and Active switch
 	 * (published or draft), and Preview, Edit, Copy link, Open link and
@@ -225,13 +233,6 @@ class SB_EmailSig_Admin {
 			return;
 		}
 
-		// A people import being checked (SB_EmailSig_Transfer).
-		if ( SB_EmailSig_Transfer::previewing() ) {
-			SB_EmailSig_Transfer::render_preview();
-
-			return;
-		}
-
 		$active   = self::people( array( 'publish' ) );
 		$inactive = self::people( array( 'draft' ) );
 		$deleted  = self::people( array( 'trash' ) );
@@ -240,8 +241,8 @@ class SB_EmailSig_Admin {
 
 		SB_EmailSig_Module::trashed_notice();
 
-		// The bar: find someone and pick a company, the team page's link, the
-		// people file and Add person.
+		// The bar: find someone and pick a company, the team page's link and
+		// Add person. The people file is on the Import/Export page.
 		echo '<div class="sb-ui-bar sb-emailsig-bar">';
 
 		$companies = SB_EmailSig_Company::all();
@@ -250,9 +251,6 @@ class SB_EmailSig_Admin {
 		echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Team page</span>';
 		echo self::link_buttons( $team, 'Copy link (every company, for those who manage)', 'Open team page (every company)' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
 		echo '</div>';
-
-		// People file: Export and Import (administrators).
-		SB_EmailSig_Transfer::render_bar();
 
 		if ( $adding ) {
 			// How many there are, "People 1 of 1", and Add person greyed out at the limit (SB_EmailSig_Limits).
@@ -270,9 +268,10 @@ class SB_EmailSig_Admin {
 		// Three sections (Sam, 30 October 2026): Active, Inactive, then Deleted
 		// (the Trash) folded away at the bottom. The Active switch moves a card
 		// between the first two (list.js); a section with no one in it hides,
-		// except Active. With more than one company, the three under each
-		// company's own bar, as on everyone's team page (Sam, 30 October 2026).
-		if ( count( $companies ) > 1 ) {
+		// except Active. The three under each company's own bar, as on
+		// everyone's team page (Sam, 30 October 2026), with only one company
+		// too (Sam, 3 November 2026).
+		if ( $companies ) {
 			foreach ( $companies as $co ) {
 				$a = self::of_company( $active, $co );
 				$i = self::of_company( $inactive, $co );
@@ -400,11 +399,34 @@ class SB_EmailSig_Admin {
 	}
 
 	/**
+	 * Add person for one company (Sam, 3 November 2026): an icon on its card
+	 * on the Companies page and in its bar on the Signatures page, for
+	 * administrators, before the team page's links and in a green outline so
+	 * it isn't taken for one of them. Opens Add person with that company
+	 * picked; at the people limit it's greyed out and says why.
+	 */
+	public static function add_person_button( $co ) {
+		if ( ! current_user_can( 'manage_options' ) || ! SB_EmailSig_Person::allowed( 0 ) ) {
+			return '';
+		}
+
+		$label = 'Add person to ' . SB_EmailSig_Company::name( $co );
+
+		if ( SB_EmailSig_Limits::full( 'people' ) ) {
+			return '<span class="sb-emailsig-limit-lock" data-sb-tip="' . esc_attr( SB_EmailSig_Limits::message( 'people' ) ) . '" tabindex="0"><span class="button button-small sb-emailsig-icon disabled" aria-disabled="true" aria-label="' . esc_attr( $label ) . '">' . self::icon( 'person-add' ) . '</span></span>';
+		}
+
+		return '<a class="button button-small sb-emailsig-icon" href="' . esc_url( SB_EmailSig_Person::url( 0, $co ) ) . '" data-sb-tip="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '">' . self::icon( 'person-add' ) . '</a>';
+	}
+
+	/**
 	 * A company's bar over its people, on the Signatures page and everyone's
 	 * team page (Sam, 30 October 2026): its name (a click folds its people
-	 * away, list.js), its brand colours, how many are Active, Inactive and
-	 * Deleted (Active only for those who don't manage), then its team page's
-	 * link and Edit company.
+	 * away, list.js) and its brand colours on the left. On the right, so
+	 * every company's line up (Sam, 3 November 2026): how many are Active,
+	 * Inactive and Deleted (Active only for those who don't manage), a
+	 * divider, Add person to it (administrators) and its team page's links,
+	 * a divider, Export People and Edit company, then its switch.
 	 */
 	public static function company_head( $co, $active, $inactive = 0, $deleted = 0 ) {
 		$manage = self::can_manage();
@@ -416,21 +438,27 @@ class SB_EmailSig_Admin {
 
 		echo SB_EmailSig_Companies::swatches( $co ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in swatches().
 
-		echo '<span class="sb-emailsig-company-head__stats">';
+		$stats = '<span class="sb-emailsig-company-head__stats">';
 		if ( $manage ) {
 			foreach ( array( 'active' => array( 'Active', $active ), 'inactive' => array( 'Inactive', $inactive ), 'deleted' => array( 'Deleted', $deleted ) ) as $key => $s ) {
-				echo '<span class="sb-emailsig-company-head__stat sb-emailsig-company-head__stat--' . esc_attr( $key ) . '"><b data-sb-emailsig-stat="' . esc_attr( $key ) . '">' . (int) $s[1] . '</b> ' . esc_html( $s[0] ) . '</span>';
+				$stats .= '<span class="sb-emailsig-company-head__stat sb-emailsig-company-head__stat--' . esc_attr( $key ) . '"><b data-sb-emailsig-stat="' . esc_attr( $key ) . '">' . (int) $s[1] . '</b> ' . esc_html( $s[0] ) . '</span>';
 			}
 		} else {
-			echo '<span class="sb-emailsig-company-head__stat sb-emailsig-company-head__stat--active"><b data-sb-emailsig-stat="active">' . (int) $active . '</b> ' . esc_html( _n( 'person', 'people', (int) $active ) ) . '</span>';
+			$stats .= '<span class="sb-emailsig-company-head__stat sb-emailsig-company-head__stat--active"><b data-sb-emailsig-stat="active">' . (int) $active . '</b> ' . esc_html( _n( 'person', 'people', (int) $active ) ) . '</span>';
 		}
-		echo '</span>';
+		$stats .= '</span>';
 
 		echo '<div class="sb-ui-bar__end">';
-		echo self::link_buttons( $link, 'Copy ' . $name . '\'s team page link', 'Open ' . $name . '\'s team page' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
+		// The counts, the icon buttons (Add person and the team page's links),
+		// then Export People and Edit company, a divider between each group
+		// that's there (Sam, 3 November 2026).
+		$words = SB_EmailSig_Transfer::export_people_button( $co );
 		if ( $manage && current_user_can( 'manage_options' ) ) {
-			echo '<a class="button button-small" href="' . esc_url( SB_EmailSig_Companies::url( $co ) ) . '">' . self::icon( 'edit' ) . 'Edit company</a>';
+			$words .= '<a class="button button-small" href="' . esc_url( SB_EmailSig_Companies::url( $co ) ) . '">' . self::icon( 'edit' ) . 'Edit company</a>';
 		}
+		$icons  = self::add_person_button( $co ) . self::link_buttons( $link, 'Copy ' . $name . '\'s team page link', 'Open ' . $name . '\'s team page' );
+		$groups = array_filter( array( $stats, $icons, $words ), 'strlen' );
+		echo implode( class_exists( 'SB_Tweaks_UI' ) ? SB_Tweaks_UI::divider() : '', $groups ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in each part.
 		// On or off, far right (SB_EmailSig_Switch; administrators).
 		echo SB_EmailSig_Switch::control( $co ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in control().
 		echo '</div>';
@@ -532,8 +560,11 @@ class SB_EmailSig_Admin {
 		$job  = SB_EmailSig_Data::field_line( $id, 'job_title' );
 		$edit = $manage ? (string) get_edit_post_link( $id ) : '';
 
-		// Just restored: highlighted, and list.js scrolls to it.
-		$back = isset( $_GET['restored'] ) && absint( $_GET['restored'] ) === (int) $id; // phpcs:ignore WordPress.Security.NonceVerification
+		// Just restored, duplicated or moved: highlighted, and list.js scrolls to it.
+		$back = false;
+		foreach ( array( 'restored', 'copied', 'person_moved' ) as $sb_key ) {
+			$back = $back || ( isset( $_GET[ $sb_key ] ) && absint( $_GET[ $sb_key ] ) === (int) $id ); // phpcs:ignore WordPress.Security.NonceVerification
+		}
 
 		echo '<article class="sb-tweaks-card sb-emailsig-person' . ( $active ? ' is-on' : '' ) . ( $back ? ' is-restored' : '' ) . '" data-sb-emailsig-card data-sb-emailsig-id="' . (int) $id . '" data-sb-emailsig-sort="' . esc_attr( strtolower( get_the_title( $id ) ) ) . '" data-sb-emailsig-text="' . esc_attr( self::find_text( $id ) ) . '" data-sb-emailsig-company="' . (int) SB_EmailSig_Company::of_person( $id ) . '">';
 
@@ -577,7 +608,8 @@ class SB_EmailSig_Admin {
 			}
 		}
 
-		// Preview first, then Edit, the links and the email, as icons.
+		// Preview, Edit and the link's two icons, then the Actions menu on the
+		// right for administrators and editors (Sam, 3 November 2026).
 		echo '<div class="sb-emailsig-person__actions">';
 		// Preview's action: Edit for administrators and editors, else their page.
 		echo '<button type="button" class="button button-small button-primary" data-sb-emailsig-preview="' . esc_attr( $sig ) . '" data-sb-emailsig-name="' . esc_attr( $name ) . '" data-sb-emailsig-edit="' . esc_url( $edit !== '' ? $edit : $url ) . '"' . ( $edit !== '' ? '' : ' data-sb-emailsig-action="Open their page"' ) . self::template_tabs( $id ) . '>' . self::icon( 'eye' ) . 'Preview</button>';
@@ -587,16 +619,9 @@ class SB_EmailSig_Admin {
 		}
 
 		echo self::link_buttons( $url, 'Copy link', 'Open their page', 'Copy ' . $name . '\'s link', 'Open ' . $name . '\'s page' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
-		echo $manage && ! $off ? self::send_button( $id ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in send_button().
 
-		// Delete, bottom right, asks first (Sam, 30 October 2026). To the Trash, like the person page's.
-		if ( $manage && current_user_can( 'delete_post', $id ) ) {
-			echo '<form class="sb-emailsig-person__delete" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-			echo '<input type="hidden" name="action" value="sb_emailsig_person_delete"><input type="hidden" name="sb_emailsig_person" value="' . (int) $id . '">';
-			echo $front ? '<input type="hidden" name="sb_back" value="team">' : '';
-			echo '<input type="hidden" name="_wpnonce" value="' . esc_attr( wp_create_nonce( SB_EmailSig_Person::NONCE . '_delete_' . $id ) ) . '">';
-			echo '<button type="submit" class="button button-small sb-emailsig-icon sb-emailsig-icon--danger" data-sb-tip="Delete" aria-label="Delete ' . esc_attr( $name ) . '"' . self::delete_confirm( $name ) . '>' . self::icon( 'trash' ) . '</button>';
-			echo '</form>';
+		if ( $manage ) {
+			echo self::person_menu( $id, $name, $front, $off ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in person_menu().
 		}
 
 		echo '</div>';
@@ -606,6 +631,92 @@ class SB_EmailSig_Admin {
 
 		echo '</article>';
 	}
+
+	/**
+	 * A person's Actions menu (Sam, 3 November 2026), for administrators and
+	 * editors: Duplicate, Move to company (with more than one company),
+	 * Email signature link (while their company is on), Download CSV
+	 * (administrators, not on the team page), then a line and Delete. The
+	 * framework's dropdown (SB_Tweaks_UI::dropdown()); each item does what
+	 * its button did, popups and all.
+	 */
+	public static function person_menu( $id, $name, $front = false, $off = false ) {
+		if ( ! self::can_manage() || ! class_exists( 'SB_Tweaks_UI' ) ) {
+			return '';
+		}
+
+		$mine   = (int) SB_EmailSig_Company::of_person( $id );
+		$others = array_values( array_diff( array_map( 'intval', SB_EmailSig_Company::all() ), array( $mine ) ) );
+		$names  = function ( array $ids ) {
+			return array_map(
+				function ( $co ) {
+					return array( (string) $co, SB_EmailSig_Company::name( $co ) );
+				},
+				$ids
+			);
+		};
+		$items  = '';
+
+		if ( current_user_can( 'edit_post', $id ) ) {
+			// Duplicate: which company the copy goes in, theirs first; with one company, straight away.
+			$ask = array();
+			if ( $others ) {
+				$ask = array(
+					'data-sb-tweaks-confirm'        => 'Which company does the copy go in?',
+					'data-sb-tweaks-confirm-title'  => 'Duplicate ' . $name,
+					'data-sb-tweaks-confirm-action' => 'Duplicate',
+					'data-sb-tweaks-confirm-choose' => wp_json_encode( array( 'name' => 'company', 'label' => 'Company', 'options' => $names( array_merge( array( $mine ), $others ) ) ) ),
+				);
+			}
+			$items .= self::person_form( 'duplicate', $id, $front, SB_Tweaks_UI::dropdown_item( 'Duplicate', self::icon( 'copy' ), array_merge( array( 'type' => 'submit', 'aria-label' => 'Duplicate ' . $name ), $ask ) ), array( 'company' => $mine ), 'sb-ui-dropdown__form' );
+
+			// Move: just which company; named in the question when there's only one other.
+			if ( $others ) {
+				$one  = count( $others ) === 1;
+				$move = array(
+					'type'                          => 'submit',
+					'aria-label'                    => 'Move ' . $name . ' to another company',
+					'data-sb-tweaks-confirm'        => $one ? 'Move ' . $name . ' to ' . SB_EmailSig_Company::name( $others[0] ) . '?' : 'Which company does ' . $name . ' move to?',
+					'data-sb-tweaks-confirm-title'  => 'Move ' . $name,
+					'data-sb-tweaks-confirm-action' => 'Move',
+				);
+				if ( ! $one ) {
+					$move['data-sb-tweaks-confirm-choose'] = wp_json_encode( array( 'name' => 'company', 'label' => 'Company', 'options' => $names( $others ) ) );
+				}
+				$items .= self::person_form( 'move', $id, $front, SB_Tweaks_UI::dropdown_item( 'Move to company', self::icon( 'move' ), $move ), array( 'company' => $others[0] ), 'sb-ui-dropdown__form' );
+			}
+		}
+
+		if ( ! $off ) {
+			$title  = SB_EmailSig_Notify::send_title( $id );
+			$items .= SB_Tweaks_UI::dropdown_item( 'Email signature link', self::icon( 'mail' ), array( 'data-sb-emailsig-send' => (int) $id, 'aria-label' => $title ) );
+		}
+
+		if ( ! $front && current_user_can( 'manage_options' ) ) {
+			$items .= SB_Tweaks_UI::dropdown_item( 'Download CSV', self::icon( 'down' ), array( 'href' => add_query_arg( array( 'person' => $id ), SB_EmailSig_Transfer::export_url() ), 'aria-label' => 'Download ' . $name . ' as a CSV' ) );
+		}
+
+		// Delete, last, after a line: to the Trash, asking first as the trash can did (Sam, 30 October 2026).
+		if ( current_user_can( 'delete_post', $id ) ) {
+			$items .= SB_Tweaks_UI::dropdown_line();
+			$items .= self::person_form( 'delete', $id, $front, str_replace( '<button ', '<button' . self::delete_confirm( $name ) . ' ', SB_Tweaks_UI::dropdown_item( 'Delete', self::icon( 'trash' ), array( 'type' => 'submit', 'danger' => true, 'aria-label' => 'Delete ' . $name ) ) ), array(), 'sb-ui-dropdown__form' );
+		}
+
+		if ( $items === '' ) {
+			return '';
+		}
+
+		return SB_Tweaks_UI::dropdown(
+			array(
+				'label' => 'Actions',
+				'items' => $items,
+				'small' => true,
+				'class' => 'sb-emailsig-person__menu',
+				'aria'  => 'Actions for ' . $name,
+			)
+		);
+	}
+
 
 	/**
 	 * Deleted: people in the Trash, folded away at the bottom (a details
@@ -651,21 +762,30 @@ class SB_EmailSig_Admin {
 		echo '<div class="sb-emailsig-person__actions">';
 
 		if ( current_user_can( 'delete_post', $id ) ) {
-			self::person_form( 'restore', $id, $front, '<button type="submit" class="button button-small">' . self::icon( 'restore' ) . 'Restore</button>' );
-			self::person_form( 'purge', $id, $front, '<button type="submit" class="button button-small sb-tweaks-button--danger sb-emailsig-person__purge" data-sb-tweaks-confirm="' . esc_attr( 'Delete ' . ( $name !== '' ? $name : 'this person' ) . ' for good? Their signature, photo and details go, and this can\'t be undone.' ) . '" data-sb-tweaks-confirm-title="Delete for good" data-sb-tweaks-confirm-action="Delete for good">' . self::icon( 'trash' ) . 'Delete for good</button>' );
+			echo self::person_form( 'restore', $id, $front, '<button type="submit" class="button button-small">' . self::icon( 'restore' ) . 'Restore</button>' );
+			echo self::person_form( 'purge', $id, $front, '<button type="submit" class="button button-small sb-tweaks-button--danger sb-emailsig-person__purge" data-sb-tweaks-confirm="' . esc_attr( 'Delete ' . ( $name !== '' ? $name : 'this person' ) . ' for good? Their signature, photo and details go, and this can\'t be undone.' ) . '" data-sb-tweaks-confirm-title="Delete for good" data-sb-tweaks-confirm-action="Delete for good">' . self::icon( 'trash' ) . 'Delete for good</button>' );
 		}
 
 		echo '</div></article>';
 	}
 
-	/** A small form posting one person to admin-post.php (sb_emailsig_person_{$what}), around $button. */
-	private static function person_form( $what, $id, $front, $button ) {
-		echo '<form class="sb-emailsig-person__form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="sb_emailsig_person_' . esc_attr( $what ) . '"><input type="hidden" name="sb_emailsig_person" value="' . (int) $id . '">';
-		echo $front ? '<input type="hidden" name="sb_back" value="team">' : '';
-		echo '<input type="hidden" name="_wpnonce" value="' . esc_attr( wp_create_nonce( SB_EmailSig_Person::NONCE . '_' . $what . '_' . $id ) ) . '">';
-		echo $button; // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped by the caller.
-		echo '</form>';
+	/**
+	 * A small form posting one person to admin-post.php
+	 * (sb_emailsig_person_{$what}, with its nonce), around $button, with
+	 * $fields as hidden inputs. Returned, to print or put in a menu.
+	 */
+	private static function person_form( $what, $id, $front, $button, array $fields = array(), $class = 'sb-emailsig-person__form' ) {
+		$out  = '<form class="' . esc_attr( $class ) . '" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		$out .= '<input type="hidden" name="action" value="sb_emailsig_person_' . esc_attr( $what ) . '"><input type="hidden" name="sb_emailsig_person" value="' . (int) $id . '">';
+
+		foreach ( $fields as $field => $value ) {
+			$out .= '<input type="hidden" name="' . esc_attr( $field ) . '" value="' . esc_attr( (string) $value ) . '">';
+		}
+
+		$out .= $front ? '<input type="hidden" name="sb_back" value="team">' : '';
+		$out .= '<input type="hidden" name="_wpnonce" value="' . esc_attr( wp_create_nonce( SB_EmailSig_Person::NONCE . '_' . $what . '_' . $id ) ) . '">';
+
+		return $out . $button . '</form>'; // Built and escaped by the caller.
 	}
 
 	/**
@@ -887,15 +1007,18 @@ class SB_EmailSig_Admin {
 	public static function icon( $name ) {
 		$paths = array(
 			'eye'  => '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+			'move' => '<path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/>',
 			'edit' => '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
 			'link' => '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
 			'open' => '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/>',
+			'globe' => '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
 			'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
 			'phone' => '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
 			'pin' => '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
 			'chevron' => '<path d="M6 9l6 6 6-6"/>',
 			'restore' => '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/>',
 			'plus' => '<path d="M12 5v14M5 12h14"/>',
+			'person-add' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
 			'down' => '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/>',
 			'up'   => '<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 21h16"/>',
 			'grid' => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',

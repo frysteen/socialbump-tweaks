@@ -339,81 +339,7 @@
 	margin: 0 6px 0 0;
 }
 
-/* SocialBUMP header banner */
-.sb-tweaks-header {
-	margin: 20px 0 0;
-	padding: 22px 28px;
-	background: #16171c;
-	border-radius: 8px;
-	color: #fff;
-}
-
-.sb-tweaks-header__brand {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 16px;
-}
-
-.sb-tweaks-header__logo {
-	display: block;
-	width: auto;
-	height: 28px;
-}
-
-.wrap .sb-tweaks-header__title {
-	margin: 0;
-	padding: 0 0 0 16px;
-	border-left: 1px solid rgba(255, 255, 255, 0.2);
-	color: #fff;
-	font-size: 20px;
-	font-weight: 600;
-	line-height: 28px;
-}
-
-.sb-tweaks-header__intro {
-	max-width: none;
-	margin: 14px 0 0;
-	color: var(--sbui-text-3, #a7aaad);
-	font-size: 13px;
-	line-height: 1.5;
-}
-
-.sb-tweaks-wrap .wp-header-end {
-	margin: 0;
-}
-
-/* Colour field: swatch + text box */
-.sb-tweaks-colour {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.sb-tweaks-colour__swatch {
-	width: 32px;
-	height: 30px;
-	padding: 2px;
-	border: 1px solid var(--sbui-border-strong, #8c8f94);
-	border-radius: 4px;
-	background: var(--sbui-surface, #fff);
-	cursor: pointer;
-}
-
-.sb-tweaks-colour__value {
-	width: 220px;
-}
-
-/* Header version */
-.sb-tweaks-header__version {
-	padding: 3px 9px;
-	background: rgba(255, 255, 255, 0.1);
-	border-radius: 999px;
-	color: #c3c4c7;
-	font-size: 12px;
-	font-weight: 600;
-	letter-spacing: 0.02em;
-}
+/* The SocialBUMP banner (SB_Tweaks_UI::header()) is styled in one place: ui.css, "Banner". */
 
 /* Updates panel */
 .sb-tweaks-updates__status {
@@ -463,29 +389,6 @@
 	font-size: 13px;
 }
 
-/* Header version link */
-a.sb-tweaks-header__version {
-	text-decoration: none;
-	transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-a.sb-tweaks-header__version:hover,
-a.sb-tweaks-header__version:focus {
-	background: rgba(255, 255, 255, 0.2);
-	color: #fff;
-}
-
-a.sb-tweaks-header__version.is-outdated {
-	background: #4a0d0d;
-	color: #ff6b6b;
-}
-
-a.sb-tweaks-header__version.is-outdated:hover,
-a.sb-tweaks-header__version.is-outdated:focus {
-	background: #6b1414;
-	color: #ff8f8f;
-}
-
 /* Checklist field */
 .sb-tweaks-checklist {
 	display: grid;
@@ -499,25 +402,11 @@ a.sb-tweaks-header__version.is-outdated:focus {
 	gap: 6px;
 }
 
-/* Card fields never outgrow the card */
-.sb-tweaks-card .sb-tweaks-field input[type="text"],
-.sb-tweaks-card .sb-tweaks-field input[type="url"],
-.sb-tweaks-card .sb-tweaks-field input[type="number"],
-.sb-tweaks-card .sb-tweaks-field select,
-.sb-tweaks-card .sb-tweaks-field textarea {
+/* Card fields never outgrow the card; the colour field sizes its own parts (colour.css) */
+.sb-tweaks-card .sb-tweaks-field :is(input[type="text"], input[type="url"], input[type="number"], select, textarea):not(.sb-tweaks-colour > *) {
 	width: 100%;
 	max-width: 100%;
 	box-sizing: border-box;
-}
-
-.sb-tweaks-card .sb-tweaks-colour {
-	display: flex;
-	max-width: 100%;
-}
-
-.sb-tweaks-card .sb-tweaks-colour__value {
-	flex: 1 1 auto;
-	min-width: 0;
 }
 
 /* The banner needs breathing room before whatever follows it */
@@ -550,25 +439,6 @@ a.sb-tweaks-header__version.is-outdated:focus {
 .sb-tweaks-switch input[type="checkbox"]:checked::before,
 .sb-tweaks-switch input[type="checkbox"]::before {
 	content: none;
-}
-
-/* The logo takes you back to the main page */
-.sb-tweaks-header__home {
-	display: inline-flex;
-	align-items: center;
-	line-height: 0;
-	border-radius: 4px;
-	transition: opacity 0.15s ease;
-}
-
-.sb-tweaks-header__home:hover,
-.sb-tweaks-header__home:focus {
-	opacity: 0.75;
-}
-
-.sb-tweaks-header__home:focus-visible {
-	outline: 2px solid #85df07;
-	outline-offset: 3px;
 }
 
 /* Feature list on a module card */
@@ -738,13 +608,6 @@ a.sb-tweaks-header__version.is-outdated:focus {
 	background: #dba617;
 }
 
-/* The page name after the plugin name in the banner. */
-.wrap .sb-tweaks-header__title .sb-tweaks-header__page {
-	margin-left: 8px;
-	color: var(--sb-tweaks-accent, #72aee6);
-	font-weight: 600;
-}
-
 /* The notes panel on the Publishing page. */
 .sb-tweaks-docs {
 	min-height: 420px;
@@ -808,52 +671,6 @@ a.sb-tweaks-header__version.is-outdated:focus {
 /* The release notes box, tall enough to match the two cards beside it. */
 .sb-tweaks-release textarea {
 	min-height: 160px;
-}
-
-/* The plugin pages, along the bottom of the banner. */
-.sb-tweaks-header__nav {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 4px;
-	margin-top: 16px;
-	padding-top: 14px;
-	border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.sb-tweaks-header__link {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 5px 12px;
-	border-radius: 999px;
-	color: #c3c4c7;
-	font-size: 13px;
-	text-decoration: none;
-}
-
-.sb-tweaks-header__link:hover,
-.sb-tweaks-header__link:focus {
-	background: rgba(255, 255, 255, 0.08);
-	color: #fff;
-	box-shadow: none;
-}
-
-.sb-tweaks-header__link.is-current {
-	background: rgba(255, 255, 255, 0.14);
-	color: #fff;
-	font-weight: 600;
-}
-
-.sb-tweaks-header__badge {
-	display: inline-block;
-	padding: 1px 7px;
-	border-radius: 999px;
-	background: #f0b849;
-	color: var(--sbui-text, #1d2327);
-	font-size: 11px;
-	font-weight: 700;
-	line-height: 16px;
 }
 
 /* The sizes panel on an attachment.
@@ -1164,15 +981,6 @@ a.sb-toggle:focus {
 	font-size: 13px;
 }
 
-a.sb-tweaks-header__version {
-	text-decoration: none;
-}
-
-a.sb-tweaks-header__version:hover,
-a.sb-tweaks-header__version:focus {
-	filter: brightness(1.25);
-}
-
 .sb-installs .button-small.sb-installs__install {
 	margin-top: 4px;
 }
@@ -1468,15 +1276,15 @@ a.sb-tweaks-header__version:focus {
 	line-height: 1.5;
 }
 
-.sb-tweaks-dialog__field > span {
+/* The label. Not the colour component's wrapper, which is a span too. */
+.sb-tweaks-dialog__field > span:not(.sb-tweaks-colour) {
 	display: block;
 	margin: 0 0 4px;
 	font-weight: 600;
 	color: var(--sbui-text, #1d2327);
 }
 
-.sb-tweaks-dialog__field input,
-.sb-tweaks-dialog__field textarea {
+.sb-tweaks-dialog__field :is(input, textarea):not(.sb-tweaks-colour > *) {
 	box-sizing: border-box;
 	display: block;
 	width: 100%;
@@ -1662,4 +1470,170 @@ a.sb-tweaks-header__version:focus {
 
 .sb-installs__beta-bar {
 	margin: 8px 0 0;
+}
+
+/* Small switches, links and parts in a card's list (Sam, 3 November 2026) */
+.sb-tweaks-switch--small .sb-tweaks-switch__track {
+	width: 28px;
+	height: 16px;
+}
+.sb-tweaks-switch--small .sb-tweaks-switch__dot {
+	top: 2px;
+	left: 2px;
+	width: 12px;
+	height: 12px;
+}
+.sb-tweaks-switch--small input:checked + .sb-tweaks-switch__track .sb-tweaks-switch__dot {
+	transform: translateX(12px);
+}
+.sb-tweaks-features li.has-toggle {
+	padding: 4px 0;
+}
+.sb-tweaks-features__toggle {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	cursor: pointer;
+}
+.sb-tweaks-features__toggle.is-disabled {
+	cursor: not-allowed;
+}
+.sb-tweaks-features li.is-part {
+	padding-left: 38px;
+	font-size: 12px;
+}
+.sb-tweaks-features li.is-part.is-muted .sb-tweaks-dot {
+	background: #dcdcde;
+	box-shadow: none;
+}
+.sb-tweaks-features__link {
+	color: inherit;
+	text-decoration: none;
+}
+.sb-tweaks-features__link:hover,
+.sb-tweaks-features__link:focus {
+	text-decoration: underline;
+}
+
+/* A checklist as one column that scrolls when it's long, such as a popup's list of people (Sam, 3 November 2026) */
+.sb-tweaks-checklist--list {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0;
+	max-height: min(50vh, 360px);
+	overflow-y: auto;
+	border: 1px solid var(--sbui-border, #dcdcde);
+	border-radius: var(--sbui-r, 6px);
+}
+
+.sb-tweaks-checklist--list label {
+	gap: 8px;
+	margin: 0;
+	padding: 9px 12px;
+	cursor: pointer;
+}
+
+.sb-tweaks-checklist--list label + label {
+	border-top: 1px solid var(--sbui-border, #dcdcde);
+}
+
+.sb-tweaks-checklist--list label:hover {
+	background: var(--sbui-surface-2, #f6f7f7);
+}
+
+.sb-tweaks-checklist--list input[type="checkbox"] {
+	margin: 0;
+}
+
+/* Select all and none with a count beside them (SBTweaksFields.checklist(), framework.js) */
+.sb-tweaks-checklist__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 0 0 8px;
+}
+
+.sb-tweaks-checklist__head .sb-tweaks-checklist__tools {
+	margin: 0;
+}
+
+.sb-tweaks-checklist__count {
+	color: var(--sbui-text-3, #787c82);
+	font-size: 12px;
+}
+
+/* A menu in a popup (data-sb-tweaks-confirm-choose, confirm.js): as wide as the popup */
+.sb-tweaks-dialog__field select {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: none;
+}
+
+/* Options to pick one of in a popup (data-sb-tweaks-confirm-choose, type radio; Sam, 3 November 2026):
+   each a box with its note and any menu of its own; the picked one is outlined, red for a danger one. */
+.sb-tweaks-dialog__choices {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	margin: 4px 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.sb-tweaks-dialog__choices legend {
+	margin: 0 0 6px;
+	padding: 0;
+	color: var(--sbui-text, #1d2327);
+	font-weight: 600;
+}
+
+.sb-tweaks-dialog__choice {
+	display: grid;
+	gap: 6px;
+	padding: 10px 12px;
+	border: 1px solid var(--sbui-border, #dcdcde);
+	border-radius: var(--sbui-r, 6px);
+}
+
+.sb-tweaks-dialog__choice:has(input[type="radio"]:checked) {
+	border-color: var(--sbui-green-ink, #2271b1);
+	background: var(--sbui-green-soft, #f0f6fc);
+}
+
+.sb-tweaks-dialog__choice.is-danger:has(input[type="radio"]:checked) {
+	border-color: var(--sbui-danger, #d63638);
+	background: var(--sbui-danger-soft, #fcf0f1);
+}
+
+.sb-tweaks-dialog__choice label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	color: var(--sbui-text, #1d2327);
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.sb-tweaks-dialog__choice input[type="radio"] {
+	margin: 0;
+}
+
+.sb-tweaks-dialog__choice select {
+	box-sizing: border-box;
+	width: calc(100% - 24px);
+	max-width: none;
+	margin: 0 0 0 24px;
+}
+
+.sb-tweaks-dialog__choice select:disabled {
+	opacity: 0.5;
+}
+
+.sb-tweaks-dialog__note {
+	margin: 0 0 0 24px;
+	color: var(--sbui-text-3, #787c82);
+	font-size: 12px;
+	line-height: 1.5;
 }

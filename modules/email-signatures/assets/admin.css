@@ -85,13 +85,18 @@
 .sb-emailsig-crop__border-own[hidden] { display: none; }
 .sb-emailsig-crop__pair { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .sb-emailsig-crop__pair input[type="number"] { width: 72px; }
-.sb-emailsig-crop__pair .sb-tweaks-colour__value { width: 150px; }
 .sb-emailsig-crop__radius input { width: 64px; }
 .sb-emailsig-crop__check { margin: 0 0 12px; padding: 8px 12px; border-left: 4px solid var(--sbui-warn-solid, #dba617); background: var(--sbui-warn-soft, #fcf9e8); }
 .sb-emailsig-crop__check[hidden] { display: none; }
 
-/* Signatures page: the bar (team page, people file, Add person), then a card per person */
-.sb-emailsig-transfer form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+/* Signatures page: the bar (team page, Add person), then a card per person */
+
+/* Import/Export page: the people file's card, Company then Export and Import (Sam, 3 November 2026). */
+.sb-emailsig-transfer__actions,
+.sb-emailsig-transfer__actions form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.sb-emailsig-transfer .sb-tweaks-field select { min-width: 220px; }
+.sb-emailsig-transfer__body { display: grid; gap: 14px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--sbui-border, #dcdcde); }
+.sb-emailsig-transfer__body .sb-tweaks-field { margin: 0; }
 .sb-emailsig-people-head { display: flex; align-items: center; gap: 8px; margin: 28px 0 12px; }
 .sb-tweaks-wrap .sb-emailsig-people-head h2 { margin: 0; padding: 0; font-size: 16px; font-weight: 600; }
 .sb-emailsig-import-table { margin: 12px 0 16px; }
@@ -225,18 +230,11 @@ body.sb-ui .sb-tweaks-wrap .sb-emailsig-template__stats > a, .sb-emailsig-templa
 /* The Layout page's fields: labels in one line across the top, every box the same height. */
 .sb-emailsig-layout__bar, .sb-emailsig-layout__box { align-items: flex-start; }
 .sb-emailsig-item__name.sb-emailsig-layout__sub { margin: 18px 0 6px; }
-.sb-emailsig-layout__bar select, .sb-emailsig-layout__bar input, .sb-emailsig-layout__box input, .sb-emailsig-layout__box .sb-emailsig-colour__theme { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; }
+.sb-emailsig-layout__bar select, .sb-emailsig-layout__bar input, .sb-emailsig-layout__box input { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; }
 .sb-emailsig-layout__bar select { padding-top: 0; padding-bottom: 0; line-height: 34px; }
-.sb-emailsig-layout__box .sb-tweaks-colour__swatch { width: 36px; padding: 2px; }
 /* A colour in a layout popup (a divider's): the same height as the selects beside it. */
 .sb-emailsig-layout__pop .sb-emailsig-field--colour { display: flex; flex-direction: column; gap: 0; }
 .sb-emailsig-layout__pop .sb-emailsig-field--colour .sb-emailsig-field__label { display: block; margin: 0 0 4px; font-size: 13px; line-height: 20px; color: var(--sbui-text, #1d2327); }
-.sb-emailsig-layout__pop .sb-emailsig-colour { display: flex; gap: 6px; }
-.sb-emailsig-layout__pop .sb-emailsig-colour input, .sb-emailsig-layout__pop .sb-emailsig-colour__theme { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; }
-.sb-emailsig-layout__pop .sb-tweaks-colour__swatch { flex: 0 0 36px; width: 36px; padding: 2px; }
-.sb-emailsig-layout__pop .sb-emailsig-colour .sb-tweaks-colour__value { flex: 1 1 auto; min-width: 0; width: auto; }
-.sb-emailsig-layout__pop .sb-emailsig-colour__theme { flex: 0 0 36px; width: 36px; }
-.sb-tweaks-card .sb-emailsig-layout__box .sb-emailsig-colour .sb-tweaks-colour__value { flex: 0 0 120px; width: 120px; }
 .sb-emailsig-layout__bar input[type="number"] { width: 90px; }
 /* A space or line: a step (Default, Half...) and, for Custom, its px. */
 .sb-emailsig-layout__step, .sb-tweaks-dialog__field > .sb-emailsig-layout__step { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 0; } /* One line, the dropdown taking what the Custom box leaves (Sam, 31 October 2026). */
@@ -297,25 +295,12 @@ body .sb-tweaks-dialog__buttons .button.sb-emailsig-layout__copy { display: inli
 .sb-emailsig-field__number input { width: 90px; }
 .sb-emailsig-check { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; }
 
-/* Colour: the framework's swatch and text box, plus the theme colours */
-.sb-tweaks-card .sb-emailsig-colour { display: inline-flex; gap: 6px; }
-.sb-tweaks-card .sb-emailsig-colour .sb-tweaks-colour__value { flex: 0 0 175px; width: 175px; }
-.sb-emailsig-colour.is-inherited .sb-tweaks-colour__swatch { border-style: dashed; opacity: 0.6; }
-.sb-emailsig-colour__theme { display: inline-flex; flex: none; align-items: center; justify-content: center; box-sizing: border-box; width: 36px; height: 36px; padding: 0; border: 1px solid var(--sbui-border-strong, #8c8f94); border-radius: 4px; background: var(--sbui-surface, #fff); color: var(--sbui-text-2, #50575e); cursor: pointer; }
-.sb-emailsig-colour__theme:hover, .sb-emailsig-colour__theme[aria-expanded="true"] { border-color: var(--sbui-green-ink, #2271b1); color: var(--sbui-green-ink, #2271b1); }
 /* The Container border's lock (layout.js): one width for all sides, or each side. */
 .sb-emailsig-layout__lock { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 36px; height: 36px; padding: 0; border: 1px solid var(--sbui-border-strong, #8c8f94); border-radius: 4px; background: var(--sbui-surface, #fff); color: var(--sbui-text-2, #50575e); cursor: pointer; }
 .sb-emailsig-layout__lock:hover, .sb-emailsig-layout__lock:focus-visible { border-color: var(--sbui-green-ink, #2271b1); color: var(--sbui-green-ink, #2271b1); }
 .sb-emailsig-layout__lockfield { flex: 0 0 auto; }
 /* Width dropdowns (layout.js pxSelect()): 1px to 8px, None. */
 .sb-emailsig-layout__box select.sb-emailsig-layout__px { width: 96px; min-width: 96px; }
-.sb-emailsig-colour__theme .dashicons { font-size: 18px; width: 18px; height: 18px; }
-.sb-emailsig-palette { position: absolute; z-index: 100001; width: 260px; max-height: 320px; overflow-y: auto; padding: 6px; background: var(--sbui-surface, #fff); border: 1px solid var(--sbui-border-strong, #c3c4c7); border-radius: 6px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15); }
-.sb-emailsig-palette button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 6px; border: 0; border-radius: 4px; background: none; text-align: left; cursor: pointer; font-size: 12px; color: var(--sbui-text, #1d2327); }
-.sb-emailsig-palette button:hover, .sb-emailsig-palette button:focus { background: var(--sbui-surface-3, #f0f0f1); outline: none; }
-.sb-emailsig-palette i { flex: 0 0 18px; height: 18px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
-.sb-emailsig-palette span { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sb-emailsig-palette code { padding: 0; background: none; color: var(--sbui-text-3, #787c82); font-size: 11px; }
 
 /* Text: each part's name above its fields */
 .sb-emailsig-item { padding: 16px 0; border-top: 1px solid var(--sbui-border, #f0f0f1); }
@@ -875,33 +860,7 @@ body .sb-tweaks-dialog__buttons .button.sb-emailsig-layout__copy { display: inli
 	margin: 0 0 10px;
 }
 
-/* Colour menus: a heading for each source (Brand colours, Bricks: Theme Colours, Core Framework, Elementor, Theme). */
-.sb-emailsig-palette .sb-emailsig-palette__head {
-	padding: 8px 6px 3px;
-	font-size: 11px;
-	font-weight: 600;
-	color: var(--sbui-text-3, #787c82);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-.sb-emailsig-palette .sb-emailsig-palette__head:first-child {
-	padding-top: 2px;
-}
 
-/* Settings, Branding: the brand colour boxes (assets/settings.js), the swatch,
-   the box and the theme colour menu button in a row. */
-.sb-emailsig-settings .sb-emailsig-colour {
-	display: flex;
-	gap: 6px;
-	max-width: 100%;
-}
-
-.sb-emailsig-settings .sb-emailsig-colour .sb-tweaks-colour__value {
-	flex: 1 1 auto;
-	min-width: 0;
-	width: auto;
-}
 
 /* ---------- SocialBUMP UI (body.sb-ui): the Signatures page ---------- */
 body.sb-ui .sb-emailsig-people .sb-tweaks-card:is(.sb-emailsig-person, .sb-emailsig-template) { padding: 0; }
@@ -917,7 +876,11 @@ body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon.is-done { border-color: var(
 /* Delete: a red outline, solid red with a white icon on hover. */
 body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon--danger { border-color: var(--sbui-danger); color: var(--sbui-danger); }
 body.sb-ui .sb-tweaks-wrap .button.sb-emailsig-icon--danger:hover:not(:disabled) { border-color: var(--sbui-danger-solid); background: var(--sbui-danger-solid); color: #fff; }
+
+/* Add person: a green outline, solid green on hover (Sam, 3 November 2026). */
 .sb-emailsig-person__delete { display: contents; }
+/* A person card's Actions menu (SB_Tweaks_UI::dropdown()): on the right, where Delete was. */
+.sb-emailsig-person__menu { margin-left: auto; }
 .sb-emailsig-person__delete .button { margin-left: auto; }
 body.sb-ui .sb-ui-bar .button { gap: 6px; }
 body.sb-ui .sb-ui-seg .sb-emailsig-svg { width: 14px; height: 14px; }
@@ -1155,7 +1118,7 @@ body.sb-ui .sb-emailsig-front textarea.sb-emailsig-front__code { display: block;
    rows as its neighbours', so a long name moves them all alike (Sam, 1
    November 2026). */
 @supports (grid-template-rows: subgrid) {
-	.sb-emailsig-companies > .sb-emailsig-company { display: grid; grid-row: span 5; grid-template-rows: subgrid; row-gap: 12px; }
+	.sb-emailsig-companies > .sb-emailsig-company { display: grid; grid-row: span 4; grid-template-columns: minmax(0, 1fr); grid-template-rows: subgrid; row-gap: 12px; min-width: 0; }
 	.sb-emailsig-companies > .sb-emailsig-company > .sb-emailsig-template__stats { align-self: end; }
 }
 
@@ -1263,10 +1226,15 @@ html:not(.sb-emailsig-searching) .sb-emailsig-company-group.is-folded .sb-emails
 .sb-emailsig-swatches { display: inline-flex; align-items: center; gap: 6px; }
 .sb-emailsig-swatch { display: inline-block; width: 22px; height: 22px; margin: 0; padding: 0; border: 0; border-radius: 50%; background: var(--sb-swatch, #fff); box-shadow: inset 0 0 0 1px rgba(22, 23, 29, 0.18); box-sizing: border-box; }
 .sb-emailsig-swatch.is-empty { background: linear-gradient(to top right, transparent calc(50% - 1px), var(--sbui-text-3, #80857a) calc(50% - 1px), var(--sbui-text-3, #80857a) calc(50% + 1px), transparent calc(50% + 1px)), var(--sbui-surface, #fff); }
-button.sb-emailsig-swatches.is-edit { margin: 0; padding: 3px; border: 0; border-radius: 999px; background: none; cursor: pointer; transition: box-shadow 0.12s; }
-button.sb-emailsig-swatches.is-edit:hover { box-shadow: 0 0 0 1px var(--sbui-border-strong, #c8ccc0); }
+/* Brand colours that open the popup: a light grey outline always, green on hover, so it reads as one thing to click (Sam, 3 November 2026). */
+button.sb-emailsig-swatches.is-edit { margin: 0; padding: 3px; border: 0; border-radius: 999px; background: none; box-shadow: 0 0 0 1px var(--sbui-border, #e1e4db); cursor: pointer; transition: box-shadow 0.12s; }
+button.sb-emailsig-swatches.is-edit:hover { box-shadow: 0 0 0 1px var(--sbui-green, #85df07); }
 button.sb-emailsig-swatches.is-edit:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--sbui-focus, rgba(133, 223, 7, 0.45)); }
-.sb-emailsig-company__brand { padding: 0 18px; }
+/* The company card's name wraps, its brand colours under it (Sam, 3 November 2026). */
+.sb-emailsig-company .sb-emailsig-person__name { overflow-wrap: anywhere; white-space: normal; }
+/* The button's own margin: 0 is more specific, so this names it too. */
+.sb-emailsig-company__who .sb-emailsig-swatches,
+.sb-emailsig-company__who button.sb-emailsig-swatches.is-edit { margin: 10px 0 0 -3px; }
 /* A company's Phone, Email, Address and Default Template on its card (Sam, 1 November 2026). */
 .sb-emailsig-company__details { display: grid; align-content: start; gap: 5px; margin: 0; padding: 0 18px 4px; list-style: none; color: var(--sbui-text-2, #50575e); font-size: 12.5px; line-height: 1.4; }
 .sb-emailsig-company__details li { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0; }
@@ -1311,12 +1279,6 @@ body .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-person__who a.sb-em
 /* Brand colours popup (brand.js): each colour's picker, box and theme menu. */
 .sb-emailsig-brand-pop { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin-bottom: 8px; }
 .sb-emailsig-brand-pop .sb-tweaks-dialog__field { display: flex; flex-direction: column; gap: 4px; margin: 0; }
-.sb-emailsig-brand-pop .sb-tweaks-dialog__field > span { font-size: 13px; font-weight: 600; color: var(--sbui-text, #16171d); }
-.sb-emailsig-brand-pop .sb-emailsig-colour { display: flex; gap: 6px; }
-.sb-emailsig-brand-pop .sb-emailsig-colour input, .sb-emailsig-brand-pop .sb-emailsig-colour__theme { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; }
-.sb-emailsig-brand-pop .sb-tweaks-colour__swatch { flex: 0 0 36px; width: 36px; padding: 2px; }
-.sb-emailsig-brand-pop .sb-emailsig-colour .sb-tweaks-colour__value { flex: 1 1 auto; min-width: 0; width: auto; }
-.sb-emailsig-brand-pop .sb-emailsig-colour.is-unknown .sb-tweaks-colour__value { border-color: var(--sbui-danger, #d0331a); }
 .sb-emailsig-brand-pop__msg { grid-column: 1 / -1; margin: 0; min-height: 0; font-size: 13px; }
 .sb-emailsig-brand-pop__msg.is-error { color: var(--sbui-danger, #d0331a); font-weight: 600; }
 @media (max-width: 600px) { .sb-emailsig-brand-pop { grid-template-columns: 1fr; } }
@@ -1362,7 +1324,6 @@ body .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-person__who a.sb-em
 .sb-emailsig-off-body { opacity: .5; }
 .sb-emailsig-company__end { flex: none; display: flex; align-items: center; gap: 10px; }
 .sb-emailsig-company.is-off .sb-emailsig-company__who,
-.sb-emailsig-company.is-off .sb-emailsig-company__brand,
 .sb-emailsig-company.is-off .sb-emailsig-company__details,
 .sb-emailsig-company.is-off .sb-emailsig-template__stats,
 .sb-emailsig-company.is-off .sb-emailsig-template__note { opacity: .5; }
@@ -1487,3 +1448,29 @@ body .sb-tweaks-wrap .sb-emailsig-company-group .sb-emailsig-person__who a.sb-em
 .sb-icon-menu__opt.is-current { background: var(--sbui-green-soft, #f0f6fc); font-weight: 600; }
 .sb-icon-menu__opt span { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-icon-menu__empty { margin: 6px; color: var(--sbui-text-3, #787c82); font-size: 12px; }
+
+/* Templates page: each card's name, description, Default for and Available for, stats and footer line up across a row (Sam, 3 November 2026), as the company cards do. */
+.sb-emailsig-templates > .sb-emailsig-template { display: grid; grid-row: span 5; grid-template-columns: minmax(0, 1fr); grid-template-rows: subgrid; row-gap: 12px; min-width: 0; }
+.sb-emailsig-templates > .sb-emailsig-template > .sb-emailsig-template__stats { align-self: end; }
+
+/* Templates page, Used by: cards that don't match, hidden (templates.js). */
+.sb-emailsig-templates > .sb-emailsig-template.is-filtered { display: none; }
+[data-sb-emailsig-used-none][hidden] { display: none; }
+
+/* Company card: the Default Template's name opens its templates popup (brand.js, Sam, 3 November 2026). */
+.sb-emailsig-tpl-link { margin: 0; padding: 0; border: 0; background: none; color: var(--sbui-green-ink, #2271b1); font: inherit; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.sb-emailsig-tpl-link:hover, .sb-emailsig-tpl-link:focus-visible { text-decoration-style: solid; }
+.sb-emailsig-tpl-pop { display: grid; gap: 16px; }
+.sb-emailsig-tpl-pop .sb-tweaks-dialog__field { margin: 0; }
+.sb-emailsig-tpl-pop select { width: 100%; max-width: none; }
+.sb-emailsig-tpl-pop .description { margin: 6px 0 0; color: var(--sbui-text-3, #787c82); font-size: 12px; font-weight: 400; }
+.sb-emailsig-tpl-pop__list { display: grid; gap: 10px; margin-top: 2px; }
+.sb-emailsig-tpl-pop__item { display: flex; align-items: center; gap: 8px; font-weight: 400; cursor: pointer; }
+.sb-emailsig-tpl-pop__item.is-locked { opacity: 0.55; cursor: not-allowed; }
+.sb-emailsig-tpl-pop__item.is-locked input { pointer-events: none; }
+
+/* Export People popup (people-export.js, Sam, 3 November 2026): a framework checklist, one column. */
+.sb-emailsig-people-pick { margin: 4px 0 0; }
+.sb-emailsig-people-pick__name { color: var(--sbui-text, #16171d); }
+.sb-emailsig-people-pick__role { overflow: hidden; color: var(--sbui-text-3, #787c82); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.sb-emailsig-people-pick__tag { flex: none; margin-left: auto; padding: 0 8px; border: 1px solid var(--sbui-warn-line, #ffe17a); border-radius: 999px; background: var(--sbui-warn-soft, #fff7d6); color: var(--sbui-text-2, #50575e); font-size: 11px; line-height: 20px; }

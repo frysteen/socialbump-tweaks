@@ -33,8 +33,9 @@ endif;
 $sb_site_kit_admin_access_settings = [
 	'roles' => [
 		'type'    => 'multicheck',
-		'label'   => 'Block the admin for these roles',
-		'options' => 'sb_site_kit_admin_access_roles',
+		'label'      => 'Block the admin for these roles',
+		'options'    => 'sb_site_kit_admin_access_roles',
+		'select_all' => 'text',
 		'default' => [],
 	],
 ];

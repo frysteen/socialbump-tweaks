@@ -18,6 +18,19 @@
  *   job.finish( 'Publishing complete' );         // report and Close
  *   job.fail( 'GitHub could not be reached' );   // stop, bar red, Close
  *
+ * A job that runs on the server in one request (Publish, say) can still show
+ * where it is up to (Sam, 3 November 2026). The page makes a run id, sends it
+ * with the job as sb_tweaks_run, and watches it; the job reports with
+ * SB_Tweaks_Progress::set() as it goes, and the bar follows:
+ *
+ *   var run = SBTweaksProgress.id();
+ *   job.watch( { ajax: ajaxurl, nonce: nonce, run: run } ); // asks every 0.7s
+ *   job.progress( 40, 'Uploading', 'File: a.php', 55, 3 );   // what watch() does
+ *
+ * progress( percent, status, current, to, eta ) puts the bar at percent and
+ * lets it creep on to to over eta seconds while the step runs, never past it
+ * and never back. Watching stops by itself at finish() or fail().
+ *
  * busy() is for one step with no telling how long it will take, such as
  * Publish release: a spinner turns in place of the bar until step(),
  * finish() or fail().
@@ -118,6 +131,8 @@
 		var failed   = 0;
 		var stopping = false;
 		var stopper  = null;
+		var watching = null;
+		var watched  = false;
 		var timer   = part( 'timer' );
 		var ticking = window.setInterval( function () {
 			timer.textContent = clock( Math.floor( ( Date.now() - started ) / 1000 ) );
@@ -171,6 +186,24 @@
 				}
 			} );
 
+			// No more asking the server, and the bar stays where it is on screen
+			// (it may have been creeping on towards the end of a step).
+			if ( watching !== null ) {
+				window.clearTimeout( watching );
+				watching = null;
+			}
+
+			var bar   = part( 'bar' );
+			var track = part( 'track' ).getBoundingClientRect().width;
+
+			if ( track ) {
+				bar.style.transition = 'none';
+				bar.style.width = ( bar.getBoundingClientRect().width / track * 100 ) + '%';
+				void bar.offsetWidth;
+			}
+
+			bar.style.transition = '';
+
 			panel.classList.remove( 'is-busy' );
 			window.clearInterval( ticking );
 			timer.textContent = clock( Math.floor( ( Date.now() - started ) / 1000 ) );
@@ -197,7 +230,7 @@
 			button.focus();
 		}
 
-		return {
+		var api = {
 			/** True once Stop has been pressed: start nothing more, and finish(). */
 			stopping: function () {
 				return stopping;
@@ -220,6 +253,83 @@
 				if ( current !== undefined ) {
 					labelled( part( 'current' ), current );
 				}
+			},
+
+			/**
+			 * Put the bar at percent, with the bold status line and the grey
+			 * current line (either can be left out). With to and eta the bar creeps
+			 * on to to over eta seconds while the step runs, never past it. It
+			 * never goes back.
+			 */
+			progress: function ( percent, status, current, to, eta ) {
+				var bar  = part( 'bar' );
+				var from = Math.max( parseFloat( bar.style.width ) || 0, Math.min( 100, Number( percent ) || 0 ) );
+
+				panel.classList.remove( 'is-busy' );
+				bar.style.transition = 'none';
+				bar.style.width = from + '%';
+				void bar.offsetWidth;
+
+				if ( Number( to ) > from && Number( eta ) > 0 ) {
+					bar.style.transition = 'width ' + Number( eta ) + 's linear';
+					bar.style.width = Math.min( 100, Number( to ) ) + '%';
+				} else {
+					bar.style.transition = '';
+				}
+
+				if ( status !== undefined && status !== null ) {
+					part( 'count' ).textContent = status;
+				}
+
+				if ( current !== undefined && current !== null ) {
+					labelled( part( 'current' ), current );
+				}
+			},
+
+			/**
+			 * Follow a job on the server (SB_Tweaks_Progress): ask o.ajax every
+			 * o.every milliseconds (700) what run o.run last said, and show it
+			 * with progress(). o.nonce is SB_Tweaks_Progress::client()'s.
+			 */
+			watch: function ( o ) {
+				var seen = '';
+
+				if ( ! o || ! o.ajax || ! o.run || ! window.fetch || ! window.FormData ) {
+					return;
+				}
+
+				function ask() {
+					var body = new FormData();
+
+					body.append( 'action', o.action || 'sb_tweaks_progress' );
+					body.append( 'nonce', o.nonce || '' );
+					body.append( 'run', o.run );
+
+					window.fetch( o.ajax, { method: 'POST', body: body, credentials: 'same-origin' } )
+						.then( function ( response ) {
+							return response.json();
+						} )
+						.then( function ( res ) {
+							var d   = res && res.success ? res.data : null;
+							var key = d ? [ d.at, d.status, d.current ].join( '|' ) : '';
+
+							if ( watching === null || ! d || key === seen ) {
+								return;
+							}
+
+							seen = key;
+							api.progress( d.from, d.status, d.current, d.to, d.eta );
+						} )
+						.catch( function () {} )
+						.then( function () {
+							if ( watching !== null ) {
+								watching = window.setTimeout( ask, o.every || 700 );
+							}
+						} );
+				}
+
+				watched  = true;
+				watching = window.setTimeout( ask, 300 );
 			},
 
 			/** Replace the bold status line. */
@@ -275,8 +385,9 @@
 					report.appendChild( list );
 				}
 
-				// Stopped short: the bar stays where it got to.
-				var cut = stopping && part( 'bar' ).style.width !== '100%';
+				// Stopped short, or a job on the server (watch()) that failed part way:
+				// the bar stays where it got to.
+				var cut = ( stopping || ( watched && failed > 0 ) ) && part( 'bar' ).style.width !== '100%';
 
 				if ( ! cut ) {
 					part( 'bar' ).style.width = '100%';
@@ -303,7 +414,14 @@
 				close_button( then );
 			}
 		};
+
+		return api;
 	}
 
-	window.SBTweaksProgress = { open: open };
+	/** A run id for watch(): letters and numbers, different every time. */
+	function id() {
+		return Date.now().toString( 36 ) + Math.random().toString( 36 ).slice( 2, 10 );
+	}
+
+	window.SBTweaksProgress = { open: open, id: id };
 }() );

@@ -43,9 +43,12 @@ class SB_Site_Kit_Acf_Svg_Icons {
 		$css    = '';
 		$colour = SB_Tweaks_Fields::sanitize_css_colour( (string) SB_Site_Kit::setting( 'fix-acf-cpt-svg-icons', 'colour' ) );
 
-		// A variable with no fallback falls back to the menu colour, so the icon never disappears.
+		// The admin doesn't load the site's colour variables, so a variable gets
+		// its hex as the fallback (SB_Tweaks_Colours), or the menu colour when
+		// the site doesn't define it, so the icon never disappears.
 		if ( preg_match( '/^var\(\s*(--[A-Za-z0-9_-]+)\s*\)$/', $colour, $var ) ) {
-			$colour = 'var(' . $var[1] . ', currentColor)';
+			$hex    = class_exists( 'SB_Tweaks_Colours' ) ? SB_Tweaks_Colours::hex( $colour ) : '';
+			$colour = 'var(' . $var[1] . ', ' . ( $hex !== '' ? $hex : 'currentColor' ) . ')';
 		}
 
 		foreach ( self::acf_post_types() as $name ) {

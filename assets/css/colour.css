@@ -1,0 +1,174 @@
+/**
+ * The colour field (assets/js/colour.js, SB_Tweaks_Fields::colour()): one
+ * component for every colour picker in SocialBUMP Tweaks, styled only here.
+ *
+ * The wrapper holds the size: one row that never wraps, as wide as where it
+ * sits up to 250px (Sam, 3 November 2026), never narrower than its min-width. The swatch and the Theme colours
+ * button keep their size and the box takes what's left, so nothing sets the
+ * box's width. Other rules that size inputs leave these alone with
+ * :not(.sb-tweaks-colour > *).
+ *
+ * The SocialBUMP UI tokens (--sbui-*) are used where the page has them, with
+ * plain fallbacks where it doesn't.
+ */
+
+.sb-tweaks-colour {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 8px;
+	box-sizing: border-box;
+	min-width: 200px;
+	max-width: 250px;
+}
+
+.sb-tweaks-colour__swatch,
+.sb-tweaks-colour__theme {
+	flex: none;
+	box-sizing: border-box;
+	width: 36px;
+	height: 36px;
+	margin: 0;
+	border: 1px solid var(--sbui-border-strong, #8c8f94);
+	border-radius: var(--sbui-r, 4px);
+	background: var(--sbui-surface, #fff);
+	cursor: pointer;
+}
+
+.sb-tweaks-colour__swatch {
+	padding: 3px;
+}
+
+.sb-tweaks-colour__swatch::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.sb-tweaks-colour__swatch::-webkit-color-swatch {
+	border: 0;
+	border-radius: 4px;
+}
+
+.sb-tweaks-colour__swatch::-moz-color-swatch {
+	border: 0;
+	border-radius: 4px;
+}
+
+.sb-tweaks-colour__value {
+	flex: 1 1 auto;
+	box-sizing: border-box;
+	width: auto;
+	min-width: 0;
+	height: 36px;
+	min-height: 36px;
+	margin: 0;
+}
+
+/* No colour of its own: the swatch shows what a blank one comes out as. */
+.sb-tweaks-colour.is-inherited .sb-tweaks-colour__swatch {
+	border-style: dashed;
+	opacity: 0.6;
+}
+
+/* A value nothing can work out. */
+.sb-tweaks-colour.is-unknown .sb-tweaks-colour__value {
+	border-color: var(--sbui-danger, #d0331a);
+}
+
+/* The Theme colours button */
+.sb-tweaks-colour__theme {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	color: var(--sbui-text-2, #50575e);
+}
+
+.sb-tweaks-colour__theme[hidden] {
+	display: none;
+}
+
+.sb-tweaks-colour__theme:hover,
+.sb-tweaks-colour__theme[aria-expanded="true"] {
+	border-color: var(--sbui-green-ink, #2271b1);
+	color: var(--sbui-green-ink, #2271b1);
+}
+
+.sb-tweaks-colour__theme .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+}
+
+/* Its menu, on the page's body under the button */
+.sb-tweaks-palette {
+	position: absolute;
+	z-index: 100001;
+	box-sizing: border-box;
+	width: 260px;
+	max-height: 320px;
+	overflow-y: auto;
+	padding: 6px;
+	border: 1px solid var(--sbui-border, #c3c4c7);
+	border-radius: var(--sbui-r-lg, 6px);
+	background: var(--sbui-surface, #fff);
+	box-shadow: var(--sbui-shadow-2, 0 6px 24px rgba(0, 0, 0, 0.15));
+	font-family: var(--sbui-font, inherit);
+}
+
+.sb-tweaks-palette__head {
+	padding: 8px 6px 3px;
+	overflow: hidden;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--sbui-text-3, #787c82);
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.sb-tweaks-palette__head:first-child {
+	padding-top: 2px;
+}
+
+.sb-tweaks-palette button {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 5px 6px;
+	border: 0;
+	border-radius: var(--sbui-r-sm, 4px);
+	background: none;
+	text-align: left;
+	font-family: inherit;
+	font-size: var(--sbui-size, 12px);
+	color: var(--sbui-text, #1d2327);
+	cursor: pointer;
+}
+
+.sb-tweaks-palette button:hover,
+.sb-tweaks-palette button:focus {
+	background: var(--sbui-surface-3, #f0f0f1);
+	outline: none;
+}
+
+.sb-tweaks-palette i {
+	flex: 0 0 18px;
+	height: 18px;
+	border-radius: 3px;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.sb-tweaks-palette span {
+	flex: 1 1 auto;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.sb-tweaks-palette code {
+	padding: 0;
+	background: none;
+	font-family: var(--sbui-mono, monospace);
+	font-size: 11px;
+	color: var(--sbui-text-3, #787c82);
+}

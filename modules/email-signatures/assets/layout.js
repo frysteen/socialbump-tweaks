@@ -1127,9 +1127,9 @@
 				if (texts[it.key] && company) $li.append($('<small class="sb-emailsig-layout__text"></small>').text(texts[it.key]));
 				// Person Email falls back to the company's, linked to where it's set (Sam, 1 November 2026).
 				if (it.key === 'email') {
-					// The previewed person's company (the Preview as menu), else the default one.
+					// The previewed person's company (the Preview as menu), else the first company.
 					var $who = $('.sb-emailsig-editor__person option:selected');
-					var co = parseInt($who.attr('data-company'), 10) || cfg.defaultCompany || 0;
+					var co = parseInt($who.attr('data-company'), 10) || cfg.firstCompany || 0;
 					var $mail = cfg.companyEmail && co ? $('<a target="_blank" rel="noopener"></a>').attr('href', cfg.companyEmail + '&company=' + co).text('Company Email') : $('<span></span>').text('Company Email');
 					$li.append($('<small class="sb-emailsig-layout__text"></small>').append('Uses default ', $mail, ' (if available) if person email not set.'));
 				}
@@ -1512,84 +1512,26 @@
 	 * ------------------------------------------------------------------ */
 
 	var palette = cfg.palette || [];
-	var $menu = null;
-	var menuFor = null;
 
 	/** A saved colour as hex, the way the server works it out, or ''. */
 	function hex(v) {
-		v = colour(v);
-		if (/^#[0-9a-f]{6}$/.test(v)) return v;
-		if (/^#[0-9a-f]{3}$/.test(v)) return '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
-		if ((cfg.colours || {})[v]) return cfg.colours[v];
-		var b = /^var\(--sb-brand-([a-z-]+)\)$/.exec(v);
-		if (b) return (cfg.brand || {})[b[1].replace(/-/g, '_')] || '';
-		for (var i = 0; i < palette.length; i++) {
-			if (palette[i].value === v) return palette[i].hex;
-		}
-		return '';
+		return SBTweaksColour.lookup(colour(v), { colours: cfg.colours, brand: cfg.brand, palette: palette });
 	}
-
-	function closeMenu() {
-		if ($menu) $menu.remove();
-		$menu = null;
-		if (menuFor) menuFor.setAttribute('aria-expanded', 'false');
-		menuFor = null;
-	}
-
-	function openMenu(button, $text) {
-		var rect = button.getBoundingClientRect();
-		closeMenu();
-		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
-		palette.forEach(function (c, i) {
-			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) $('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
-			$('<button type="button" role="option"></button>')
-				.append($('<i></i>').css('background', c.hex), $('<span></span>').text(c.name), $('<code></code>').text(c.hex))
-				.on('click', function () {
-					$text.val(c.value).trigger('input');
-					closeMenu();
-					$text.trigger('focus');
-				})
-				.appendTo($menu);
-		});
-		$menu.appendTo(document.body).css({
-			top: rect.bottom + window.scrollY + 4,
-			left: Math.max(8, Math.min(rect.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - 268))
-		});
-		menuFor = button;
-		button.setAttribute('aria-expanded', 'true');
-	}
-
-	$(document).on('mousedown', function (e) {
-		if ($menu && !$(e.target).closest('.sb-emailsig-palette, .sb-emailsig-colour__theme').length) closeMenu();
-	});
-	$(window).on('resize scroll', closeMenu);
 
 	/**
-	 * A colour: the swatch (showing what a blank one falls back to, dashed),
-	 * the value (a hex, theme or brand colour) and the theme colours menu.
-	 * $fallback is the hex a blank one shows as ('' for none).
+	 * A colour: the framework's colour field (SBTweaksColour), with this
+	 * page's menu and lookup. $fallback is the hex a blank one shows, dashed
+	 * ('' for none).
 	 */
 	function colourField(label, value, empty, fallback, set) {
-		var $wrap = $('<span class="sb-tweaks-colour sb-emailsig-colour"></span>');
-		var $swatch = $('<input type="color" class="sb-tweaks-colour__swatch">').attr('aria-label', label);
-		var $text = $('<input type="text" class="sb-tweaks-colour__value code" spellcheck="false" autocomplete="off">').attr('placeholder', empty).val(value || '');
-		var $theme = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>');
-		var paint = function () {
-			var own = hex($text.val());
-			$wrap.toggleClass('is-inherited', !own);
-			$swatch.val(own || fallback || '#ffffff');
-		};
-		$swatch.on('input', function () { $text.val(this.value).trigger('input'); });
-		$text.on('input', paint);
-		$theme.on('click', function (e) {
-			e.preventDefault();
-			if (menuFor === this) closeMenu(); else openMenu(this, $text);
+		var wrap = SBTweaksColour.field({ label: label, value: value || '', placeholder: empty, className: 'sb-emailsig-colour' }, {
+			palette: function () { return palette; },
+			hex: hex,
+			fallback: fallback || ''
 		});
-		if (!palette.length) $theme.prop('hidden', true);
-		live($text, set);
-		paint();
+		live($(wrap).find('.sb-tweaks-colour__value'), set);
 		// A div, not a label: a label would open the swatch's picker on any click.
-		return $('<div class="sb-emailsig-field sb-emailsig-field--colour"></div>').append($('<span class="sb-emailsig-field__label"></span>').text(label), $wrap.append($swatch, $text, $theme));
+		return $('<div class="sb-emailsig-field sb-emailsig-field--colour"></div>').append($('<span class="sb-emailsig-field__label"></span>').text(label), wrap);
 	}
 
 	/** A step field on a card: the layout follows as it changes. */
@@ -1770,7 +1712,16 @@
 		return $input;
 	}
 
+	/**
+	 * Redraw the layout card and the Container and Footer cards, each held at
+	 * its height meanwhile, so the page doesn't jump in Safari (SBTweaksUI.redraw).
+	 */
 	function render() {
+		var parts = [root, document.querySelector('[data-sb-emailsig-layout-box]'), document.querySelector('[data-sb-emailsig-layout-footer]')];
+		return window.SBTweaksUI && window.SBTweaksUI.redraw ? window.SBTweaksUI.redraw(parts, draw) : draw();
+	}
+
+	function draw() {
 		sortables.forEach(function (s) { s.destroy(); });
 		sortables = [];
 
@@ -2134,28 +2085,18 @@
 		return '';
 	}
 
-	/** Swatch and theme colours for a colour field PHP drew. */
+	/** A colour field PHP drew: the framework's, with this page's menu, lookup and fallbacks. */
 	function enhanceColour(wrap) {
-		var $wrap = $(wrap);
-		var $swatch = $wrap.find('.sb-tweaks-colour__swatch');
-		var $text = $wrap.find('.sb-tweaks-colour__value');
-		var $theme = $wrap.find('.sb-emailsig-colour__theme');
-		$swatch.on('input', function () { $text.val(this.value).trigger('input').trigger('change'); });
-		if (palette.length) {
-			$theme.prop('hidden', false).on('click', function (e) {
-				e.preventDefault();
-				if (menuFor === this) closeMenu(); else openMenu(this, $text);
-			});
-		}
+		SBTweaksColour.attach(wrap, {
+			palette: function () { return palette; },
+			hex: hex,
+			fallback: function (f) { return fallbackHex(f.wrap.getAttribute('data-fallback')); }
+		});
 	}
 
 	function paintSettings() {
-		$('[data-sb-emailsig-layout-settings-card] .sb-emailsig-colour').each(function () {
-			var $wrap = $(this);
-			var own = hex($wrap.find('.sb-tweaks-colour__value').val());
-			$wrap.toggleClass('is-inherited', !own);
-			$wrap.find('.sb-tweaks-colour__swatch').val(own || fallbackHex($wrap.attr('data-fallback')) || '#ffffff');
-		});
+		var card = document.querySelector('[data-sb-emailsig-layout-settings-card]');
+		if (card) SBTweaksColour.paint(card);
 	}
 
 	/** The layout's defaults as the design has them. */
@@ -2178,7 +2119,13 @@
 		$card.toggleClass('is-edited', edited).find('.sb-emailsig-card-reset').prop('disabled', !edited);
 	}
 
+	/** Layout Settings' own defaults row, held at its height while it's rebuilt. */
 	function drawDefaults() {
+		var box = document.querySelector('[data-sb-emailsig-layout-settings]');
+		return window.SBTweaksUI && window.SBTweaksUI.redraw ? window.SBTweaksUI.redraw(box, fillDefaults) : fillDefaults();
+	}
+
+	function fillDefaults() {
 		var $box = $('[data-sb-emailsig-layout-settings]').empty();
 		// Every space, line and style left at Default follows these; a change
 		// redraws, so the px shown beside each step stay right.
@@ -2966,7 +2913,7 @@
 			clearTimeout(timer);
 			shownCompany = personCompany();
 			useCompany(shownCompany);
-			closeMenu();
+			SBTweaksColour.close();
 			if (typeof paintSettings === 'function') paintSettings();
 			cfg.lines = linesHex();
 			render();

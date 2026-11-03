@@ -200,7 +200,7 @@ class SB_EmailSig_Page {
 		$everyone = ! $co;
 		$company  = $everyone ? '' : SB_EmailSig_Company::name( $co );
 		$link     = self::list_url( $co );
-		$tpl      = SB_EmailSig_Templates::get( SB_EmailSig_Templates::main_for( $co ? $co : SB_EmailSig_Company::default_id() ) );
+		$tpl      = SB_EmailSig_Templates::get( SB_EmailSig_Templates::main_for( $co ? $co : SB_EmailSig_Company::first_id() ) );
 		$teal     = $tpl ? SB_EmailSig_Styles::resolve( $tpl )['primary'] : '#2271b1';
 		$title    = $everyone ? 'Email signatures for every company' : 'Email signatures' . ( $company ? ' for ' . $company : '' );
 

@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SB_EmailSig_Company {
 
 	const CPT            = 'sb_emailsig_company';
-	const DEFAULT_OPTION = 'sb_emailsig_default_company';
+	const LEGACY_OPTION  = 'sb_emailsig_default_company'; // The company Settings became: legacy_id().
 	const PERSON_META    = 'sb_emailsig_company';
 	const MIGRATED       = 'sb_emailsig_companies_v1';
 	const TEAM_KEY       = 'sb_emailsig_team_key';
@@ -86,26 +86,27 @@ class SB_EmailSig_Company {
 		add_action( 'init', array( __CLASS__, 'migrate' ), 30 );
 		add_action( 'acf/save_post', array( __CLASS__, 'saved' ), 20 );
 		add_action( 'before_delete_post', array( __CLASS__, 'deleting' ) );
+		add_action( 'save_post_' . self::CPT, array( __CLASS__, 'forget' ) );
 		// Nobody without a company (Sam, 31 October 2026): with one company
 		// its field isn't shown, so a person can't be put in it by hand.
 		add_action( 'save_post_' . SB_EMAILSIG_CPT, array( __CLASS__, 'adopt_one' ), 30 );
 		add_action( 'admin_init', array( __CLASS__, 'adopt_all' ) );
 	}
 
-	/** A person saved with no company, or one that's gone: they join the default company. */
+	/** A person saved with no company, or one that's gone: they join the first company (first_id()). */
 	public static function adopt_one( $post_id ) {
 		if ( wp_is_post_revision( $post_id ) || get_post_status( $post_id ) === 'auto-draft' || self::valid( get_post_meta( (int) $post_id, self::PERSON_META, true ) ) ) {
 			return;
 		}
 
-		$def = self::default_id();
+		$def = self::first_id();
 
 		if ( $def ) {
 			update_post_meta( (int) $post_id, self::PERSON_META, $def );
 		}
 	}
 
-	/** Anyone left without a company (added before there were companies, say) joins the default one; checked twice a day. */
+	/** Anyone left without a company (added before there were companies, say) joins the first company; checked twice a day. */
 	public static function adopt_all() {
 		if ( get_transient( 'sb_emailsig_adopted' ) || ! get_option( self::MIGRATED ) ) {
 			return;
@@ -165,24 +166,71 @@ class SB_EmailSig_Company {
 		return $id > 0 && get_post_type( $id ) === self::CPT && get_post_status( $id ) === 'publish';
 	}
 
-	/** The first company (the one Settings became), or the first there is, or 0 for none. */
-	public static function default_id() {
-		$id = (int) get_option( self::DEFAULT_OPTION, 0 );
+	/** first_id()'s answer for this request; forget() clears it. */
+	private static $first = null;
 
-		if ( self::valid( $id ) ) {
-			return $id;
+	/**
+	 * The company to fall back on where one is needed and none is set (a
+	 * person saved without one, a page drawn outside any company): the oldest
+	 * there is, but $except, or 0 for none. No company is special (Sam,
+	 * 3 November 2026): any can be deleted while there's another.
+	 */
+	public static function first_id( $except = 0 ) {
+		$except = (int) $except;
+
+		if ( ! $except && null !== self::$first ) {
+			return self::$first;
 		}
 
-		$all = self::all();
+		$args = array(
+			'post_type'        => self::CPT,
+			'post_status'      => 'publish',
+			'posts_per_page'   => 1,
+			'orderby'          => array(
+				'date' => 'ASC',
+				'ID'   => 'ASC',
+			),
+			'fields'           => 'ids',
+			'no_found_rows'    => true,
+			'suppress_filters' => true,
+		);
 
-		return $all ? $all[0] : 0;
+		if ( $except ) {
+			$args['post__not_in'] = array( $except );
+		}
+
+		$ids = get_posts( $args );
+		$id  = $ids ? (int) $ids[0] : 0;
+
+		if ( ! $except ) {
+			self::$first = $id;
+		}
+
+		return $id;
 	}
 
-	/** A person's company: theirs (or the one force() gives them), else the default. */
+	/** A company added or deleted: first_id() asks again. */
+	public static function forget() {
+		self::$first = null;
+	}
+
+	/**
+	 * The company Settings became (migrate()) while it's still here, else 0.
+	 * Only for addresses made before there were companies, so they keep
+	 * working: its icons' slots without a company (SB_EmailSig_Icons::slot())
+	 * and its banner image at ?{QUERY}=1 (SB_EmailSig_Campaign).
+	 */
+	public static function legacy_id() {
+		$id = (int) get_option( self::LEGACY_OPTION, 0 );
+
+		return self::valid( $id ) ? $id : 0;
+	}
+
+	/** A person's company: theirs (or the one force() gives them), else the first company. */
 	public static function of_person( $post_id ) {
 		$id = $post_id ? ( self::$force[ (int) $post_id ] ?? (int) get_post_meta( (int) $post_id, self::PERSON_META, true ) ) : 0;
 
-		return self::valid( $id ) ? $id : self::default_id();
+		return self::valid( $id ) ? $id : self::first_id();
 	}
 
 	/** A company's name. */
@@ -259,11 +307,11 @@ class SB_EmailSig_Company {
 		}
 	}
 
-	/** The company being drawn: the innermost entered, else the default (0 for none). */
+	/** The company being drawn: the innermost entered, else the first company (0 for none). */
 	public static function current() {
 		$id = self::$stack ? (int) end( self::$stack ) : 0;
 
-		return self::valid( $id ) ? $id : self::default_id();
+		return self::valid( $id ) ? $id : self::first_id();
 	}
 
 	/** A company's Email when it is a real address, else ''. Null for the company being drawn. */
@@ -304,14 +352,31 @@ class SB_EmailSig_Company {
 		}
 	}
 
-	/** A company deleted for good: its people (deleted ones too) move to the default company. */
+	/**
+	 * A company deleted for good: its people (deleted ones too) move to the
+	 * first company left, unless Delete has moved them already, to the one
+	 * picked (SB_EmailSig_Companies::delete()). Deleting the company Settings
+	 * became ends its addresses from before companies (legacy_id()).
+	 */
 	public static function deleting( $post_id ) {
 		if ( get_post_type( $post_id ) !== self::CPT ) {
 			return;
 		}
 
+		self::forget();
+
+		$to = self::first_id( (int) $post_id );
+
+		if ( (int) get_option( self::LEGACY_OPTION, 0 ) === (int) $post_id ) {
+			delete_option( self::LEGACY_OPTION );
+		}
+
 		foreach ( get_posts( array( 'post_type' => SB_EMAILSIG_CPT, 'post_status' => self::STATUSES, 'posts_per_page' => -1, 'fields' => 'ids', 'meta_key' => self::PERSON_META, 'meta_value' => (int) $post_id ) ) as $person ) { // phpcs:ignore WordPress.DB.SlowDBQuery
-			delete_post_meta( $person, self::PERSON_META );
+			if ( $to ) {
+				update_post_meta( $person, self::PERSON_META, $to );
+			} else {
+				delete_post_meta( $person, self::PERSON_META );
+			}
 		}
 	}
 
@@ -339,7 +404,7 @@ class SB_EmailSig_Company {
 		}
 		set_transient( 'sb_emailsig_company_lock', 1, 60 );
 
-		$id = self::default_id();
+		$id = self::first_id();
 
 		if ( ! $id ) {
 			$name = trim( (string) get_option( 'options_sb_emailsig_company_name', '' ) );
@@ -396,7 +461,7 @@ class SB_EmailSig_Company {
 			update_post_meta( $id, '_' . SB_EmailSig_Templates::COMPANY_SET, 'field_sb_emailsig_templates' );
 		}
 
-		update_option( self::DEFAULT_OPTION, (int) $id, true );
+		update_option( self::LEGACY_OPTION, (int) $id, true );
 
 		// Everyone without a company joins it.
 		foreach ( get_posts( array( 'post_type' => SB_EMAILSIG_CPT, 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ) ) as $person ) {

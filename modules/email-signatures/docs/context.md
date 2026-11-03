@@ -88,8 +88,8 @@ can publish, beside the People count pill: see Limits set from the hub),
 which opens the person page. Then the cards straight on the page, in their
 sections, no panel round them. A card per person has the
 photo (56px), name, job title and Active switch along the top, then
-Preview (primary) and icon buttons for Edit, Copy link, Open link and
-Email link (send_button(), an icon always). Its popup has an Email dropdown, New Signature or Updated Signature (Notify::KINDS), starting on Updated for someone sent their link before; each keeps its own edits while the popup is open, and the kind picked is posted and logged (Sam, 31 October 2026).
+Preview (primary) and icon buttons for Edit, Copy link and Open link, then
+the Actions menu (see Actions menu and Move). Email signature link there opens a popup with an Email dropdown, New Signature or Updated Signature (Notify::KINDS), starting on Updated for someone sent their link before; each keeps its own edits while the popup is open, and the kind picked is posted and logged (Sam, 31 October 2026).
 Every icon button has a framework tooltip (data-sb-tip), not a title; Copy
 link's tooltip says Copied for a moment (copy.js).
 There is no Copy signature on this page any more (Sam): the person copies
@@ -207,8 +207,10 @@ Settings.
 
 - Every person has a company: post meta sb_emailsig_company (the person
   field field_sb_emailsig_person_company, shown only with more than one
-  company). None, or one deleted, means the default company
-  (option sb_emailsig_default_company: the one Settings became).
+  company). None, or one deleted, means the first company
+  (Company::first_id()). There's no default company since 3 November 2026
+  (see No default company); option sb_emailsig_default_company only names
+  the company Settings became (legacy_id()), for old addresses.
 - The company being drawn is a context, a stack: Company::enter(), leave(),
   with( $id, $fn ), current(). Data::get() runs build() inside the person's
   company and puts company_id in the data; Render::html_from_data() enters
@@ -223,17 +225,18 @@ Settings.
   the rest of the set as tabs (see Templates, Who uses which).
   Templates::delete() refuses any company's main, and takes the template
   out of every set.
-- Icons are per company: Icons::slot() is the template id for the default
-  company (so nothing moved) and "{tpl}@c{company}" for others; mine()
-  falls back to the default slot. They are drawn by settings.js on a
+- Icons are per company: Icons::slot() is the template id for the company
+  Settings became (legacy_id(), so nothing moved) and "{tpl}@c{company}"
+  for others; mine() falls back to that slot. They are drawn by settings.js on a
   company's page, which SB_EmailSig_Settings::assets() loads in that
   company's context; Icons::settings_saved() only takes a company post
   saved from the Companies page. settings.js still loads on Settings (the
   Signature Emails tab's merge tags) and finds no Social Media rows there, so draws
-  nothing. Edit styles still draws icons with the default company's brand,
-  so another company's icons only refresh when that company is saved.
-- Campaign banners: the image address keeps ?{QUERY}=1 for the default
-  company and uses c{id} for others.
+  nothing. Edit styles draws icons with the first company's brand
+  (cfg.firstCompany, Company::first_id()), so another company's icons only
+  refresh when that company is saved.
+- Campaign banners: the image address keeps ?{QUERY}=1 for the company
+  Settings became (legacy_id()) and uses c{id} for others.
 - Migration (Company::migrate(), init 30, once: option
   sb_emailsig_companies_v1, a 60 second transient lock): a company from
   every options_sb_emailsig_* row that is a company field (Company::FIELDS,
@@ -347,6 +350,8 @@ Settings.
 - With HappyFiles (taxonomy `HAPPYFILES_TAXONOMY`, happyfiles_category), every crop goes in an "Email Signature Images" folder, made if missing (file(), on crop and on company save). Crops keep the site's own sizes too, so they can be used elsewhere (Sam, 31 October 2026).
 
 ### The default company check (31 October 2026)
+
+(History: there's no default company since 3 November 2026. current() with nothing entered now falls back to Company::first_id().)
 
 Anything reading company fields uses SB_EmailSig_Company::current(), which is the default company when nothing has entered one. Checked every caller:
 - Fixed: the person's photo (Photo::styles_for( $tpl, $person )); the Templates page's Main and Company set badges and its order, and the Main badge on Edit styles (Templates::companies_of(), every company's); the Emails tab's merge tag list, which showed the default company's Company Name and Website (with more than one company those are per person, no value shown).
@@ -2113,6 +2118,7 @@ Gmail, and an old pasted signature picking up a new photo by itself.
 
 Ideas talked about and not built. Nothing here is promised.
 
+- Export a company (Sam, 3 November 2026, on the to do list): its details, branding and template settings, with an option to take its people too, and an import to match. Not built. The old Export icon on company cards exported only its people, so it was removed.
 - Conditional logic for widgets (Sam, 1 November 2026, for after this
   release). Suggested order: a line whose merge tags all come out empty
   disappears; a divider option to hide when the widget below is empty;
@@ -2250,3 +2256,195 @@ What arrived when. The topic sections above say how each part works now.
 - Additional Buttons can each have their own colour.
 - New icons in a Downloads group: PDF, Download, File, Book and Video;
   LinkedIn is now the plain "in".
+
+## Theme colours moved to the framework (3 November 2026)
+
+SB_EmailSig_Styles::palette() now asks SB_Tweaks_Colours for the site's
+colours (the Bricks, Core Framework, Elementor and theme.json reading moved
+there, with core_framework() and cf_value()), then applies
+sb_emailsig/palette as before. to_hex() and rgb_hex() stay here. The list
+came out identical when checked. This module's menus and brand colours are
+unchanged.
+
+## Colour fields are the framework's (3 November 2026)
+
+Every colour field here is now the framework's one component
+(SB_Tweaks_Fields::colour() in PHP, SBTweaksColour in script; see the
+plugin's docs/context.md, The colour field). Edit styles (styles.js), Layout
+(layout.js), Brand colours (brand.js), Settings (settings.js) and the photo
+border (colour.js) only pass their options: the menu (the company's
+editor_palette()), their lookup through SBTweaksColour.lookup() (hex, theme
+and brand colours only) and what a blank one shows. Their own menus, hex
+functions and the .sb-emailsig-colour__theme and .sb-emailsig-palette CSS
+are gone; .sb-emailsig-colour stays on the wrapper for this module's
+widths. Picking a Brand Primary from its menu in the Brand colours popup now
+repaints a blank Accent straight away, which it didn't before.
+
+## Company cards: website moved down (3 November 2026)
+
+A long website under the name couldn't wrap, so it widened the card past
+its column and pushed the switch (and the templates pill) out of the card.
+Sam's fix: the brand colours sit under the name in the header, and the
+website is the first row of the details (link icon; Not set links to its
+field like the others). The card is four subgrid rows now (header, details,
+stats, actions), its one column minmax(0, 1fr) and min-width 0 so nothing
+inside can widen it again. The name wraps rather than cutting off, and the
+switch sits top right with Default under it, so a card about 300px wide
+still has room for the name and the colours. Checked in a browser with the
+live page's own stylesheets at four widths: nothing outside the card.
+
+## Add person per company, no Default badge, company bars always (3 November 2026)
+
+- The Default badge is gone from the company cards (Sam): the default
+  company can't be changed, and Sam doesn't want a way to change it. The
+  default still can't be deleted, as people with no company land there.
+- Add person for one company: SB_EmailSig_Admin::add_person_button( $co ),
+  an icon (person-add) in the company card's footer and in the company's
+  bar on the Signatures page, administrators only, greyed out with the
+  limit's message at the people limit. It opens
+  SB_EmailSig_Person::url( 0, $co ) (&company=); new_company() reads it
+  (a live company only), the page is drawn in that company, and
+  SB_EmailSig_Fields::company_value() picks it in the Company field.
+  Checked on the hub: SocialBUMP's button opens with SocialBUMP picked;
+  plain Add person still picks the default.
+- The Signatures page shows each company's bar (name, colours, counts,
+  links, Add person, Edit company, switch) even with only one company.
+
+## Import/Export page (3 November 2026)
+
+The people file (SB_EmailSig_Transfer) moved off the Signatures page's bar
+to its own page in the nav, Import/Export (group 'transfer', slug
+sb-email-signatures-transfer, features/signature-transfer), between
+Activity and Settings: one card with the Company menu (now labelled, more
+than one company only), Export and Import, working as before. Its
+redirects (page_url()) and the import preview go to this page, and list.js
+loads here for picking the file and Export's company. Template export and
+import stay on the Templates page. Sam wants this page to grow later
+(export companies, a company with its people, just people, where imported
+people go): not decided yet, so nothing built.
+
+### Import/Export, round two (3 November 2026)
+
+- The people file's card used the framework's .sb-tweaks-card__settings,
+  which only shows while a card's switch is on, so Company, Export and
+  Import were hidden. Both cards here use .sb-emailsig-transfer__body.
+- Template import moved here too: SB_EmailSig_Templates::render_import_card(),
+  the second card in the page's grid. A file that can't be used comes back
+  here (?template=badfile and the rest); one that works opens the new
+  template, as before. Template Export stays on each template's card.
+- Export on cards, administrators only: SB_EmailSig_Transfer::export_button().
+  A person's card (Signatures page, not the team page) exports just them
+  (&person=, email-signature-person-{name}-{date}.csv); a company's card
+  exports its people (&co=). Both are people files, so they import back
+  here. Exporting a company's own details is for later.
+
+## Templates page: Used by filters without a reload (3 November 2026)
+
+Like the Signatures page's Company filter (Sam): every template card is
+drawn, each with data-sb-emailsig-used-by (the ids of the companies it's
+the default for or available to), and templates.js hides the ones that
+don't match (.is-filtered), shows the empty message when none do, and
+keeps ?used= in the address with replaceState, so a reload or a shared
+link opens filtered the same (the server hides the same cards on load).
+Checked in a browser with the live page: the page stays put, and each
+company shows the right cards.
+
+## Template cards line up (3 November 2026)
+
+Like the company cards: each template card spans five rows of the grid
+(subgrid: name, description, Default for and Available for, stats,
+footer), so those line up across a row (Sam). The description is always
+drawn, empty when a template has none, so every card has the five rows.
+Checked in a browser with the live page: the lists, stats and footers
+start at the same height on every card.
+
+## Templates popup on company cards (3 November 2026)
+
+On a company's card, for administrators, the Default Template's name is a
+button (SB_EmailSig_Companies::templates_link(), data from templates_data())
+that opens a popup (brand.js): the Default Template menu at the top, the
+templates its people can pick as ticks below (Sam: not side by side). Same
+rules as the Company tab (settings.js): the default's tick is on, locked
+(aria-disabled, a click does nothing) with the tip "The Default Template,
+always available", and stays ticked when it stops being the default. Save
+posts wp_ajax_sb_emailsig_templates_save (brand_check(): the brand nonce,
+administrators), which takes a real template as the default, keeps only
+real templates, always includes the default, sets both ACF fields with
+update_field() and logs an edit. The card's name and its templates count
+follow without a reload. Tested: the popup in a browser with this
+brand.js, and the save on the hub (saving the current values left them
+as they were; a template that isn't one is refused).
+
+- Company card website icon (Sam, 3 November 2026): the Website row uses the globe icon (Admin::icon('globe'), added to the icon set), not the link icon. It's plain text with a tip, never a link.
+
+- Templates page follows other tabs (Sam, 3 November 2026): saving the templates popup on a company card (brand.js) sends email-signatures/templates through SBTweaksSync. An open Templates page (templates.js) refreshes .sb-emailsig-templates and [data-sb-emailsig-used-none] from the server, so Default for, Available for, card order, is-main and Delete all come out right, with the Used by filter kept. The Edit company form doesn't send it yet.
+
+- Export People (Sam, 3 November 2026):
+  - The company card's Export icon is gone: exporting a company is a different job (see Later).
+  - The company bars on the Signatures page: the order is under Company bar order, below. Export People is for administrators, in the admin only (Transfer::export_people_button()).
+  - Both People there and Export on the Import/Export card open one popup (assets/people-export.js, Transfer::enqueue_export()). It loads the company's people from sb_emailsig_people_list (name, job title, Inactive tag), everyone ticked, with Select all and Select none (framework.js on a .sb-tweaks-checklist--list), a count, then Cancel and Export. Export is off with nobody ticked. A company with no people shows a toast instead.
+  - Export posts sb_emailsig_people_export with co and people[] (a hidden form, so the page stays put); export() keeps only that company's own people. A person card's Export still uses the GET link with &person=.
+  - The Import/Export card is titled Export People (was People file). Its Company menu sets which company the Export button lists (people-export.js; list.js no longer touches it). Import is still on the card.
+  - The popup's list is SBTweaksFields.checklist() (framework.js), so Select all, Select none and the count are the framework's, not the module's (Sam, 3 November 2026).
+
+- No default company (Sam, 3 November 2026):
+  - No company is special. The Companies list is by name, and every card has Delete while there's more than one company; with one, none.
+  - Delete moves the company's people (deleted ones too) to another company: named in the question when there's one other, picked from a menu in the popup when there are more (data-sb-tweaks-confirm-choose). The notice says where they went. SB_EmailSig_Company::deleting() still moves anyone left, to the first company remaining.
+  - SB_EmailSig_Company::default_id() is gone. first_id( $except ) is only a fallback where a company is needed and none is set (a person with none, a page outside any company): the oldest there is. legacy_id() is the company Settings became, kept only for addresses from before companies: its icons' slots without @c (SB_EmailSig_Icons::slot(), SB_EmailSig_Switch) and its banner at ?sbbanner=1. Deleting that company deletes the option, so they end with it. A banner address for a company that's gone is a 404, not another company's banner.
+  - Limits keep the oldest companies on, with nobody first.
+  - The Add person icon is the same colour as the other icons again (Sam changed his mind); sb-emailsig-icon--add and its styles are gone.
+  - The Export People popup's Select all and Select none are text links (tools: 'text').
+
+- Deleting a company asks about its people (Sam, 3 November 2026): with any people (deleted ones included), the popup has "Its N people" with two options. **Move them to** another company (named when there's one other, a menu when there are more), which suits a rebrand or a merger, or **Delete them too**, which deletes them for good with their photos (wp_delete_post, so SB_EmailSig_Photo::on_delete and the rest run); the button then reads "Delete company and people". Posted as people=move|delete with move_to. With no people, no question. The notice says where they went or how many were deleted. Sam's way: a client who stops paying gets switched off, not deleted; deleting comes later. No "unlisted" holding company.
+
+### Redraws hold still (3 November 2026)
+
+- layout.js render() is a wrapper: it calls draw() through SBTweaksUI.redraw() with the layout root, [data-sb-emailsig-layout-box] and [data-sb-emailsig-layout-footer], so they keep their heights while they're rebuilt (Safari scrolled the page up otherwise). drawDefaults() does the same with fillDefaults() and [data-sb-emailsig-layout-settings]. New code that empties and rebuilds a part goes through SBTweaksUI.redraw() too.
+
+### Company bar order (3 November 2026)
+
+- company_head(): name and brand colours on the left; on the right the Active, Inactive and Deleted counts, a divider, Add person and the team page's links, a divider, Export People and Edit company, then the switch. Groups that aren't there (no icons for someone who doesn't manage) leave out their divider. Counts on the right so every company's bar lines up whatever the name's length.
+- The company card's swatches gap: `.sb-emailsig-company__who button.sb-emailsig-swatches.is-edit` is named alongside the plain selector, as the button's own `margin: 0` is more specific and was winning.
+- Swatches that open the brand colours popup (button.sb-emailsig-swatches.is-edit) always have a light grey outline (--sbui-border) that turns green on hover (--sbui-green), on the company cards and the company bars.
+
+### Duplicate a person (3 November 2026)
+
+- Duplicate is in the card's Actions menu (see Actions menu and Move), for administrators and editors, on the team page too. With more than one company the popup asks only which company the copy goes in (a menu, the person's own company first; data-sb-tweaks-confirm-choose). With one company it posts straight away.
+- Copied to a company that can't use the original's Linked to page (its team pages are another post type, or it has none: Staff::type( $to ) against the page's type), the fields that page fills in (Staff::TOKEN_FIELDS holding {tokens}) get the text they show now, read in the original's company, and the link isn't copied. Without that the copy kept {job_title} with nothing to fill it, so it showed Job title missing (Sam, 3 November 2026). Copies in a company that can use the link keep it, tokens and all.
+- SB_EmailSig_Person::duplicate() (admin_post_sb_emailsig_person_duplicate, nonce NONCE_duplicate_{id}) checks, then copy( $id, $to ) makes it: every post meta except the key (_sb_emailsig_key, made new so the copy has its own page address), the made photo images (_sb_emailsig_photos, _sb_emailsig_photo_jpg and the legacy _png, _hash, _circle: they're named by post id and deleted with their person, so sharing them would lose the original's), _sb_emailsig_sent, sb_emailsig_requested, edit locks and trash and slug leftovers. The photo attachment, crop and look are shared (deleting a person only deletes its own made images, not the attachment). Linked to (sb_emailsig_staff_page) comes across (Sam). Status draft (Inactive), "(copy)" after the last name, full name and title to match, company set to $to.
+- Logged as person.duplicated ("Duplicated {original} as {copy}"): SB_EmailSig_Log::$via = 'duplicate' stops transition() logging it as Added. Live updating draws the new card in other tabs from that row.
+- Back on the list with ?copied={id}: the card is highlighted and scrolled to (is-restored, list.js), and a toast says which company it went in. The team page does the same (sb_back=team).
+- Preview on a person's card is the eye and the word again since the Actions menu (3 November 2026).
+
+### Actions menu and Move (3 November 2026)
+
+- A person card's footer is now Preview (eye and the word again), Edit, Copy
+  link, Open, then Actions on the right (Admin::person_menu(), on
+  SB_Tweaks_UI::dropdown(), small, white). Actions is for can_manage() users
+  only; logged-out people on the front end see no Edit and no Actions.
+- The menu: Duplicate; Move to company (only with more than one company);
+  Email signature link (when the company isn't switched off; list.js's
+  Preview popup builds its Email button from this item); Download CSV
+  (manage_options, admin only: the People export for that one person); a
+  line; Delete (red, the same confirm as the old trash icon).
+- Duplicate and Move are forms built by Admin::person_form( $what, $id,
+  $front, $button, $fields, $class ), which now returns its markup (the
+  deleted cards' Restore and Delete for good echo it).
+- Move: with one other company the popup just asks "Move X to Y?"; with more
+  it has a company menu of the others (data-sb-tweaks-confirm-choose).
+  SB_EmailSig_Person::move() (admin_post_sb_emailsig_person_move, nonce
+  NONCE_move_{id}) checks, runs SB_EmailSig_Staff::carry(), sets the company,
+  logs person.moved ("Moved X to Y"), and goes back to the list or team page
+  with ?person_moved={id}: the card is highlighted and a notice says
+  "X moved to COMPANY."
+- SB_EmailSig_Staff::link_follows( $id, $to ), value_for( $id, $field, $to )
+  and carry( $from, $into, $to ) are the one place for a Linked to page that
+  can't follow someone into another company (its staff type differs): the
+  fields its {tokens} fill get the text they show now and the link is
+  dropped. Duplicate, Move and deleting a company (its people move to the
+  default company) all use it.
+- Admin::duplicate_button() is gone; Admin::icon() has a 'move' icon.
+- Checked live: the Signatures page and the team page render with the menu on
+  every card; a Move of a throwaway copy went through, logged, showed the
+  notice, then the copy and its log rows were deleted for good.
+- Later (Sam): drag people between companies.

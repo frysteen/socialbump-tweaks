@@ -62,12 +62,7 @@
 
 	/** A colour box's value as hex: a hex, or a theme colour looked up; '' if neither. */
 	function colourHex(value) {
-		value = (value || '').trim().toLowerCase();
-		if (/^--[a-z0-9_-]+$/.test(value)) value = 'var(' + value + ')';
-		if (/^#[0-9a-f]{6}$/.test(value)) return value;
-		if (/^#[0-9a-f]{3}$/.test(value)) return '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
-		var all = cfg.colours || {};
-		return Object.prototype.hasOwnProperty.call(all, value) ? all[value] : '';
+		return SBTweaksColour.lookup(value, { colours: cfg.colours || {} });
 	}
 
 	/** The brand colours as the Branding tab has them now (blank: the default; Accent: the primary). */
@@ -386,50 +381,20 @@
 	var palette = cfg.palette || [];
 	var buttonPalette = cfg.buttonPalette || palette;
 	var all = cfg.colours || {};
-	var $menu = null;
-	var menuFor = null;
-
+	/** A box's value as hex: a hex, a theme colour, or one of the buttons' menu colours; '' if none. */
 	function hexOf(value) {
-		value = (value || '').trim().toLowerCase();
-		if (/^--[a-z0-9_-]+$/.test(value)) value = 'var(' + value + ')';
-		if (/^#[0-9a-f]{6}$/.test(value)) return value;
-		if (/^#[0-9a-f]{3}$/.test(value)) return '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
-		if (Object.prototype.hasOwnProperty.call(all, value)) return all[value];
-		for (var i = 0; i < buttonPalette.length; i++) {
-			if (buttonPalette[i].value === value) return buttonPalette[i].hex;
-		}
-		return '';
+		return SBTweaksColour.lookup(value, { colours: all, palette: buttonPalette });
 	}
 
-	/** A colour box: the field's text input with a swatch before it and the colour menu button after. */
+	/** A colour box: the framework's colour field (SBTweaksColour), made from the field's text input. */
 	function box(input, list) {
-		var $wrap = $('<span class="sb-tweaks-colour sb-emailsig-colour"></span>');
-		var swatch = $('<input type="color" class="sb-tweaks-colour__swatch" aria-label="Pick a colour">')[0];
-		var button = $('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" aria-expanded="false"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')[0];
-
-		$(input).addClass('sb-tweaks-colour__value code').attr({ spellcheck: 'false', autocomplete: 'off' });
-		$(input).before($wrap);
-		$wrap.append(swatch, input);
-		if (list.length) $wrap.append(button);
-
-		swatch.addEventListener('input', function () {
-			if (input.value !== swatch.value) setValue(input, swatch.value);
-		});
-		button.addEventListener('click', function (e) {
-			e.preventDefault();
-			if (menuFor === button) closeMenu(); else openMenu(button, input, list);
-		});
-
-		return { input: input, swatch: swatch, $wrap: $wrap };
+		var f = SBTweaksColour.enhance(input, { palette: list, hex: hexOf }, 'sb-emailsig-colour');
+		return { input: input, swatch: f.swatch, $wrap: $(f.wrap), f: f };
 	}
 
 	/** A box's swatch shows its own colour, or the fallback dashed. */
 	function show(b, fallback) {
-		var own = hexOf(b.input.value);
-		var shown = own || fallback;
-		b.$wrap.toggleClass('is-inherited', !own);
-		b.$wrap.toggleClass('is-unknown', b.input.value.trim() !== '' && !own);
-		if (b.swatch.value !== shown) b.swatch.value = shown;
+		SBTweaksColour.attach(b.f.wrap, { fallback: fallback });
 	}
 
 	/** Additional Buttons' Colour boxes, including rows added later (not ACF's .acf-clone row). */
@@ -444,59 +409,8 @@
 		});
 	}
 
-	function setValue(input, value) {
-		input.value = value;
-		input.dispatchEvent(new Event('input', { bubbles: true }));
-		input.dispatchEvent(new Event('change', { bubbles: true }));
-	}
-
-	function closeMenu() {
-		if ($menu) { $menu.remove(); $menu = null; }
-		if (menuFor) { menuFor.setAttribute('aria-expanded', 'false'); menuFor = null; }
-	}
-
-	function openMenu(button, input, list) {
-		var rect = button.getBoundingClientRect();
-		list = list || palette;
-		closeMenu();
-		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
-		list.forEach(function (c, i) {
-			if (c.group && (i === 0 || list[i - 1].group !== c.group)) $('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
-			$('<button type="button" role="option"></button>')
-				.append($('<i></i>').css('background', c.hex))
-				.append($('<span></span>').text(c.name))
-				.append($('<code></code>').text(c.hex))
-				.on('click', function () {
-					setValue(input, c.value);
-					closeMenu();
-					input.focus();
-				})
-				.appendTo($menu);
-		});
-		$menu.appendTo(document.body).css({
-			top: rect.bottom + window.scrollY + 4,
-			left: Math.max(8, Math.min(rect.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - 268))
-		});
-		menuFor = button;
-		button.setAttribute('aria-expanded', 'true');
-		$menu.find('button').first().trigger('focus');
-	}
-
 	$(function () {
 		var boxes = [];
-
-		// Menus close on a click elsewhere, Escape, a resize or a scroll.
-		$(document).on('mousedown', function (e) {
-			if ($menu && !$(e.target).closest('.sb-emailsig-palette, .sb-emailsig-colour__theme').length) closeMenu();
-		});
-		$(document).on('keydown', function (e) {
-			if (e.key === 'Escape' && $menu) {
-				var back = menuFor;
-				closeMenu();
-				if (back) back.focus();
-			}
-		});
-		$(window).on('resize scroll', closeMenu);
 
 		buttonBoxes(document);
 		if (window.acf && window.acf.addAction) {

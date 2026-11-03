@@ -656,7 +656,7 @@ class SB_EmailSig_Templates {
 		$used      = isset( $_GET['used'] ) ? sanitize_key( wp_unslash( $_GET['used'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 		$used      = ( $used === 'none' || in_array( (int) $used, $companies, true ) ) ? $used : '';
 
-		// The bar: Used by, where each company's default is chosen, Import and Add template.
+		// The bar: Used by, where each company's default is chosen, and Add template. Import is on the Import/Export page.
 		echo '<div class="sb-ui-bar sb-emailsig-bar">';
 		echo '<div class="sb-ui-bar__group"><label class="sb-ui-bar__label" for="sb-emailsig-used">Used by</label>';
 		echo '<select id="sb-emailsig-used" data-sb-emailsig-used="' . esc_url( self::page_url() ) . '"><option value="">All companies</option>';
@@ -670,17 +670,6 @@ class SB_EmailSig_Templates {
 		echo '</div>';
 
 		if ( $records ) {
-			// Import picks the file and sends it straight away (list.js).
-			echo '<div class="sb-ui-bar__group"><span class="sb-ui-bar__label">Template file</span>';
-			echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-sb-emailsig-import>';
-			echo '<input type="hidden" name="action" value="sb_emailsig_import_template">';
-			wp_nonce_field( 'sb_emailsig_import_template' );
-			echo '<input type="file" name="sb_emailsig_file" accept=".json,application/json" required aria-label="Template file" class="screen-reader-text" tabindex="-1">';
-			echo SB_EmailSig_Limits::full( 'templates' )
-				? '<span class="sb-emailsig-limit-lock" data-sb-tip="' . esc_attr( SB_EmailSig_Limits::message( 'templates' ) ) . '" tabindex="0"><span class="button button-small disabled" aria-disabled="true">' . SB_EmailSig_Admin::icon( 'up' ) . 'Import</span></span>'
-				: '<button type="button" class="button button-small" data-sb-emailsig-import-pick data-sb-tip="Add a template exported from another site">' . SB_EmailSig_Admin::icon( 'up' ) . 'Import</button>';
-			echo '</form></div>';
-
 			// Add template: a name in a popup (templates.js), then this form.
 			// How many, "Templates 2 of 2", and Add template greyed out at the limit (SB_EmailSig_Limits).
 			echo '<div class="sb-ui-bar__end">' . SB_EmailSig_Limits::count( 'templates' );
@@ -718,17 +707,19 @@ class SB_EmailSig_Templates {
 			$is_main = (bool) $uses['default'] || $id === $current;
 
 			// Used by: this company's (its default or one of its set), or no one's.
-			if ( $used === 'none' ? ( $uses['default'] || $uses['available'] ) : ( $used !== '' && ! in_array( (int) $used, array_merge( $uses['default'], $uses['available'] ), true ) ) ) {
-				continue;
-			}
-			$shown++;
+			// Every card is drawn, the ones that don't match hidden, so the menu
+			// filters on the page without loading it again (templates.js, Sam,
+			// 3 November 2026).
+			$by    = array_values( array_unique( array_map( 'intval', array_merge( $uses['default'], $uses['available'] ) ) ) );
+			$match = $used === '' || ( $used === 'none' ? ! $by : in_array( (int) $used, $by, true ) );
+			$shown += $match ? 1 : 0;
 
 			$stats   = self::stats( $template );
 			$sig     = 'sb-emailsig-tpl-' . $id;
 			$edit    = self::edit_url( $id );
 			$people  = $using[ $id ] ?? 0;
 
-			echo '<article class="sb-tweaks-card sb-emailsig-template' . ( $is_main ? ' is-main' : '' ) . '">';
+			echo '<article class="sb-tweaks-card sb-emailsig-template' . ( $is_main ? ' is-main' : '' ) . ( $match ? '' : ' is-filtered' ) . '" data-sb-emailsig-used-by="' . esc_attr( implode( ',', $by ) ) . '">';
 
 			echo '<div class="sb-emailsig-template__top">';
 			echo '<div class="sb-emailsig-person__who">';
@@ -736,10 +727,10 @@ class SB_EmailSig_Templates {
 			echo '</div>';
 			echo '</div>';
 
-			// Its own description, set on Edit styles.
-			if ( $template['note'] !== '' ) {
-				echo '<p class="sb-emailsig-template__note">' . esc_html( $template['note'] ) . '</p>';
-			}
+			// Its own description, set on Edit styles. Always there, empty when it
+			// has none, so every card has the same rows and Default for and
+			// Available for line up across a row (subgrid, admin.css; Sam, 3 November 2026).
+			echo '<p class="sb-emailsig-template__note">' . esc_html( $template['note'] ) . '</p>';
 
 			// The companies it's the Default Template for, and those that also
 			// offer it (Sam, 1 November 2026), or Not in use.
@@ -809,9 +800,8 @@ class SB_EmailSig_Templates {
 
 		echo '</div>';
 
-		if ( ! $shown ) {
-			echo '<div class="sb-ui-empty"><p>' . esc_html( $used === 'none' ? 'Every template is in use.' : 'No templates for that company.' ) . '</p></div>';
-		}
+		// Shown when nothing matches; templates.js keeps it in step with the menu.
+		echo '<div class="sb-ui-empty" data-sb-emailsig-used-none' . ( $shown ? ' hidden' : '' ) . '><p data-sb-emailsig-used-none-text data-none="Every template is in use." data-company="No templates for that company.">' . esc_html( $used === 'none' ? 'Every template is in use.' : 'No templates for that company.' ) . '</p></div>';
 	}
 
 	/** A small form posting to admin-post.php, as an icon button with a tooltip. Asks first with $confirm. */
@@ -982,6 +972,51 @@ class SB_EmailSig_Templates {
 	 * save, then its Edit styles page (saving there draws its icons). Its
 	 * name gets (imported) when the site already has one by that name.
 	 */
+	/**
+	 * Template import's card on the Import/Export page (Sam, 3 November 2026,
+	 * from the Templates page's bar): pick a file exported from another site
+	 * and it's added straight away (list.js picks it, import() reads it), then
+	 * opens to check. A file that can't be used comes back here saying why.
+	 */
+	public static function render_import_card() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$why = isset( $_GET['template'] ) ? sanitize_key( wp_unslash( $_GET['template'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		$say = [
+			'failed'   => 'That didn\'t work. Try again.',
+			'badfile'  => 'That file isn\'t a signature template export.',
+			'newer'    => 'That file was exported from a newer version of this plugin. Update it here first.',
+			'nodesign' => 'That template is built on a design this site doesn\'t have.',
+			'limit'    => class_exists( 'SB_EmailSig_Limits' ) ? SB_EmailSig_Limits::message( 'templates' ) : '',
+		];
+
+		if ( isset( $say[ $why ] ) && $say[ $why ] !== '' ) {
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $say[ $why ] ) . '</p></div>';
+		}
+
+		echo '<div class="sb-tweaks-card sb-emailsig-transfer">';
+		echo '<div class="sb-tweaks-card__head"><h3>Template file</h3></div>';
+		echo '<p class="sb-tweaks-card__desc">A template exported from another site (each template card has Export). It\'s added as a new template and opens so you can check it.</p>';
+		echo '<div class="sb-emailsig-transfer__body"><div class="sb-emailsig-transfer__actions">';
+
+		if ( ! self::has_records() ) {
+			echo '<p class="description">Templates can be imported once this site has its own templates.</p>';
+		} else {
+			echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-sb-emailsig-import>';
+			echo '<input type="hidden" name="action" value="sb_emailsig_import_template">';
+			wp_nonce_field( 'sb_emailsig_import_template' );
+			echo '<input type="file" name="sb_emailsig_file" accept=".json,application/json" required aria-label="Template file" class="screen-reader-text" tabindex="-1">';
+			echo SB_EmailSig_Limits::full( 'templates' )
+				? '<span class="sb-emailsig-limit-lock" data-sb-tip="' . esc_attr( SB_EmailSig_Limits::message( 'templates' ) ) . '" tabindex="0"><span class="button button-small disabled" aria-disabled="true">' . SB_EmailSig_Admin::icon( 'up' ) . 'Import</span></span>' // phpcs:ignore WordPress.Security.EscapeOutput -- fixed icon markup.
+				: '<button type="button" class="button button-small" data-sb-emailsig-import-pick data-sb-tip="Add a template exported from another site">' . SB_EmailSig_Admin::icon( 'up' ) . 'Import</button>'; // phpcs:ignore WordPress.Security.EscapeOutput -- fixed icon markup.
+			echo '</form>';
+		}
+
+		echo '</div></div></div>';
+	}
+
 	public static function import() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( 'You do not have permission to do that.' );
@@ -989,8 +1024,9 @@ class SB_EmailSig_Templates {
 
 		check_admin_referer( 'sb_emailsig_import_template' );
 
+		// Back to the Import/Export page, saying why (render_import_card()).
 		$fail = function ( $why ) {
-			wp_safe_redirect( self::page_url( [ 'template' => $why ] ) );
+			wp_safe_redirect( add_query_arg( 'template', $why, admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-transfer' ) ) );
 			exit;
 		};
 		if ( SB_EmailSig_Limits::full( 'templates' ) ) {

@@ -108,105 +108,18 @@ class SB_EmailSig_Styles {
 	 * being what is saved (var(--name), or the hex for a colour with no
 	 * variable) and group the menu heading it sits under.
 	 *
-	 * Read from, in order: Bricks' colour palettes (Advanced Themer's and
-	 * Core Framework's land there on a Bricks site), Core Framework (its
-	 * preset for the names, its generated CSS for every variable), Elementor's
-	 * kit (system and custom colours, var(--e-global-color-<id>)), then the
-	 * theme.json palette. A colour already listed isn't listed again.
-	 * Filterable through sb_emailsig/palette. Shades (var(--primary-d-4) and
-	 * so on) stay out of the menu, to keep it short, but can still be typed
-	 * in: see colours().
+	 * Worked out by the framework (SB_Tweaks_Colours::palette(), which has
+	 * the sources and their order, since 3 November 2026), and still
+	 * filterable here through sb_emailsig/palette. Shades stay out of the
+	 * menu but can still be typed in: see colours().
 	 */
 	public static function palette() {
 		if ( self::$palette !== null ) {
 			return self::$palette;
 		}
 
-		$out   = [];
-		$all   = [];
-		$group = '';
-		$add   = function ( $name, $value, $raw, $menu = true ) use ( &$out, &$all, &$group ) {
-			$hex = self::to_hex( $raw );
-
-			if ( $hex === '' || isset( $all[ $value ] ) ) {
-				return;
-			}
-
-			$all[ $value ] = $hex;
-
-			if ( $menu ) {
-				$out[] = [
-					'name'  => (string) $name,
-					'value' => $value,
-					'hex'   => $hex,
-					'group' => $group,
-				];
-			}
-		};
-
-		foreach ( (array) get_option( 'bricks_color_palette', [] ) as $pal ) {
-			$group = 'Bricks' . ( ! empty( $pal['name'] ) ? ': ' . $pal['name'] : '' );
-
-			foreach ( (array) ( $pal['colors'] ?? [] ) as $c ) {
-				if ( ! is_array( $c ) ) {
-					continue;
-				}
-
-				$raw   = (string) ( $c['rawValue']['light'] ?? ( $c['light'] ?? ( $c['hex'] ?? ( $c['rgb'] ?? ( $c['hsl'] ?? '' ) ) ) ) );
-				$var   = preg_match( '/^var\(\s*(--[a-z0-9_-]+)\s*\)$/i', (string) ( $c['raw'] ?? '' ), $m ) ? 'var(' . strtolower( $m[1] ) . ')' : '';
-				$value = $var !== '' ? $var : self::to_hex( $raw );
-				$name  = ! empty( $c['name'] ) ? $c['name'] : ( $var !== '' ? substr( $var, 6, -1 ) : $value );
-
-				$add( $name, $value, $raw, empty( $c['isShade'] ) );
-			}
-		}
-
-		$cf = self::core_framework();
-
-		foreach ( $cf['groups'] as $name => $vars ) {
-			$group = 'Core Framework' . ( $name !== '' ? ': ' . $name : '' );
-
-			foreach ( $vars as $v ) {
-				$add( substr( $v, 2 ), 'var(' . $v . ')', self::cf_value( $cf['vars'][ $v ] ?? '', $cf['vars'] ) );
-			}
-		}
-
-		if ( defined( 'ELEMENTOR_VERSION' ) ) {
-			$kit = (int) get_option( 'elementor_active_kit' );
-			$set = $kit ? get_post_meta( $kit, '_elementor_page_settings', true ) : [];
-
-			foreach ( [ 'system_colors' => 'Elementor: System Colours', 'custom_colors' => 'Elementor: Custom Colours' ] as $key => $label ) {
-				$group = $label;
-
-				foreach ( (array) ( is_array( $set ) ? ( $set[ $key ] ?? [] ) : [] ) as $c ) {
-					if ( ! is_array( $c ) || empty( $c['color'] ) || ! preg_match( '/^[a-z0-9_-]+$/i', (string) ( $c['_id'] ?? '' ) ) ) {
-						continue;
-					}
-
-					$add( ! empty( $c['title'] ) ? $c['title'] : $c['_id'], 'var(--e-global-color-' . strtolower( $c['_id'] ) . ')', (string) $c['color'] );
-				}
-			}
-		}
-
-		if ( function_exists( 'wp_get_global_settings' ) ) {
-			$group = 'Theme';
-			$theme = (array) wp_get_global_settings( [ 'color', 'palette', 'theme' ] );
-
-			foreach ( $theme as $c ) {
-				if ( empty( $c['slug'] ) || empty( $c['color'] ) ) {
-					continue;
-				}
-
-				$add( $c['name'] ?? $c['slug'], 'var(--wp--preset--color--' . sanitize_key( $c['slug'] ) . ')', (string) $c['color'] );
-			}
-		}
-
-		// Core Framework's shades, tints and other colour variables: typed in, not listed.
-		foreach ( $cf['vars'] as $v => $raw ) {
-			$add( '', 'var(' . $v . ')', self::cf_value( $raw, $cf['vars'] ), false );
-		}
-
-		$out = array_slice( (array) apply_filters( 'sb_emailsig/palette', $out ), 0, 120 );
+		$all = SB_Tweaks_Colours::colours();
+		$out = array_slice( (array) apply_filters( 'sb_emailsig/palette', SB_Tweaks_Colours::palette() ), 0, 120 );
 
 		foreach ( $out as $c ) {
 			if ( isset( $c['value'], $c['hex'] ) && ! isset( $all[ $c['value'] ] ) ) {
@@ -218,124 +131,6 @@ class SB_EmailSig_Styles {
 		self::$palette = $out;
 
 		return $out;
-	}
-
-	/**
-	 * Core Framework's colours, when it's active: [ 'vars' => [ '--name' =>
-	 * value ], 'groups' => [ group name => [ '--name', ... ] ] ]. Every
-	 * variable comes from its generated CSS (uploads/core-framework/css),
-	 * the first :root value of each; the groups and the colours in them
-	 * from the preset in use (its own table), leaving out colours that just
-	 * point at another (var(--primary)). The preset fills in a variable the
-	 * CSS file doesn't have.
-	 */
-	private static function core_framework() {
-		$out    = [ 'vars' => [], 'groups' => [] ];
-		$active = (array) get_option( 'active_plugins', [] );
-
-		if ( is_multisite() ) {
-			$active = array_merge( $active, array_keys( (array) get_site_option( 'active_sitewide_plugins', [] ) ) );
-		}
-
-		$on = false;
-		foreach ( $active as $p ) {
-			if ( substr( (string) $p, -19 ) === '/core-framework.php' ) {
-				$on = true;
-				break;
-			}
-		}
-
-		if ( ! $on ) {
-			return $out;
-		}
-
-		$up   = wp_upload_dir( null, false );
-		$file = trailingslashit( $up['basedir'] ) . 'core-framework/css/core_framework.css';
-		$css  = is_readable( $file ) ? (string) file_get_contents( $file ) : '';
-
-		if ( preg_match_all( '/:root\s*\{([^}]*)\}/i', $css, $blocks ) ) {
-			foreach ( $blocks[1] as $b ) {
-				if ( preg_match_all( '/(--[a-z0-9_-]+)\s*:\s*([^;]+)/i', $b, $m, PREG_SET_ORDER ) ) {
-					foreach ( $m as $d ) {
-						$k = strtolower( $d[1] );
-
-						if ( ! isset( $out['vars'][ $k ] ) ) {
-							$out['vars'][ $k ] = trim( $d[2] );
-						}
-					}
-				}
-			}
-		}
-
-		global $wpdb;
-		$table = $wpdb->prefix . 'core_framework_presets';
-
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
-			return $out;
-		}
-
-		$main = get_option( 'core_framework_main' );
-		$id   = is_array( $main ) ? (string) ( $main['selected_id'] ?? '' ) : '';
-		$data = $id !== '' ? $wpdb->get_var( $wpdb->prepare( "SELECT data FROM {$table} WHERE id = %s", $id ) ) : null;
-
-		if ( ! $data ) {
-			$data = $wpdb->get_var( "SELECT data FROM {$table} LIMIT 1" );
-		}
-
-		$json = json_decode( (string) $data, true );
-		$name = function ( $n ) {
-			$n = strtolower( trim( (string) $n ) );
-
-			return preg_match( '/^[a-z0-9_-]+$/', $n ) ? '--' . $n : '';
-		};
-
-		foreach ( (array) ( $json['modulesData']['COLOR_SYSTEM']['groups'] ?? [] ) as $g ) {
-			foreach ( (array) ( $g['colors'] ?? [] ) as $c ) {
-				$k = $name( $c['name'] ?? '' );
-				$v = trim( (string) ( $c['value'] ?? '' ) );
-
-				if ( $k === '' || $v === '' ) {
-					continue;
-				}
-
-				if ( ! isset( $out['vars'][ $k ] ) ) {
-					$out['vars'][ $k ] = $v;
-				}
-
-				foreach ( [ 'shades', 'tints' ] as $more ) {
-					foreach ( (array) ( $c[ $more ] ?? [] ) as $sh ) {
-						$sk = $name( $sh['name'] ?? '' );
-
-						if ( $sk !== '' && ! empty( $sh['value'] ) && ! isset( $out['vars'][ $sk ] ) ) {
-							$out['vars'][ $sk ] = trim( (string) $sh['value'] );
-						}
-					}
-				}
-
-				if ( stripos( $v, 'var(' ) !== 0 && ! in_array( $k, $out['groups'][ (string) ( $g['name'] ?? '' ) ] ?? [], true ) ) {
-					$out['groups'][ (string) ( $g['name'] ?? '' ) ][] = $k;
-				}
-			}
-		}
-
-		return $out;
-	}
-
-	/** A value that points at another variable (var(--primary), with or without a fallback) followed to the end. */
-	private static function cf_value( $v, array $vars, $depth = 0 ) {
-		$v = trim( (string) $v );
-
-		if ( $depth < 6 && preg_match( '/^var\(\s*(--[a-z0-9_-]+)\s*(?:,\s*(.+))?\)$/i', $v, $m ) ) {
-			$k = strtolower( $m[1] );
-
-			if ( isset( $vars[ $k ] ) ) {
-				return self::cf_value( $vars[ $k ], $vars, $depth + 1 );
-			}
-
-			return isset( $m[2] ) ? self::cf_value( $m[2], $vars, $depth + 1 ) : '';
-		}
-
-		return $v;
 	}
 
 	/** Every theme colour, shades too, as [ 'var(--name)' => '#rrggbb' ]. */
@@ -1319,7 +1114,7 @@ class SB_EmailSig_Styles {
 			SB_EmailSig_Notify::register_confirm();
 			wp_enqueue_script( 'sb-emailsig-sortable', SB_EMAILSIG_URL . 'assets/vendor/sortable/Sortable.min.js', [], '1.15.6', true );
 			wp_enqueue_script( 'sb-emailsig-icon-builder', SB_EMAILSIG_URL . 'assets/icon-builder.js', [], SB_EmailSig_Module::asset_version( 'assets/icon-builder.js' ), true );
-			wp_enqueue_script( 'sb-emailsig-layout', SB_EMAILSIG_URL . 'assets/layout.js', array_merge( [ 'jquery', 'sb-emailsig-sortable', 'sb-emailsig-icon-builder' ], wp_script_is( 'sb-tweaks-confirm', 'registered' ) ? [ 'sb-tweaks-confirm' ] : [] ), SB_EmailSig_Module::asset_version( 'assets/layout.js' ), true );
+			wp_enqueue_script( 'sb-emailsig-layout', SB_EMAILSIG_URL . 'assets/layout.js', array_merge( [ 'jquery', 'sb-emailsig-sortable', 'sb-emailsig-icon-builder', 'sb-tweaks-colour' ], wp_script_is( 'sb-tweaks-confirm', 'registered' ) ? [ 'sb-tweaks-confirm' ] : [] ), SB_EmailSig_Module::asset_version( 'assets/layout.js' ), true );
 
 			$v = self::values( $tpl );
 			$d = self::defaults( $tpl );
@@ -1344,7 +1139,7 @@ class SB_EmailSig_Styles {
 					// Where the Company Email is set, for Person Email's note: the
 					// previewed person's company (company= added by layout.js), on its Company tab.
 					'companyEmail' => add_query_arg( array( 'sb_tab' => 'company', 'sb_field' => 'company_email' ), SB_EmailSig_Companies::url() ),
-					'defaultCompany' => (int) SB_EmailSig_Company::default_id(),
+					'firstCompany'   => (int) SB_EmailSig_Company::first_id(),
 					'texts'  => array_combine(
 						array_map(
 							function ( $ref ) {
@@ -1382,7 +1177,7 @@ class SB_EmailSig_Styles {
 		}
 
 		wp_enqueue_script( 'sb-emailsig-icon-builder', SB_EMAILSIG_URL . 'assets/icon-builder.js', [], SB_EmailSig_Module::asset_version( 'assets/icon-builder.js' ), true );
-		wp_enqueue_script( 'sb-emailsig-styles', SB_EMAILSIG_URL . 'assets/styles.js', [ 'jquery', 'sb-emailsig-icon-builder' ], SB_EmailSig_Module::asset_version( 'assets/styles.js' ), true );
+		wp_enqueue_script( 'sb-emailsig-styles', SB_EMAILSIG_URL . 'assets/styles.js', [ 'jquery', 'sb-emailsig-icon-builder', 'sb-tweaks-colour' ], SB_EmailSig_Module::asset_version( 'assets/styles.js' ), true );
 
 		$contact = self::contact_svgs( $tpl );
 
@@ -1849,12 +1644,20 @@ class SB_EmailSig_Styles {
 		$placeholder = $brand !== '' ? $brand : ( $fallback !== '' ? 'Default' : '' );
 
 		echo '<div class="sb-emailsig-field sb-emailsig-field--colour"><label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label>';
-		// The framework's colour field (swatch and text box), plus the theme colours.
-		echo '<span class="sb-tweaks-colour sb-emailsig-colour" data-fallback="' . esc_attr( $fallback ) . '">';
-		echo '<input type="color" class="sb-tweaks-colour__swatch" value="#ffffff" aria-label="' . esc_attr( $label ) . '">';
-		echo '<input type="text" class="sb-tweaks-colour__value code" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" data-default="' . esc_attr( $default ) . '" placeholder="' . esc_attr( $placeholder ) . '" spellcheck="false" autocomplete="off">';
-		echo '<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" hidden><span class="dashicons dashicons-art" aria-hidden="true"></span></button>';
-		echo '</span></div>';
+		// The framework's colour field (SB_Tweaks_Fields::colour()); styles.js and layout.js give it this page's menu and what a blank one shows.
+		echo SB_Tweaks_Fields::colour( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+			[
+				'name'        => $name,
+				'id'          => $id,
+				'value'       => $value,
+				'label'       => $label,
+				'placeholder' => $placeholder,
+				'class'       => 'sb-emailsig-colour',
+				'attrs'       => [ 'data-fallback' => $fallback ],
+				'input_attrs' => [ 'data-default' => $default ],
+			]
+		);
+		echo '</div>';
 	}
 
 	/** $blank: the field can be left empty (saved as 0, shown empty). */

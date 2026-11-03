@@ -164,18 +164,18 @@ class SB_EmailSig_Icons {
 
 	/**
 	 * Where a template's icons are kept for the company being drawn
-	 * (SB_EmailSig_Company): the template's id for the default company (as
-	 * before companies), {id}@c{company} for the others, whose brand colours
+	 * (SB_EmailSig_Company): the template's id for the company Settings
+	 * became (legacy_id(), as before companies), {id}@c{company} for the others, whose brand colours
 	 * and social rows can differ. Made when the company is saved.
 	 */
 	public static function slot( $tpl_id, $co = null ) {
 		$co  = null === $co ? SB_EmailSig_Company::current() : (int) $co;
-		$def = SB_EmailSig_Company::default_id();
+		$def = SB_EmailSig_Company::legacy_id();
 
 		return ( ! $co || $co === $def ) ? (string) $tpl_id : $tpl_id . '@c' . $co;
 	}
 
-	/** A template's icons for the company being drawn, else the default company's. */
+	/** A template's icons for the company being drawn, else the ones from before companies. */
 	private static function mine( array $all, $tpl_id, $kind ) {
 		$slot = self::slot( $tpl_id );
 
@@ -255,7 +255,7 @@ class SB_EmailSig_Icons {
 		}
 
 		$owner = null === $co ? SB_EmailSig_Company::current() : (int) $co;
-		if ( SB_EmailSig_Switch::is_off( $owner ? $owner : SB_EmailSig_Company::default_id() ) ) {
+		if ( SB_EmailSig_Switch::is_off( $owner ? $owner : SB_EmailSig_Company::first_id() ) ) {
 			return;
 		}
 
@@ -263,7 +263,7 @@ class SB_EmailSig_Icons {
 		$all   = (array) get_option( self::OPTION, [] );
 		$names = (array) ( SB_EmailSig_Styles::defaults( $tpl )['icons']['names'] ?? [] );
 		$svgs  = SB_EmailSig_Company::with(
-			$owner ? $owner : SB_EmailSig_Company::default_id(),
+			$owner ? $owner : SB_EmailSig_Company::first_id(),
 			function () {
 				return array_map( 'md5', self::social_svgs() );
 			}
@@ -510,7 +510,7 @@ class SB_EmailSig_Icons {
 
 		// Not for a company switched off: its icons are put aside (SB_EmailSig_Switch).
 		$owner = null === $co ? SB_EmailSig_Company::current() : (int) $co;
-		if ( SB_EmailSig_Switch::is_off( $owner ? $owner : SB_EmailSig_Company::default_id() ) ) {
+		if ( SB_EmailSig_Switch::is_off( $owner ? $owner : SB_EmailSig_Company::first_id() ) ) {
 			return;
 		}
 

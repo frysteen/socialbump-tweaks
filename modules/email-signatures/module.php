@@ -32,7 +32,8 @@ return [
 	'ui_ready'    => true,
 
 	// Pages rather than switchable features: no Features page, and the nav
-	// reads Signatures, Companies, Templates, Reports, Activity, Settings.
+	// reads Signatures, Companies, Templates, Reports, Activity, Import/Export,
+	// Settings.
 	'groups'      => [
 		'signatures' => [
 			'title'       => 'Signatures',
@@ -53,6 +54,10 @@ return [
 		'activity'   => [
 			'title'       => 'Activity',
 			'description' => 'Who did what, and when.',
+		],
+		'transfer'   => [
+			'title'       => 'Import/Export',
+			'description' => 'Move people in and out of this site with a spreadsheet file.',
 		],
 		'settings'  => [
 			'title'       => 'Settings',

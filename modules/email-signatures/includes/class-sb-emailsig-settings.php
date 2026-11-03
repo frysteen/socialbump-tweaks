@@ -85,7 +85,7 @@ class SB_EmailSig_Settings {
 		SB_EmailSig_Company::enter( (int) $co );
 
 		wp_enqueue_script( 'sb-emailsig-icon-builder', SB_EMAILSIG_URL . 'assets/icon-builder.js', [], SB_EmailSig_Module::asset_version( 'assets/icon-builder.js' ), true );
-		wp_enqueue_script( 'sb-emailsig-settings', SB_EMAILSIG_URL . 'assets/settings.js', [ 'jquery', 'acf-input', 'sb-emailsig-icon-builder' ], SB_EmailSig_Module::asset_version( 'assets/settings.js' ), true );
+		wp_enqueue_script( 'sb-emailsig-settings', SB_EMAILSIG_URL . 'assets/settings.js', [ 'jquery', 'acf-input', 'sb-emailsig-icon-builder', 'sb-tweaks-colour' ], SB_EmailSig_Module::asset_version( 'assets/settings.js' ), true );
 		wp_localize_script(
 			'sb-emailsig-settings',
 			'sbEmailsigSettings',

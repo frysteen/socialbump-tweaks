@@ -435,10 +435,15 @@ The cards (render() and card(), styles and script inline in script()):
   (indeterminate). Changing the filter or the search clears the selection,
   so nothing is ever ticked out of sight. The select control is boxed like a
   button (140px wide at least) and Actions is at least 150px, so neither
-  moves as the count changes (Sam, 31 October 2026). Actions has the word on the
-  left and the arrow on its own slightly darker strip on the right
-  (.sb-installs__actions-arrow).
-- Actions (n) opens a menu (.sb-installs-menu) in two parts. Selected sites:
+  moves as the count changes (Sam, 31 October 2026). Since 3 November 2026
+  Actions is the framework's dropdown, green (SB_Tweaks_UI::dropdown(),
+  primary, class sb-installs-actions; see Dropdown button). ui.js opens,
+  closes and steps through it; the page's script only sets Actions (n),
+  greys the items (class sb-installs-menu__item, its hook) and runs them, and
+  closes it with SBTweaksUI.closeMenus() when an update starts. The Modules
+  filter is still the page's own (tick boxes, .sb-installs-menu and
+  .sb-installs__actions-arrow).
+- Actions (n) opens a menu in two parts. Selected sites:
   Update everything waiting, Update Tweaks only, Update SEO for AI only,
   Modules. All sites: Signature limits, Update beta sites to the latest beta.
   An item that can't run is aria-disabled (not disabled, so its tip still
@@ -691,6 +696,44 @@ How it looks and acts, and how every long action in these plugins should:
   worked, otherwise the counts, "2 published, 1 failed".
 - Keep the words short. No instructions, no explaining what the buttons do.
 
+### Progress from the server (3 November 2026)
+
+A job that runs in one request (Publish) can show where it is up to (Sam:
+"accurate progress bar and status text telling me what is going on too please
+and summary at the end").
+
+- includes/framework/class-sb-tweaks-progress.php, SB_Tweaks_Progress, booted
+  in sb_tweaks_boot() after the modules class. The page sends a run id with
+  the job (sb_tweaks_run, from SBTweaksProgress.id()); the job reads it with
+  run_id() and reports with set( $run, [ from, to, eta, status, current ] ):
+  where the bar is (0 to 100), where it gets to by the end of this step, how
+  many seconds the step should take, the bold line and the grey line.
+  clear( $run ) when it answers. Kept as a transient per user and run, ten
+  minutes. client() gives the page the ajax address and nonce.
+- progress.js: job.watch( { ajax, nonce, run } ) asks wp_ajax_sb_tweaks_progress
+  every 0.7 seconds and shows each new state with job.progress( percent,
+  status, current, to, eta ). The bar creeps on to to over eta seconds
+  between answers, never past it and never back, so a slow single request
+  (GitHub building the file list) still moves. Watching stops at finish() or
+  fail(); the bar is frozen where it is on screen first.
+- finish() on a watched job with a failed line leaves the bar where it got to
+  and says Stopped (red), as Stop does. A batch (Installs) still fills it.
+- Publish (class-sb-tweaks-release.php): plan() shares the bar out by
+  measured time (0.7 seconds a changed file, 5 for the file list, 3 for the
+  zip upload and so on), first with a guess of 40 files, then again once
+  GitHub has said what it has. stage() reports each step; done_step() adds a
+  line to the report with its time. back() sends steps and failed with the
+  answer, so the popup shows a line per finished step and, on a failure, the
+  step it stopped at in red with the reason. Steps: GitHub, Version, Zip, Code
+  (Sending changed files to GitHub: n of N, the file underneath), Commit,
+  Release (created, zip uploaded), Published (and whether GitHub confirmed it
+  as the latest release), Release notes, Beta when one was retired.
+- Checked on the hub without publishing: a note set in one request read back
+  by another, gone after clear(), a bad nonce refused; the plan for 58 files
+  (uploads 5.5% to 75.1%); Publish with too low a version answered with the
+  report fields and left 0.6.4 as it was. The popup tested in a browser with
+  a pretend run, finishing and failing. Beta releases still show the spinner.
+
 ### Confirm popup (assets/js/confirm.js, window.SBTweaksConfirm)
 
 Every question asked before acting uses this, never the browser's confirm().
@@ -860,6 +903,26 @@ sends everything as before. Proven first in Site Kit: its publish went from
 32 to 11 seconds, and afterwards every file on GitHub matched the hub. Here 0.1.11
 was the first publish with it, and afterwards all 178 files on GitHub matched
 the hub, README.md and LICENSE kept. Hub only, no release note.
+
+Every changed file goes up as its own blob now, text too (utf-8; binary as
+base64), and the tree only names them by sha (3 November 2026). Text files
+used to go inline in the tree request, so one request held every change: the
+publish after 0.6.4 had 57 changed files (1.5 MB) and GitHub timed out
+building the file list, so nothing was published. Tested without publishing:
+58 blobs in 40 seconds, then the 454-entry tree (67 KB) in 5 seconds, every
+blob's sha the same as the one worked out here. The repo listing is asked
+twice before falling back to sending everything, as GitHub didn't answer it
+once while this was looked into.
+
+The file list then timed out too, on the first publish with the change: all
+455 entries took GitHub 5 seconds in the test and over its limit for real.
+So with GitHub's listing in hand the tree request only names what changed and
+what's gone (sha null), on top of the last commit's tree (base_tree); README.md,
+LICENSE, .gitignore and .github are left to base_tree. Without the listing it
+names everything as before. github_retry() sends it, so a 5xx or no answer is
+tried twice more. Tested without publishing: 60 changed files, the tree built
+in 1.2 seconds, and read back it matched the hub file for file (453 plugin
+files, README.md and LICENSE, nothing else), main untouched.
 
 ## Bricks Tweaks retired (October 2026)
 
@@ -1348,7 +1411,7 @@ left in the plugin).
 
 From 0.5.0 it is off on client sites until the hub allows it, with limits
 set from the hub (see Module controls from the hub). Anyone without a company
-is put in the default company (adopt_one() on save, adopt_all() on an admin page load,
+is put in the first company, Company::first_id() (adopt_one() on save, adopt_all() on an admin page load,
 at most every 12 hours),
 which fixed a person made before companies existed on gimage.com.au.
 
@@ -1504,14 +1567,224 @@ dashed gap where it will land (.is-moving). The page scrolls near the top
 and bottom of the window. On drop the order saves straight away to the
 same per user endpoint as collapsing (sb_tweaks_cards), with an Order saved
 toast, or a red one if it failed; nothing to press. With a handle focused,
-the arrow keys move the card one place and save. Cards on a module's other
-pages do not drag. The menu and the admin bar follow the new order from the
+the arrow keys move the card one place and save. Cards on a module's group
+pages collapse but do not drag (see The bar on group pages). The menu and the admin bar follow the new order from the
 next page.
 
 Save changes (save-state.js): the button keeps its widest width so the bar
 never shifts, and has no title. The unsaved check ignores the order of
 fields with their own names, so dragging a card is never an unsaved change;
 lists (name[]) still count their order.
+
+### Small switches inside cards (3 November 2026)
+
+Sam asked for every part listed inside a card to be a link or a small switch,
+not a plain dot.
+
+- Modules page, a module with a Features page (Bricks, Site Kit, Elementor,
+  Woo): each group with features is a small switch,
+  sb_tweaks_module_groups[module][group], greyed out with a "Needs X
+  installed and active." tip when the group needs a plugin. A hidden
+  sb_tweaks_module_groups_shown[module] marks which modules showed them, and
+  save_modules() passes only those to SB_Tweaks_Save::store_groups().
+- Modules page, a module under another menu or made of pages (Image
+  Management, Email Signatures): each page is a link to it
+  (SB_Tweaks_Cards::link_row), plain text while the module is off.
+- Features page: each feature in a group card is a small switch,
+  sb_tweaks_features[feature]. A hidden sb_tweaks_features_shown makes
+  save_groups() also save the features through store_features(). Missing
+  or unavailable features are greyed out with their reason as the tip and
+  keep their saved value. 'always' features stay a dot (lit while the group
+  is on). A feature's own parts (FAQ Settings, From Price) are indented dots
+  under it (li.is-part) that fade when it is off.
+- SB_Tweaks_Cards: toggle_row(), link_row() and dot_row() print the rows.
+  The switch is .sb-tweaks-switch--small (28 by 16). framework.js keeps the
+  card on and off class to the card's own switch, and the small switch only
+  flips its own row's is-on and is-off and its parts' is-muted.
+- SB_Tweaks_Save: store_features() and store_groups() both start from the
+  saved option and only change what the page sent, so a save never touches
+  anything the page didn't show. The group pages still save through save().
+- Enable all, Disable all and the count pill only use the card switches,
+  never the small ones.
+- Tested 3 November 2026 on the hub: saving each page unchanged left every
+  switch as it was (it writes features that only had defaults, such as
+  at-live-reload and faq-schema, as 1), one flipped switch changed only its
+  key, and a greyed out feature kept its value.
+
+### The bar on group pages (3 November 2026)
+
+Sam asked for the Features page bar on every group page of Bricks and Site
+Kit. SB_Tweaks_Screen::render_group() prints SB_Tweaks_UI::bar() inside the
+form (id sb-tweaks-group-form): Features (the count and Disable all, Enable
+all), Cards (Collapse all, Expand all, Collapse disabled) and Save changes.
+The count leaves out 'always' cards, which have no switch, and a group of
+settings cards only gets the Cards buttons.
+
+- Collapsed cards are kept per user under group_cards_key(): the groups
+  option plus the group, such as sb_tweaks_bricks_groups_extras. Each
+  feature card carries data-sb-card with its feature id.
+- The grid has data-sb-cards-fixed, so module-cards.js adds the chevron but
+  no drag handle: a wide card can only sit at the bottom, and the Features
+  page lists the features in this same order.
+- Groups that show a feature's own page (FAQ Settings, SEO, Image
+  Management, Email Signatures) draw that page and get no bar.
+- Saving is unchanged: SB_Tweaks_Save::save(). Tested 3 November 2026: an
+  unchanged save of each Bricks and Site Kit group page changed nothing.
+
+### Admin menu tile (3 November 2026)
+
+Sam asked for every SocialBUMP item in the admin menu to look the same: the
+mark in SocialBUMP green (#85df07) on the banner's dark navy (#16171d,
+--sbui-navy-900), with the banner's faint edge, at full strength in every
+state. Before this the SB Tweaks items were dimmed to 60% and SEO for AI was
+plain white.
+
+- SB_Tweaks_UI::menu_styles() runs on admin_head on every admin page. It
+  finds top level items whose icon is an SVG holding the mark's outline
+  (SB_Tweaks_UI::MARK), so SocialBUMP Tweaks, each module with its own menu
+  and other SocialBUMP plugins that carry the mark (SEO for AI) are all
+  picked up with no list to keep. The sb_tweaks_menu_marks filter adds more
+  by menu slug.
+- WordPress's svg-painter repaints every fill in a menu SVG in the scheme's
+  colour, which would turn the tile into one solid block. So the icon's own
+  background is set to none (the painter then skips it) and the tile,
+  SB_Tweaks_UI::menu_tile(), is drawn in div.wp-menu-image::before at 22px.
+- The icon_styles() dimming in SB_Tweaks_Settings and SB_Tweaks_Screen is
+  gone. add_menu_page() still gets the plain white mark, which only shows if
+  the styles are missing.
+- A site with SEO for AI but no SocialBUMP Tweaks keeps SEO for AI's own
+  white icon.
+### The colour field: one component (3 November 2026)
+
+Sam: every colour picker is one base component, so a change to it changes
+them all, and no module builds its own. Email Signatures had five copies of
+the menu and four of the hex lookup; all of them now use this.
+
+- Draw it with SB_Tweaks_Fields::colour( [ name, id, value, label,
+  placeholder, class, attrs, input_attrs, swatch ] ) in PHP, or
+  SBTweaksColour.field( args, opts ) in script, or turn someone else's text
+  box (an ACF field) into one with SBTweaksColour.enhance( input, opts,
+  className ). Framework settings of type color use colour() already.
+- assets/js/colour.js (window.SBTweaksColour) runs it, and
+  assets/css/colour.css styles it (ui.css adds the SocialBUMP UI look). Both
+  are registered as sb-tweaks-colour by SB_Tweaks_Colours::register_assets();
+  a page lists them as dependencies (the framework's admin.css and
+  framework.js do, and so do Email Signatures' stylesheet and scripts).
+- Every [data-sb-colour] attaches by itself with the site's colours
+  (SB_Tweaks_Colours::data_tag(), JSON in script#sb-tweaks-palette, printed
+  once by colour()). A page with more to say calls SBTweaksColour.attach(
+  wrap, opts ), before or after, and the options merge: palette (a list or a
+  function, for a page that switches company), hex (its own lookup; Email
+  Signatures only takes hex, theme and brand colours, as its server does,
+  through SBTweaksColour.lookup( value, { colours, brand, palette } )) and
+  fallback (the hex a blank one shows, dashed). paint( root ) repaints after
+  something a fallback depends on changes; set( input, value ) writes with
+  real events; close() shuts the menu.
+- States: .is-inherited (no colour of its own, swatch dashed) and
+  .is-unknown (a value nothing can work out, box border red).
+- Styling lives only in assets/css/colour.css (Sam, 3 November 2026), the
+  SocialBUMP UI tokens with plain fallbacks; no module or ui.css sizes it.
+  The wrapper holds the size: one row, no wrapping, as wide as where it sits
+  and never under min-width 200px. The swatch and button are 36px and never
+  shrink; the box has no width of its own and takes what's left. Rules that
+  size inputs in general skip it with :not(.sb-tweaks-colour > *) (the card
+  and popup rules in admin.css do). A page that wants it narrower or wider
+  sizes the wrapper, never the box.
+- SB_Tweaks_Colours reads the site's colours: Bricks palettes (Advanced
+  Themer's and Core Framework's land there), Core Framework, Elementor's kit,
+  then theme.json, shades kept out of the menu but known. Filter:
+  sb_tweaks/palette (Email Signatures adds sb_emailsig/palette and its brand
+  colours on top). hex() gives any saved colour as a hex; css() gives a
+  saved variable its hex as the fallback (var(--primary, #85df07)) for CSS
+  that runs in the admin, where the site's variables aren't loaded. Fix ACF
+  CPT SVG Icons uses it.
+- Tested 3 November 2026: the component in a browser (lookups, fallbacks,
+  menu, events, attaching twice), Email Signatures' own brand.js,
+  settings.js and colour.js on it in a browser, every changed script through
+  node --check, and each page with colour fields loading clean on the hub.
+  Not yet clicked through on the hub itself.
+
+### Keeping open tabs in step (3 November 2026)
+
+assets/js/sync.js, window.SBTweaksSync, registered as sb-tweaks-sync by SB_Tweaks_UI::register_assets() (admin_enqueue_scripts, priority 1). A page lists it as a dependency.
+
+- send( topic, data ): tells this site's other open admin tabs. Topics are module/thing (email-signatures/templates). A tab never hears its own.
+- on( topic, fn ): runs fn( data ) when another tab sends that topic.
+- refresh( selectors ): fetches the page's own address again (filters in the query string come back the same) and swaps in the fresh copy of each selector's elements. A selector whose count differs is left alone. One load at a time: sends during a load get one more load after it. Fires sb-tweaks:refreshed on document (detail: the swapped parts); ui.js re-labels icon tips on it.
+- BroadcastChannel, falling back to a localStorage storage event.
+- Use it for any save made without a reload that another page shows. Handlers delegated on document keep working on swapped markup; anything set up per element on load listens for sb-tweaks:refreshed.
+
+### Bar divider and one-column checklists (3 November 2026)
+
+- SB_Tweaks_UI::divider() is a thin upright line between groups of buttons in a bar (.sb-ui-bar__divider, ui.css). First used on Email Signatures' company bars, between the worded buttons and the icon buttons.
+- .sb-tweaks-checklist--list (admin.css) puts a checklist in one column, rows ruled off, scrolling past about 360px. With .sb-tweaks-checklist__tools and [data-sb-tweaks-check] buttons inside the same .sb-tweaks-field, framework.js's Select all and Select none work on it, popups included. First used by Email Signatures' Export People popup.
+- Select all and Select none are core (3 November 2026): SB_Tweaks_Fields::check_tools() in PHP and SBTweaksFields.checkTools() in framework.js draw the same markup, and SBTweaksFields.checklist( items, opts ) builds a whole checklist field in a script (one column with list: true, a "2 of 3 people" count with count: [ one, many ], in .sb-tweaks-checklist__head with the pair). ui.css draws the pair as joined buttons anywhere under body.sb-ui, popups included; it used to need .sb-tweaks-wrap, so in a popup they ran together as two bare links.
+- On a checklist field, 'select_all' => 'text' puts the text links under the boxes, on the left (Sam, 3 November 2026: Site Kit's Block Admin Access and Hide Toolbar On The Front End); true keeps the joined buttons above.
+- Text Select all and none (3 November 2026): .sb-toggles--text draws a pair as small text links (grey, green and underlined on hover) instead of joined buttons. SB_Tweaks_Fields::check_tools( true ), 'select_all' => 'text' on a checklist field, or SBTweaksFields.checklist( items, { tools: 'text' } ). Use it in popups and anywhere the buttons would weigh as much as what they pick.
+- A menu in a confirm popup (3 November 2026): data-sb-tweaks-confirm-choose='{"name","label","options":[[value,text]]}' on a [data-sb-tweaks-confirm] button shows a select in the popup and puts the pick in the form's field of that name (added if missing) before it sends. .sb-tweaks-dialog__field select is full width.
+
+- The colour field is never wider than 250px (.sb-tweaks-colour max-width, colour.css; Sam, 3 November 2026), so it doesn't stretch across a wide card or popup.
+- Options to pick one of in a confirm popup (3 November 2026): data-sb-tweaks-confirm-choose with "type": "radio" and options [ { value, label, note, menu: { name, options }, tone: "danger", action } ]. Each is a box (.sb-tweaks-dialog__choice) with its note and its own menu (on only while it's picked); the picked box is outlined green, red for tone danger, and the action button takes that option's action words. The pick goes in the form's field "name", the menu's in its own name. A plain menu ({ name, label, options: [[value, text]] }) still works as before.
+
+### The banner: one component (3 November 2026)
+
+SB_Tweaks_UI::header( $a ) draws the dark banner on every page: SocialBUMP Tweaks' own (SB_Tweaks_Settings::render_header()) and every module's (SB_Tweaks_Screen::render_header(), which Email Signatures' person screens use too). Neither keeps markup of its own any more.
+
+- A breadcrumb along the top (Sam): the logo goes to SocialBUMP Tweaks' Modules page on every page; the name ($a['name']) links to $a['name_url'], a module's first page (front_door(), so Features for Site Kit and Bricks Tweaks, Signatures for Email Signatures; Modules for Tweaks itself); then a › and the page you're on ($a['page'], left out when it's the name). No separator between the logo and the name.
+- Then the version badge ($a['version'] = [ text, url ], Tweaks' own pages only), the Auto, Light and Dark switch, $a['intro'], and $a['nav'] along the bottom: [ url, title, current, badge ], shown with two or more (Publishing's badge is the count of changes waiting).
+- Every banner style is in ui.css, "Banner", in one block under body.sb-ui; admin.css has none (it had them in five places, the version link twice, mostly overridden by ui.css). Moving them was checked by comparing the computed styles of every part of the banner before and after: the only differences were the new › and the page name's spacing. The unused is-outdated version colours went with it.
+- Modules never style the banner. A module's CSS only overrides core where it truly must.
+
+### Unsaved chip and the save shortcut (3 November 2026)
+
+- The Unsaved chip (ui.js watchCards) is appended to the card itself, not its title, and ui.css floats it on the card's top edge, top right (`body.sb-ui .sb-tweaks-card > .sb-ui-unsaved`: absolute, top -11px, right 20px, amber border, tint over the surface). The title never wraps and the card never changes height. It sits above the head, so the switch, chevron and grip stay clear. Every `.sb-tweaks-card` keeps `position: relative` for this; a module must not override it.
+- Cmd+S (Ctrl+S off a Mac) saves on every page that loads save-state.js (all Screen and Settings pages). It submits the dirty form that holds the focus, else the first dirty one, through the same submit() as the reminder pill. Nothing to save: an info toast, never the browser's Save Page. Skipped while held down, while a `.sb-tweaks-modal` popup is open, or while a save is already on its way. TinyMCE boxes are hooked too (their keys don't reach the page), and `tinymce.triggerSave()` runs first so typed text counts.
+- The chip's tip says "Click to save, or press ⌘S" (Ctrl+S off a Mac).
+
+### Safari and focus (3 November 2026)
+
+- When a script focuses a field, Safari scrolls to put it in the middle of the screen if it doesn't count it as fully in view; Chrome only scrolls when it's off-screen. The colour menu focused its first colour on opening and the box after a pick, so picking a colour jumped the page in Safari.
+- Rule: a focus() call on something that's already on screen passes `{ preventScroll: true }`. colour.js does for all three of its calls.
+- The holdStill() helper added to ui.js earlier the same day was taken out again: it didn't stop the Safari jump, and wasn't proven in real Safari.
+
+- Redrawing part of a page: SBTweaksUI.redraw( parts, fn ) (ui.js) holds each part at its height (inline min-height) while fn empties and refills it, then lets go. Without it the page is briefly shorter, and a browser that measures it then (Safari) scrolls up to fit and stays there: the Email Signatures Layout page moved when a colour was picked or Layout Settings was reset. Any module that empties and rebuilds a part of the page uses it. layout.js does, for render() (the layout, Container and Footer cards) and drawDefaults().
+
+- Popup fields (Sam, 3 November 2026): the label rule is `.sb-tweaks-dialog__field > span:not(.sb-tweaks-colour)` (admin.css and ui.css), and ui.css's dialog input rule skips `.sb-tweaks-colour > *`, as admin.css's already did. The colour component's wrapper is a span, so the label rule made it a bold block and the Theme colours button wrapped under the box (the Email Signatures brand colours popup). A module's popup gets this from core; it doesn't restyle the label itself.
+
+### Dropdown button (3 November 2026)
+
+SB_Tweaks_UI::dropdown( $a ) is a button with a menu under it, such as a
+card's Actions (Sam: "if not Actions dropdown button setup in the framework,
+it should be"). First used on Email Signatures' person cards.
+
+- Look: the label, a thin divider, then the arrow in a strip of its own. White
+  by default; primary => true makes it green for a page's main action (the
+  Installs page's look). small => true makes it button-small.
+- $a: label (default Actions), items, primary, small, align ('right', the
+  menu's right edge under the button's, or 'left'), class (on the wrapper,
+  span.sb-ui-dropdown) and aria (the button's screen reader label).
+- Items: dropdown_item( label, icon svg, attrs ), dropdown_head( text ) and
+  dropdown_line(). In attrs, href makes a link, type submit makes the button
+  of the form round it (a form of class sb-ui-dropdown__form), danger => true
+  makes it red with a light red background (solid red on hover), class adds
+  classes, and any other key prints as an attribute (data-sb-tweaks-confirm
+  and the rest work as on any button). aria-disabled="true" items do nothing.
+- ui.js (Dropdowns): a click toggles it, one open at a time; a click outside
+  or picking an item closes it. Arrow Down or Up on the button opens it;
+  inside, Arrow keys, Home and End step through, Escape closes and puts focus
+  back on the button, Tab closes.
+- The menu is position: fixed and placed against the window when it opens
+  (under the button, kept 8px inside the window, over the button when there's
+  no room under it), so no card, popup or scrolling box can cut it off. So it
+  closes when the page scrolls (not when its own list scrolls) and on resize.
+- The arrow turns up while it's open (aria-expanded).
+- The button's padding rule is body.sb-ui .sb-ui-dropdown > .button.sb-ui-dropdown__button,
+  so the strip reaches the right edge even where the small button padding
+  rule for .sb-tweaks-wrap and popups would win.
+- SBTweaksUI.closeMenus() closes whichever dropdown is open, for a page's own
+  script (the Installs page calls it when an update starts).
+- Used on: Email Signatures' person cards (white, small) and the Installs
+  page's Actions (green, 3 November 2026).
 
 ### Rules for every page
 

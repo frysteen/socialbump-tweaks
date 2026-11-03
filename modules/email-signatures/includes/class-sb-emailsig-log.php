@@ -195,6 +195,12 @@ class SB_EmailSig_Log {
 
 		if ( $old === 'new' || $old === 'auto-draft' ) {
 			self::$added[] = (int) $post->ID;
+
+			// A copy: SB_EmailSig_Person::copy() logs it as Duplicated.
+			if ( self::$via === 'duplicate' ) {
+				return;
+			}
+
 			self::add( $type === 'person' && self::$via === 'request' ? 'submitted' : 'added', $type, $post->ID, $post->post_title );
 
 			return;
@@ -290,6 +296,10 @@ class SB_EmailSig_Log {
 				return 'Deleted ' . $n;
 			case 'person.restored':
 				return 'Restored ' . $n;
+			case 'person.moved':
+				return 'Moved ' . $n . ( $row['detail'] !== '' ? ' to ' . $row['detail'] : '' );
+			case 'person.duplicated':
+				return 'Duplicated ' . ( $row['detail'] !== '' ? $row['detail'] . ' as ' : '' ) . $n;
 			case 'person.purged':
 				return 'Deleted ' . $n . ' for good';
 			case 'person.emailed':

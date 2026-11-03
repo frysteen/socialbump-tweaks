@@ -54,6 +54,8 @@ class SB_EmailSig_Person {
 	public static function init() {
 		add_action( 'admin_post_sb_emailsig_person_save', array( __CLASS__, 'save' ) );
 		add_action( 'admin_post_sb_emailsig_person_delete', array( __CLASS__, 'delete' ) );
+		add_action( 'admin_post_sb_emailsig_person_duplicate', array( __CLASS__, 'duplicate' ) );
+		add_action( 'admin_post_sb_emailsig_person_move', array( __CLASS__, 'move' ) );
 		add_action( 'admin_post_sb_emailsig_person_restore', array( __CLASS__, 'restore' ) );
 		add_action( 'admin_post_sb_emailsig_person_purge', array( __CLASS__, 'purge' ) );
 		add_action( 'wp_ajax_sb_emailsig_person_preview', array( __CLASS__, 'preview' ) );
@@ -82,9 +84,20 @@ class SB_EmailSig_Person {
 		return SB_EmailSig_Admin::goto_menu( self::url( $id ), $name, $people, 'Edit another person' );
 	}
 
-	/** This page's address: a person, or 0 to add someone. */
-	public static function url( $id = 0 ) {
-		return admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures&person=' . ( $id ? (int) $id : 'new' ) );
+	/** This page's address: a person, or 0 to add someone, in $company when given. */
+	public static function url( $id = 0, $company = 0 ) {
+		return admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures&person=' . ( $id ? (int) $id : 'new' ) . ( ! $id && $company ? '&company=' . (int) $company : '' ) );
+	}
+
+	/**
+	 * The company a new person starts in when Add person came from a
+	 * company's card or bar (&company=, Sam, 3 November 2026): that company
+	 * when it's a live one, else 0 (the default).
+	 */
+	public static function new_company() {
+		$co = ( self::is_screen() && ! self::current() && isset( $_GET['company'] ) ) ? absint( $_GET['company'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+
+		return SB_EmailSig_Company::valid( $co ) ? $co : 0;
 	}
 
 	/** True on this page. */
@@ -204,9 +217,10 @@ class SB_EmailSig_Person {
 	/** The page, drawn in the person's company (its templates, its details for the preview). */
 	public static function render() {
 		$id = self::current();
+		$co = ( ! $id && self::new_company() ) ? self::new_company() : SB_EmailSig_Company::of_person( $id );
 
 		SB_EmailSig_Company::with(
-			SB_EmailSig_Company::of_person( $id ),
+			$co,
 			function () {
 				self::draw();
 			}
@@ -398,6 +412,142 @@ class SB_EmailSig_Person {
 		self::back_to_team( array( 'trashed' => $id ) );
 
 		wp_safe_redirect( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures&trashed=1' ) );
+		exit;
+	}
+
+	/**
+	 * Duplicate (Sam, 3 November 2026): a copy of a person in the company
+	 * picked (their own when there's only one), Inactive and with "(copy)"
+	 * after the last name, so it's clear which is which and nothing goes live
+	 * until it's checked. Then back to the list with the copy highlighted.
+	 */
+	public static function duplicate() {
+		$id = isset( $_POST['sb_emailsig_person'] ) ? absint( $_POST['sb_emailsig_person'] ) : 0;
+
+		check_admin_referer( self::NONCE . '_duplicate_' . $id );
+
+		if ( ! $id || get_post_type( $id ) !== SB_EMAILSIG_CPT || get_post_status( $id ) === 'trash' || ! self::allowed( $id ) || ! SB_EmailSig_Admin::can_manage() || ! current_user_can( 'edit_post', $id ) ) {
+			wp_die( 'You can\'t duplicate people.' );
+		}
+
+		$to   = isset( $_POST['company'] ) ? absint( $_POST['company'] ) : 0;
+		$to   = SB_EmailSig_Company::valid( $to ) ? $to : (int) SB_EmailSig_Company::of_person( $id );
+		$copy = self::copy( $id, $to );
+
+		if ( ! $copy ) {
+			wp_die( 'The copy couldn\'t be made. Go back and try again.' );
+		}
+
+		self::back_to_team( array( 'copied' => $copy ) );
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures&copied=' . $copy ) );
+		exit;
+	}
+
+	/**
+	 * A copy of person $id in company $to: every field and setting, the
+	 * Linked to page and the same photo with its crop and look (the images
+	 * made from it are made again for the copy), Inactive, "(copy)" after the
+	 * last name. Left behind: its key (the copy gets its own page address),
+	 * the images made for it, emails sent, a request in progress and editing
+	 * locks. Returns the copy's id, or 0.
+	 */
+	public static function copy( $id, $to ) {
+		$skip = array( '_sb_emailsig_key', '_sb_emailsig_photos', '_sb_emailsig_photo_jpg', '_sb_emailsig_photo_png', '_sb_emailsig_photo_hash', '_sb_emailsig_photo_circle', '_sb_emailsig_sent', 'sb_emailsig_requested', '_edit_lock', '_edit_last', '_wp_old_slug', '_wp_trash_meta_status', '_wp_trash_meta_time', '_wp_desired_post_slug' );
+
+		// Their names as the copy will keep them: as typed, or, when their
+		// Linked to page can't follow them into $to, as they show now
+		// (SB_EmailSig_Staff::value_for(), carry() below does the rest).
+		$read = function ( $field ) use ( $id, $to ) {
+			return SB_EmailSig_Staff::value_for( $id, $field, $to );
+		};
+
+		$first = trim( $read( 'sb_emailsig_first_name' ) );
+		$last  = trim( $read( 'sb_emailsig_last_name' ) );
+		$name  = trim( $read( 'sb_emailsig_name' ) );
+
+		if ( $first === '' && $last === '' ) {
+			list( $first, $last ) = SB_EmailSig_Names::split( $name );
+		}
+
+		$last = trim( $last . ' (copy)' );
+		$full = SB_EmailSig_Names::join( $first, $last );
+
+		// Logged below as Duplicated, with what it came from, not as Added.
+		SB_EmailSig_Log::$via = 'duplicate';
+		$copy                 = wp_insert_post(
+			array(
+				'post_type'   => SB_EMAILSIG_CPT,
+				'post_status' => 'draft',
+				'post_title'  => $full,
+				'post_author' => get_current_user_id(),
+			),
+			true
+		);
+		SB_EmailSig_Log::$via = '';
+
+		if ( is_wp_error( $copy ) || ! $copy ) {
+			return 0;
+		}
+
+		foreach ( get_post_meta( $id ) as $key => $values ) {
+			if ( in_array( $key, $skip, true ) ) {
+				continue;
+			}
+
+			delete_post_meta( $copy, $key );
+
+			foreach ( $values as $value ) {
+				add_post_meta( $copy, $key, wp_slash( maybe_unserialize( $value ) ) );
+			}
+		}
+
+		SB_EmailSig_Staff::carry( $id, $copy, $to );
+
+		update_post_meta( $copy, 'sb_emailsig_first_name', wp_slash( $first ) );
+		update_post_meta( $copy, '_sb_emailsig_first_name', SB_EmailSig_Names::FIRST );
+		update_post_meta( $copy, 'sb_emailsig_last_name', wp_slash( $last ) );
+		update_post_meta( $copy, '_sb_emailsig_last_name', SB_EmailSig_Names::LAST );
+		update_post_meta( $copy, 'sb_emailsig_name', wp_slash( $full ) );
+		update_post_meta( $copy, '_sb_emailsig_name', SB_EmailSig_Names::FULL );
+		update_post_meta( $copy, SB_EmailSig_Company::PERSON_META, (int) $to );
+
+		SB_EmailSig_CPT::ensure_key( $copy );
+		SB_EmailSig_Log::add( 'duplicated', 'person', $copy, $full, $name !== '' ? $name : get_the_title( $id ) );
+
+		return (int) $copy;
+	}
+
+	/**
+	 * Move a person to another company (Sam, 3 November 2026), from the
+	 * Actions menu on their card: Active or Inactive as they were, their
+	 * Linked to page's fields kept as text when it can't follow them
+	 * (SB_EmailSig_Staff::carry()). Then back to the list, highlighted in
+	 * their new company.
+	 */
+	public static function move() {
+		$id = isset( $_POST['sb_emailsig_person'] ) ? absint( $_POST['sb_emailsig_person'] ) : 0;
+
+		check_admin_referer( self::NONCE . '_move_' . $id );
+
+		if ( ! $id || get_post_type( $id ) !== SB_EMAILSIG_CPT || get_post_status( $id ) === 'trash' || ! self::allowed( $id ) || ! SB_EmailSig_Admin::can_manage() || ! current_user_can( 'edit_post', $id ) ) {
+			wp_die( 'You can\'t move people.' );
+		}
+
+		$to   = isset( $_POST['company'] ) ? absint( $_POST['company'] ) : 0;
+		$from = (int) SB_EmailSig_Company::of_person( $id );
+
+		if ( ! SB_EmailSig_Company::valid( $to ) || $to === $from ) {
+			wp_die( 'Pick another company to move them to. Go back and try again.' );
+		}
+
+		SB_EmailSig_Staff::carry( $id, $id, $to );
+		update_post_meta( $id, SB_EmailSig_Company::PERSON_META, $to );
+		SB_EmailSig_Log::add( 'moved', 'person', $id, '', SB_EmailSig_Company::name( $to ) );
+
+		self::back_to_team( array( 'person_moved' => $id ) );
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures&person_moved=' . $id ) );
 		exit;
 	}
 

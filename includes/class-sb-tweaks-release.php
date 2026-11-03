@@ -23,6 +23,91 @@ class SB_Tweaks_Release {
 	/** The latest beta on GitHub: version, release id, tag and when (Sam, 30 October 2026). */
 	const BETA_OPTION    = 'sb_tweaks_beta';
 
+	/** Publish's progress run (SB_Tweaks_Progress), or '' when nobody is watching. */
+	private $run = '';
+
+	/** When the last finished step ended, for its time in the report. */
+	private $mark = 0.0;
+
+	/** Finished steps for the popup's report: [ what, result ]. */
+	private $steps = [];
+
+	/** The step under way, as the report names it, for the line saying it failed. */
+	private $label = '';
+
+	/** Each step's place on the progress bar: key => [ from, to, label, seconds ]. */
+	private $plan = [];
+
+	/**
+	 * Share the bar out by how long each step of Publish takes, measured on
+	 * the hub on 3 November 2026: about 0.7 seconds to send each changed file,
+	 * 5 for the file list, 3 for the zip upload. $uploads is how many files go
+	 * up, a guess until GitHub has said what it already has.
+	 */
+	private function plan( $uploads ) {
+		$steps = [
+			'check'   => [ __( 'GitHub', 'sb-tweaks' ), 1 ],
+			'version' => [ __( 'Version', 'sb-tweaks' ), 0.3 ],
+			'zip'     => [ __( 'Zip', 'sb-tweaks' ), 0.4 ],
+			'read'    => [ __( 'Code', 'sb-tweaks' ), 1.5 ],
+			'upload'  => [ __( 'Code', 'sb-tweaks' ), max( 0, (int) $uploads ) * 0.7 ],
+			'list'    => [ __( 'Code', 'sb-tweaks' ), 2 ],
+			'commit'  => [ __( 'Commit', 'sb-tweaks' ), 1.5 ],
+			'release' => [ __( 'Release', 'sb-tweaks' ), 1 ],
+			'zip_up'  => [ __( 'Release', 'sb-tweaks' ), 3 ],
+			'publish' => [ __( 'Published', 'sb-tweaks' ), 3 ],
+			'tidy'    => [ __( 'Release notes', 'sb-tweaks' ), 1 ],
+		];
+
+		$total = array_sum( array_column( $steps, 1 ) );
+		$at    = 0.0;
+
+		foreach ( $steps as $key => $step ) {
+			$to                 = $at + 100 * $step[1] / $total;
+			$this->plan[ $key ] = [ $at, $to, $step[0], $step[1] ];
+			$at                 = $to;
+		}
+	}
+
+	/**
+	 * Tell the popup which step is under way: the bold $status line and the
+	 * grey $current one. $part and $width are the piece of the step this is
+	 * (one file of 58, say), as fractions of it.
+	 */
+	private function stage( $key, $status, $current = '', $part = 0.0, $width = 1.0 ) {
+		$at          = isset( $this->plan[ $key ] ) ? $this->plan[ $key ] : [ 0, 0, '', 0 ];
+		$this->label = $at[2];
+
+		if ( $this->run === '' || ! class_exists( 'SB_Tweaks_Progress' ) ) {
+			return;
+		}
+
+		$span = $at[1] - $at[0];
+
+		SB_Tweaks_Progress::set(
+			$this->run,
+			[
+				'from'    => $at[0] + $span * $part,
+				'to'      => $at[0] + $span * min( 1, $part + $width ),
+				'eta'     => $at[3] * $width,
+				'status'  => $status,
+				'current' => $current,
+			]
+		);
+	}
+
+	/** A finished step for the popup's report, with how long it took. */
+	private function done_step( $what, $result ) {
+		$now = microtime( true );
+
+		$this->steps[] = [
+			'what'   => $what . ':',
+			/* translators: 1: what happened, 2: seconds */
+			'result' => sprintf( __( '%1$s (%2$ss)', 'sb-tweaks' ), $result, number_format_i18n( $now - $this->mark, 1 ) ),
+		];
+		$this->mark = $now;
+	}
+
 	public static function instance() {
 		if ( self::$instance === null ) {
 			self::$instance = new self();
@@ -106,10 +191,18 @@ class SB_Tweaks_Release {
 		// Publish posted in the background wants the answer, not the page. The
 		// notice is still saved, so it shows when the popup's Close reloads.
 		if ( ! empty( $_POST['sb_tweaks_background'] ) ) {
+			if ( $this->run !== '' && class_exists( 'SB_Tweaks_Progress' ) ) {
+				SB_Tweaks_Progress::clear( $this->run );
+			}
+
+			// steps and failed are Publish's report: a line per finished step,
+			// and the step it stopped at.
 			wp_send_json(
 				[
 					'ok'      => $type === 'success',
 					'message' => trim( wp_strip_all_tags( $message ) ),
+					'steps'   => $this->steps,
+					'failed'  => $type === 'success' ? '' : ( $this->label !== '' ? $this->label : __( 'Publish', 'sb-tweaks' ) ) . ':',
 				]
 			);
 		}
@@ -340,6 +433,9 @@ class SB_Tweaks_Release {
 			return new WP_Error( 'sb_tweaks_git', sprintf( __( 'Copying the code to GitHub failed while %1$s (%2$s).', 'sb-tweaks' ), $what, $res['error'] ? $res['error'] : 'HTTP ' . $res['code'] ) );
 		};
 
+		/* translators: %s: branch name */
+		$this->stage( 'read', __( 'Reading what GitHub already has', 'sb-tweaks' ), sprintf( __( 'Branch: %s', 'sb-tweaks' ), $branch ) );
+
 		$ref = $this->github( 'GET', $git . '/ref/heads/' . rawurlencode( $branch ), $token );
 
 		if ( $ref['code'] !== 200 || empty( $ref['body']['object']['sha'] ) ) {
@@ -364,10 +460,15 @@ class SB_Tweaks_Release {
 		 * pointed at rather than sent again. Every publish used to send all of
 		 * it: the text files in one big request and each of the 37 others (the
 		 * update checker's translations and the icons) in one of its own,
-		 * though they almost never change. If the full listing cannot be had,
-		 * everything is sent as before.
+		 * though they almost never change. If the full listing cannot be had
+		 * (asked twice: GitHub sometimes doesn't answer it the first time),
+		 * everything is sent.
 		 */
 		$top = $this->github( 'GET', $git . '/trees/' . $old_tree . '?recursive=1', $token );
+
+		if ( $top['code'] !== 200 || empty( $top['body']['tree'] ) || ! empty( $top['body']['truncated'] ) ) {
+			$top = $this->github( 'GET', $git . '/trees/' . $old_tree . '?recursive=1', $token );
+		}
 
 		if ( $top['code'] === 200 && ! empty( $top['body']['tree'] ) && empty( $top['body']['truncated'] ) ) {
 			foreach ( $top['body']['tree'] as $entry ) {
@@ -392,6 +493,20 @@ class SB_Tweaks_Release {
 			}
 		}
 
+		// How many files go up, so the progress bar can give each its share.
+		$send = 0;
+
+		foreach ( $files as $rel => $abs ) {
+			$content = (string) file_get_contents( $abs );
+
+			if ( ! isset( $known[ $rel ] ) || $known[ $rel ] !== sha1( 'blob ' . strlen( $content ) . chr( 0 ) . $content ) ) {
+				++$send;
+			}
+		}
+
+		$this->plan( $send );
+		$sent = 0;
+
 		foreach ( $files as $rel => $abs ) {
 			$content = (string) file_get_contents( $abs );
 
@@ -409,31 +524,33 @@ class SB_Tweaks_Release {
 				continue;
 			}
 
-			$binary  = strpos( $content, "\0" ) !== false || ! preg_match( '//u', $content );
+			// Each changed file goes up on its own, so the file list below only
+			// names them. Putting their contents in the file list itself made one
+			// request of every change: 57 files (1.5 MB) after 0.6.4, which GitHub
+			// timed out on (Sam, 3 November 2026).
+			$binary = strpos( $content, "\0" ) !== false || ! preg_match( '//u', $content );
 
-			if ( ! $binary ) {
-				$tree[] = [
-					'path'    => $rel,
-					'mode'    => '100644',
-					'type'    => 'blob',
-					'content' => $content,
-				];
-				continue;
-			}
+			/* translators: 1: file number, 2: number of files */
+			$this->stage( 'upload', sprintf( __( 'Sending changed files to GitHub: %1$d of %2$d', 'sb-tweaks' ), $sent + 1, $send ), 'File: ' . $rel, $send ? $sent / $send : 0, $send ? 1 / $send : 1 );
 
 			$blob = $this->github(
 				'POST',
 				$git . '/blobs',
 				$token,
-				[
+				$binary ? [
 					'content'  => base64_encode( $content ),
 					'encoding' => 'base64',
+				] : [
+					'content'  => $content,
+					'encoding' => 'utf-8',
 				]
 			);
 
 			if ( $blob['code'] !== 201 || empty( $blob['body']['sha'] ) ) {
 				return $fail( 'uploading ' . $rel, $blob );
 			}
+
+			++$sent;
 
 			$tree[] = [
 				'path' => $rel,
@@ -443,7 +560,59 @@ class SB_Tweaks_Release {
 			];
 		}
 
-		$new_tree = $this->github( 'POST', $git . '/trees', $token, [ 'tree' => $tree ] );
+		/**
+		 * With GitHub's list of what it has, the file list only names what
+		 * changed and what's gone, on top of the last commit's (base_tree).
+		 * Naming all 455 files took 5 seconds once and then timed out on
+		 * GitHub's side (3 November 2026). Files in $keep at the top of the
+		 * repo are left to base_tree. Without the list, everything is named as
+		 * before. A timeout is tried again (github_retry()).
+		 */
+		$body = [ 'tree' => $tree ];
+
+		if ( $known ) {
+			$here  = [];
+			$delta = [];
+
+			foreach ( $tree as $entry ) {
+				$here[ $entry['path'] ] = true;
+
+				$kept      = in_array( $entry['path'], $keep, true ) && ! isset( $files[ $entry['path'] ] );
+				$unchanged = isset( $entry['sha'], $known[ $entry['path'] ] ) && $known[ $entry['path'] ] === $entry['sha'];
+
+				if ( ! $kept && ! $unchanged ) {
+					$delta[] = $entry;
+				}
+			}
+
+			// Gone from the plugin, so gone from the repo (not $keep's).
+			foreach ( $known as $path => $sha ) {
+				if ( ! isset( $here[ $path ] ) && ! in_array( explode( '/', $path )[0], $keep, true ) ) {
+					$delta[] = [
+						'path' => $path,
+						'mode' => '100644',
+						'type' => 'blob',
+						'sha'  => null,
+					];
+				}
+			}
+
+			if ( ! $delta ) {
+				$this->done_step( __( 'Code', 'sb-tweaks' ), __( 'nothing had changed, so the last commit is used', 'sb-tweaks' ) );
+
+				return $parent;
+			}
+
+			$body = [
+				'base_tree' => $old_tree,
+				'tree'      => $delta,
+			];
+		}
+
+		/* translators: 1: files named, 2: all files */
+		$this->stage( 'list', __( 'Building the file list on GitHub', 'sb-tweaks' ), sprintf( __( 'Files: %1$d changed of %2$d', 'sb-tweaks' ), count( $body['tree'] ), count( $files ) ) );
+
+		$new_tree = $this->github_retry( 'POST', $git . '/trees', $token, $body );
 
 		if ( $new_tree['code'] !== 201 || empty( $new_tree['body']['sha'] ) ) {
 			return $fail( 'building the file list', $new_tree );
@@ -451,8 +620,21 @@ class SB_Tweaks_Release {
 
 		// Nothing changed since the last copy, so reuse the current commit.
 		if ( $new_tree['body']['sha'] === $old_tree ) {
+			$this->done_step( __( 'Code', 'sb-tweaks' ), __( 'nothing had changed, so the last commit is used', 'sb-tweaks' ) );
+
 			return $parent;
 		}
+
+		$this->done_step(
+			__( 'Code', 'sb-tweaks' ),
+			$known
+				/* translators: 1: files sent, 2: all files */
+				? sprintf( __( '%1$d of %2$d files changed and sent, the rest kept as they were', 'sb-tweaks' ), $sent, count( $files ) )
+				/* translators: %d: all files */
+				: sprintf( __( 'all %d files sent, as GitHub did not say what it already had', 'sb-tweaks' ), $sent )
+		);
+		/* translators: 1: version, 2: branch */
+		$this->stage( 'commit', __( 'Saving the commit', 'sb-tweaks' ), sprintf( __( 'Commit: Version %1$s on %2$s', 'sb-tweaks' ), $version, $branch ) );
 
 		$new_commit = $this->github(
 			'POST',
@@ -482,6 +664,9 @@ class SB_Tweaks_Release {
 		if ( $move['code'] !== 200 ) {
 			return $fail( 'updating the branch', $move );
 		}
+
+		/* translators: 1: version, 2: branch */
+		$this->done_step( __( 'Commit', 'sb-tweaks' ), sprintf( __( 'Version %1$s on %2$s', 'sb-tweaks' ), $version, $branch ) );
 
 		return $new_commit['body']['sha'];
 	}
@@ -639,6 +824,12 @@ class SB_Tweaks_Release {
 	public function publish() {
 		$this->guard( 'sb_tweaks_publish' );
 
+		// Where it's up to, for the popup (SB_Tweaks_Progress), and a line per
+		// finished step for its report (Sam, 3 November 2026).
+		$this->run  = class_exists( 'SB_Tweaks_Progress' ) ? SB_Tweaks_Progress::run_id() : '';
+		$this->mark = microtime( true );
+		$this->plan( 40 );
+
 		if ( function_exists( 'set_time_limit' ) ) {
 			@set_time_limit( 300 );
 		}
@@ -667,6 +858,8 @@ class SB_Tweaks_Release {
 			$this->abort( sprintf( __( '%1$s has to be higher than the current version, %2$s.', 'sb-tweaks' ), $version, $current ) );
 		}
 
+		$this->stage( 'check', __( 'Checking GitHub', 'sb-tweaks' ), 'Repo: ' . SB_TWEAKS_GITHUB_REPO );
+
 		$tag  = 'v' . $version;
 		$repo = $this->github( 'GET', '/repos/' . SB_TWEAKS_GITHUB_REPO, $token );
 
@@ -681,6 +874,11 @@ class SB_Tweaks_Release {
 			/* translators: %s: release tag */
 			$this->abort( sprintf( __( 'A release called %s is already on GitHub.', 'sb-tweaks' ), $tag ) );
 		}
+
+		/* translators: %s: release tag */
+		$this->done_step( __( 'GitHub', 'sb-tweaks' ), sprintf( __( 'reached, and %s is free', 'sb-tweaks' ), $tag ) );
+		/* translators: %s: version number */
+		$this->stage( 'version', sprintf( __( 'Setting the version to %s', 'sb-tweaks' ), $version ), __( 'Files: the plugin file and readme.txt', 'sb-tweaks' ) );
 
 		// 1. Bump the version in the main plugin file, and put it back if anything fails.
 		$original = file_get_contents( SB_TWEAKS_FILE );
@@ -698,12 +896,21 @@ class SB_Tweaks_Release {
 			$this->abort( __( 'The main plugin file failed a PHP syntax check after the version change.', 'sb-tweaks' ), $original, '', '', 0, $readme_original );
 		}
 
+		/* translators: 1: old version, 2: new version */
+		$this->done_step( __( 'Version', 'sb-tweaks' ), sprintf( __( '%1$s to %2$s', 'sb-tweaks' ), $current, $version ) );
+		$this->stage( 'zip', __( 'Building the zip', 'sb-tweaks' ) );
+
 		// 2. Build the zip.
 		$zip = $this->build_zip();
 
 		if ( is_wp_error( $zip ) ) {
 			$this->abort( $zip->get_error_message(), $original, '', '', 0, $readme_original );
 		}
+
+		$zip_size = size_format( (int) filesize( $zip ), 1 );
+
+		/* translators: %s: file size */
+		$this->done_step( __( 'Zip', 'sb-tweaks' ), sprintf( __( 'built, %s', 'sb-tweaks' ), $zip_size ) );
 
 		// 3. Copy the plugin files into the repo's Code tab.
 		$branch     = ! empty( $repo['body']['default_branch'] ) ? $repo['body']['default_branch'] : 'main';
@@ -712,6 +919,9 @@ class SB_Tweaks_Release {
 		if ( is_wp_error( $commit_sha ) ) {
 			$this->abort( $commit_sha->get_error_message(), $original, $zip, '', 0, $readme_original );
 		}
+
+		/* translators: %s: release tag */
+		$this->stage( 'release', sprintf( __( 'Creating the release %s', 'sb-tweaks' ), $tag ), 'Release: ' . $tag );
 
 		// 4. Create a draft release on that commit, attach the zip, then publish it.
 		// Sites never see a release that is missing its zip.
@@ -733,6 +943,8 @@ class SB_Tweaks_Release {
 			$this->abort( sprintf( __( 'GitHub would not create the release (%s). Check the token has Contents set to Read and write.', 'sb-tweaks' ), $release['error'] ), $original, $zip, '', 0, $readme_original );
 		}
 
+		$this->stage( 'zip_up', __( 'Uploading the zip to the release', 'sb-tweaks' ), 'Zip: ' . $zip_size );
+
 		$release_id = (int) $release['body']['id'];
 		$upload_url = preg_replace( '/\{.*\}$/', '', $release['body']['upload_url'] ) . '?name=' . rawurlencode( self::ASSET_NAME );
 		$upload     = $this->github_retry( 'POST', $upload_url, $token, file_get_contents( $zip ), [ 'Content-Type' => 'application/zip' ] );
@@ -742,10 +954,15 @@ class SB_Tweaks_Release {
 			$this->abort( sprintf( __( 'The zip upload to GitHub failed (%s).', 'sb-tweaks' ), $upload['error'] ), $original, $zip, $token, $release_id, $readme_original );
 		}
 
+		$this->stage( 'publish', __( 'Publishing the release', 'sb-tweaks' ), 'Release: ' . $tag );
+
 		// GitHub can accept an upload and still attach nothing, so ask it what is there.
 		if ( $this->asset_count( $token, $release_id ) < 1 ) {
 			$this->abort( __( 'GitHub took the zip but did not attach it to the release.', 'sb-tweaks' ), $original, $zip, $token, $release_id, $readme_original );
 		}
+
+		/* translators: %s: release tag */
+		$this->done_step( __( 'Release', 'sb-tweaks' ), sprintf( __( '%s created, with the zip attached', 'sb-tweaks' ), $tag ) );
 
 		/**
 		 * Publishing happens on its own. GitHub rejects make_latest while a release
@@ -764,13 +981,27 @@ class SB_Tweaks_Release {
 		}
 
 		// Only once it is out of draft can it be marked as the latest release.
-		$this->github_retry( 'PATCH', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . $release_id, $token, [ 'make_latest' => 'true' ] );
+		$made_latest = $this->github_retry( 'PATCH', '/repos/' . SB_TWEAKS_GITHUB_REPO . '/releases/' . $release_id, $token, [ 'make_latest' => 'true' ] );
+
+		$this->done_step( __( 'Published', 'sb-tweaks' ), $made_latest['code'] === 200 ? __( 'live on GitHub, and marked as the latest release', 'sb-tweaks' ) : __( 'live on GitHub, though GitHub did not confirm it as the latest release', 'sb-tweaks' ) );
+		$this->stage( 'tidy', __( 'Tidying up', 'sb-tweaks' ), __( 'Release notes: clearing them for the next version', 'sb-tweaks' ) );
+
+		$notes_n  = count( (array) get_option( self::CHANGES_OPTION, [] ) );
+		$beta_was = self::beta();
 
 		wp_delete_file( $zip );
 		self::clear_changes();
 		delete_option( self::NEXT_OPTION );
 		$this->retire_beta( $token, $version );
 		set_transient( self::LATEST_CACHE, $version, 5 * MINUTE_IN_SECONDS );
+
+		/* translators: %d: number of release notes */
+		$this->done_step( __( 'Release notes', 'sb-tweaks' ), $notes_n ? sprintf( _n( '%d cleared, ready for the next version', '%d cleared, ready for the next version', $notes_n, 'sb-tweaks' ), $notes_n ) : __( 'none were waiting', 'sb-tweaks' ) );
+
+		if ( $beta_was && ! self::beta() ) {
+			/* translators: %s: beta version */
+			$this->done_step( __( 'Beta', 'sb-tweaks' ), sprintf( __( '%s retired, as this release replaces it', 'sb-tweaks' ), $beta_was['version'] ) );
+		}
 
 		$url = ! empty( $live['body']['html_url'] ) ? $live['body']['html_url'] : 'https://github.com/' . SB_TWEAKS_GITHUB_REPO . '/releases';
 
@@ -1328,6 +1559,9 @@ class SB_Tweaks_Release {
 					 * Without JavaScript the form posts the old way.
 					 */
 					$publish_text = [
+						'failed'   => __( 'Publishing failed', 'sb-tweaks' ),
+						'step'     => __( 'Publish:', 'sb-tweaks' ),
+						'watch'    => class_exists( 'SB_Tweaks_Progress' ) ? SB_Tweaks_Progress::client() : null,
 						'title'    => __( 'Publishing', 'sb-tweaks' ),
 						/* translators: %s: version number */
 						'status'   => __( 'Building, pushing to GitHub and publishing %s', 'sb-tweaks' ),
@@ -1358,6 +1592,7 @@ class SB_Tweaks_Release {
 							var parts = form.elements.sb_tweaks_version.value.trim().split( '.' );
 							var data  = new FormData( form );
 							var job;
+							var run;
 
 							event.preventDefault();
 
@@ -1370,6 +1605,14 @@ class SB_Tweaks_Release {
 							job.busy();
 							job.status( text.status.replace( '%s', parts.join( '.' ) ) );
 							data.append( 'sb_tweaks_background', '1' );
+
+							// The server says which step it's on as it goes (SB_Tweaks_Progress),
+							// and the bar follows.
+							if ( text.watch && job.watch && window.SBTweaksProgress.id ) {
+								run = window.SBTweaksProgress.id();
+								data.append( 'sb_tweaks_run', run );
+								job.watch( { ajax: text.watch.ajax, nonce: text.watch.nonce, run: run } );
+							}
 
 							// getAttribute, because form.action is the hidden field named action.
 							window.fetch( form.getAttribute( 'action' ), { method: 'POST', body: data, credentials: 'same-origin' } )
@@ -1388,6 +1631,18 @@ class SB_Tweaks_Release {
 
 									if ( ! res || typeof res.ok !== 'boolean' ) {
 										job.fail( text.unclear );
+									} else if ( Array.isArray( res.steps ) ) {
+										// The report: a line per finished step, then the one it stopped at.
+										res.steps.forEach( function ( step ) {
+											job.log( step.what, step.result );
+										} );
+
+										if ( res.ok ) {
+											job.finish( text.complete );
+										} else {
+											job.log( res.failed || text.step, res.message || text.unclear, true );
+											job.finish( text.failed );
+										}
 									} else if ( ! res.ok ) {
 										job.fail( res.message || text.unclear );
 									} else {

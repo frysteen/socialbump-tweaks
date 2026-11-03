@@ -417,11 +417,14 @@ class SB_Tweaks_Installs {
 		$modfilter  = '<span class="sb-installs-modfilter"><button type="button" class="button sb-installs__modfilter" aria-haspopup="true" aria-expanded="false"><span class="sb-installs__modfilter-label">' . esc_html__( 'Modules: All', 'sb-tweaks' ) . '</span><span class="sb-installs__actions-arrow">' . $x . '</span></button>';
 		$modfilter .= '<span class="sb-installs-menu sb-installs-menu--left" hidden><span class="sb-installs-menu__tools"><button type="button" data-mods="all">' . esc_html__( 'Select all', 'sb-tweaks' ) . '</button><button type="button" data-mods="none">' . esc_html__( 'Select none', 'sb-tweaks' ) . '</button></span>' . $checks . '</span></span>';
 
+		// Actions is the framework's dropdown (SB_Tweaks_UI::dropdown(), green;
+		// Sam, 3 November 2026). ui.js opens, closes and steps through it; the
+		// script below only greys items and runs them.
 		$item = function ( $action, $label, $plugin = '' ) {
-			return '<button type="button" role="menuitem" class="sb-installs-menu__item" data-action="' . esc_attr( $action ) . '"' . ( $plugin !== '' ? ' data-plugin="' . esc_attr( $plugin ) . '"' : '' ) . ' aria-disabled="true">' . esc_html( $label ) . '</button>';
+			return SB_Tweaks_UI::dropdown_item( $label, '', [ 'class' => 'sb-installs-menu__item', 'data-action' => $action, 'data-plugin' => $plugin !== '' ? $plugin : null, 'aria-disabled' => 'true' ] );
 		};
 
-		$menu  = '<span class="sb-installs-menu__head">' . esc_html__( 'Selected sites', 'sb-tweaks' ) . '</span>';
+		$menu  = SB_Tweaks_UI::dropdown_head( __( 'Selected sites', 'sb-tweaks' ) );
 		$menu .= $item( 'update', __( 'Update everything waiting', 'sb-tweaks' ) );
 
 		foreach ( self::LABELS as $slug => $label ) {
@@ -430,7 +433,7 @@ class SB_Tweaks_Installs {
 		}
 
 		$menu .= $item( 'modules', __( 'Modules', 'sb-tweaks' ) );
-		$menu .= '<span class="sb-installs-menu__line" role="separator"></span><span class="sb-installs-menu__head">' . esc_html__( 'All sites', 'sb-tweaks' ) . '</span>';
+		$menu .= SB_Tweaks_UI::dropdown_line() . SB_Tweaks_UI::dropdown_head( __( 'All sites', 'sb-tweaks' ) );
 		$menu .= $item( 'es', __( 'Signature limits', 'sb-tweaks' ) );
 
 		if ( $beta !== '' ) {
@@ -439,8 +442,7 @@ class SB_Tweaks_Installs {
 		}
 
 		$end  = $select;
-		$end .= '<span class="sb-installs-actions"><button type="button" class="button button-primary sb-installs__actions" aria-haspopup="menu" aria-expanded="false"><span class="sb-installs__actions-label">' . esc_html__( 'Actions', 'sb-tweaks' ) . '</span><span class="sb-installs__actions-arrow">' . $x . '</span></button>';
-		$end .= '<span class="sb-installs-menu" role="menu" hidden>' . $menu . '</span></span>';
+		$end .= SB_Tweaks_UI::dropdown( [ 'label' => __( 'Actions', 'sb-tweaks' ), 'items' => $menu, 'primary' => true, 'class' => 'sb-installs-actions' ] );
 
 		echo '<div class="sb-installs-sites" data-nonce="' . esc_attr( wp_create_nonce( 'sb_tweaks_push' ) ) . '" data-ajax="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-modules="' . esc_attr( wp_json_encode( $module_list ) ) . '" data-limits="' . esc_attr( wp_json_encode( $limit_list ) ) . '">';
 
@@ -702,14 +704,11 @@ class SB_Tweaks_Installs {
 		.sb-tweaks-wrap .sb-installs-select input[type="checkbox"] { margin: 0 !important; }
 		body.sb-ui .sb-tweaks-wrap .sb-installs-select input[type="checkbox"]:indeterminate { border-color: var(--sbui-green); background: var(--sbui-green); }
 		body.sb-ui .sb-tweaks-wrap .sb-installs-select input[type="checkbox"]:indeterminate::before { content: ""; width: 8px; height: 2px; margin: 0; border: 0; background: var(--sbui-on-green); transform: none; }
-		.sb-installs-actions { position: relative; display: inline-flex; }
-		/* Actions: the word on the left, the arrow on the right on a slightly darker strip (Sam, 31 October 2026). */
-		body.sb-ui .sb-tweaks-wrap .button.sb-installs__modfilter, .sb-tweaks-wrap .button.sb-installs__modfilter,
-		body.sb-ui .sb-tweaks-wrap .button.sb-installs__actions, .sb-tweaks-wrap .button.sb-installs__actions { justify-content: space-between; align-items: stretch; gap: 10px; min-width: 150px; padding: 0 0 0 14px; overflow: hidden; }
-		.sb-installs__actions-label { align-self: center; }
+		/* Actions is the framework's dropdown; it keeps a width so Actions (12) doesn't make it jump. */
+		body.sb-ui .sb-installs-actions > .button.sb-ui-dropdown__button { min-width: 150px; }
+		/* The Modules filter: the word on the left, the arrow on the right on a strip of its own (Sam, 31 October 2026). */
+		body.sb-ui .sb-tweaks-wrap .button.sb-installs__modfilter, .sb-tweaks-wrap .button.sb-installs__modfilter { justify-content: space-between; align-items: stretch; gap: 10px; min-width: 150px; padding: 0 0 0 14px; overflow: hidden; }
 		.sb-installs__actions-arrow { display: flex; align-items: center; padding: 0 9px; border-left: 1px solid rgba(22, 23, 29, 0.1); background: rgba(22, 23, 29, 0.08); }
-		.sb-installs-menu__head { padding: 6px 10px 2px; color: var(--sbui-text-3, #787c82); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-		.sb-installs-menu__line { height: 1px; margin: 6px 4px; background: var(--sbui-border, #dcdcde); }
 		.sb-installs-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; display: grid; min-width: 240px; padding: 6px; border: 1px solid var(--sbui-border, #dcdcde); border-radius: var(--sbui-r, 8px); background: var(--sbui-surface, #fff); box-shadow: var(--sbui-shadow-2, 0 8px 24px rgba(0, 0, 0, 0.1)); }
 		.sb-installs-menu[hidden] { display: none; }
 		/* The Modules filter: a button with its arrow strip, a menu of tick boxes opening to the left edge. */
@@ -728,9 +727,6 @@ class SB_Tweaks_Installs {
 		.sb-tweaks-wrap .sb-installs-menu__row input[type="checkbox"] { margin: 0 !important; }
 		.sb-installs-menu__only { visibility: hidden; }
 		.sb-installs-menu__row:hover .sb-installs-menu__only, .sb-installs-menu__only:focus-visible { visibility: visible; }
-		.sb-installs-menu__item { padding: 8px 10px; border: 0; border-radius: var(--sbui-r-sm, 6px); background: none; color: var(--sbui-text, #1d2327); font: inherit; text-align: left; white-space: nowrap; cursor: pointer; }
-		.sb-installs-menu__item:hover:not([aria-disabled="true"]), .sb-installs-menu__item:focus-visible { background: var(--sbui-surface-3, #f0f0f1); outline: 0; }
-		.sb-installs-menu__item[aria-disabled="true"] { color: var(--sbui-text-3, #a7aaad); cursor: not-allowed; }
 		.sb-installs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr)); gap: 16px; margin-top: 28px; }
 		.sb-tweaks-card.sb-installs-card, body.sb-ui .sb-tweaks-card.sb-installs-card { display: flex; flex-direction: column; padding: 0; overflow: hidden; text-align: left; }
 		.sb-installs-card[hidden] { display: none !important; }
@@ -821,14 +817,13 @@ class SB_Tweaks_Installs {
 			}
 
 			var text     = <?php echo wp_json_encode( $text ); ?>;
-			var menu     = root.querySelector( '.sb-installs-actions .sb-installs-menu' );
 			var modBtn   = root.querySelector( '.sb-installs__modfilter' );
 			var modLabel = root.querySelector( '.sb-installs__modfilter-label' );
 			var modMenu  = root.querySelector( '.sb-installs-modfilter .sb-installs-menu' );
 			var modBoxes = Array.prototype.slice.call( root.querySelectorAll( '.sb-installs__mod' ) );
 			var items    = Array.prototype.slice.call( root.querySelectorAll( '.sb-installs-menu__item' ) );
-			var actions  = root.querySelector( '.sb-installs__actions' );
-			var actLabel = root.querySelector( '.sb-installs__actions-label' );
+			var actions  = root.querySelector( '.sb-installs-actions .sb-ui-dropdown__button' );
+			var actLabel = root.querySelector( '.sb-installs-actions .sb-ui-dropdown__label' );
 			var master   = root.querySelector( '.sb-installs__select-all' );
 			var selN     = root.querySelector( '.sb-installs-select__n' );
 			var search   = root.querySelector( '.sb-installs-search' );
@@ -952,10 +947,10 @@ class SB_Tweaks_Installs {
 				} );
 			}
 
+			// Actions is the framework's dropdown: ui.js closes it.
 			function closeMenu() {
-				if ( menu && ! menu.hidden ) {
-					menu.hidden = true;
-					actions.setAttribute( 'aria-expanded', 'false' );
+				if ( window.SBTweaksUI && window.SBTweaksUI.closeMenus ) {
+					window.SBTweaksUI.closeMenus();
 				}
 			}
 
@@ -1574,15 +1569,6 @@ class SB_Tweaks_Installs {
 					esPopup( cardOf( target ) );
 				} else if ( target.closest( '.sb-installs__modules' ) && window.SBTweaksConfirm && ! running ) {
 					modulesPopup( [ cardOf( target ) ] );
-				} else if ( target.closest( '.sb-installs__actions' ) ) {
-					closeModMenu();
-					menu.hidden = ! menu.hidden;
-					actions.setAttribute( 'aria-expanded', menu.hidden ? 'false' : 'true' );
-
-					if ( ! menu.hidden ) {
-						var first = menu.querySelector( '.sb-installs-menu__item[aria-disabled="false"]' );
-						first && first.focus();
-					}
 				} else if ( item && item.getAttribute( 'aria-disabled' ) !== 'true' && ! running ) {
 					closeMenu();
 
@@ -1634,7 +1620,6 @@ class SB_Tweaks_Installs {
 				if ( target.closest( '.sb-installs__modfilter' ) ) {
 					modMenu.hidden = ! modMenu.hidden;
 					modBtn.setAttribute( 'aria-expanded', modMenu.hidden ? 'false' : 'true' );
-					closeMenu();
 				} else if ( tool ) {
 					modBoxes.forEach( function ( box ) { box.checked = tool.dataset.mods === 'all'; } );
 					modChanged();
@@ -1690,21 +1675,12 @@ class SB_Tweaks_Installs {
 			}, Promise.resolve() );
 
 			document.addEventListener( 'click', function ( event ) {
-				if ( ! event.target.closest( '.sb-installs-actions' ) ) {
-					closeMenu();
-				}
-
 				if ( ! event.target.closest( '.sb-installs-modfilter' ) ) {
 					closeModMenu();
 				}
 			} );
 
 			document.addEventListener( 'keydown', function ( event ) {
-				if ( event.key === 'Escape' && menu && ! menu.hidden ) {
-					closeMenu();
-					actions.focus();
-				}
-
 				if ( event.key === 'Escape' && modMenu && ! modMenu.hidden ) {
 					closeModMenu();
 					modBtn.focus();

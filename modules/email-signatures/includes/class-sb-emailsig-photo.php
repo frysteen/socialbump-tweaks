@@ -241,12 +241,12 @@ class SB_EmailSig_Photo {
 		}
 		wp_enqueue_style( 'sb-emailsig-cropper', SB_EMAILSIG_URL . 'assets/vendor/cropper/cropper.min.css', array(), '1.6.2' );
 		wp_enqueue_script( 'sb-emailsig-cropper', SB_EMAILSIG_URL . 'assets/vendor/cropper/cropper.min.js', array(), '1.6.2', true );
-		wp_enqueue_style( 'sb-emailsig-admin', SB_EMAILSIG_URL . 'assets/admin.css', array(), SB_EmailSig_Module::asset_version( 'assets/admin.css' ) );
+		wp_enqueue_style( 'sb-emailsig-admin', SB_EMAILSIG_URL . 'assets/admin.css', array( 'sb-tweaks-colour' ), SB_EmailSig_Module::asset_version( 'assets/admin.css' ) );
 		wp_enqueue_script( 'sb-emailsig-crop-resize', SB_EMAILSIG_URL . 'assets/crop-resize.js', array( 'sb-emailsig-cropper' ), SB_EmailSig_Module::asset_version( 'assets/crop-resize.js' ), true );
 		wp_enqueue_script( 'sb-emailsig-crop', SB_EMAILSIG_URL . 'assets/crop.js', array( 'jquery', 'sb-emailsig-cropper', 'sb-emailsig-crop-resize' ), SB_EmailSig_Module::asset_version( 'assets/crop.js' ), true );
 
 		// The border's colour field: the brand and theme colours menu, in the person's company's colours.
-		wp_enqueue_script( 'sb-emailsig-colour', SB_EMAILSIG_URL . 'assets/colour.js', array(), SB_EmailSig_Module::asset_version( 'assets/colour.js' ), true );
+		wp_enqueue_script( 'sb-emailsig-colour', SB_EMAILSIG_URL . 'assets/colour.js', array( 'sb-tweaks-colour' ), SB_EmailSig_Module::asset_version( 'assets/colour.js' ), true );
 		$person = SB_EmailSig_Person::is_screen() ? (int) SB_EmailSig_Person::current() : (int) get_the_ID();
 		wp_localize_script(
 			'sb-emailsig-colour',
@@ -328,12 +328,21 @@ class SB_EmailSig_Photo {
 					</span>
 					<span class="sb-emailsig-crop__pair">
 						<label for="sb-emailsig-border-c">Colour</label>
-						<?php // The colour field with the brand and theme colours menu (assets/colour.js); blank is the template's. ?>
-						<span class="sb-tweaks-colour sb-emailsig-colour" data-sb-colour data-fallback-hex="<?php echo esc_attr( $bfall ); ?>">
-							<input type="color" class="sb-tweaks-colour__swatch" value="<?php echo esc_attr( $bfall ); ?>" aria-label="Border colour">
-							<input type="text" class="sb-tweaks-colour__value code" id="sb-emailsig-border-c" name="sb_emailsig_border_c" value="<?php echo esc_attr( $bown['c'] ); ?>" placeholder="Template's" spellcheck="false" autocomplete="off">
-							<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours" hidden><span class="dashicons dashicons-art" aria-hidden="true"></span></button>
-						</span>
+						<?php
+						// The framework's colour field (SB_Tweaks_Fields::colour()); assets/colour.js gives it the brand and theme colours menu. Blank is the template's.
+						echo SB_Tweaks_Fields::colour( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+							array(
+								'name'        => 'sb_emailsig_border_c',
+								'id'          => 'sb-emailsig-border-c',
+								'value'       => $bown['c'],
+								'label'       => 'Border colour',
+								'placeholder' => "Template's",
+								'class'       => 'sb-emailsig-colour',
+								'attrs'       => array( 'data-fallback-hex' => $bfall ),
+								'swatch'      => $bfall,
+							)
+						);
+						?>
 					</span>
 					<span class="sb-emailsig-crop__pair">
 						<label for="sb-emailsig-border-g">Gap</label>

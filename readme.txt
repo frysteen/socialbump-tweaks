@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.4
+Stable tag: 0.6.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,30 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.5 =
+* SocialBUMP Tweaks: one banner on every page, with a breadcrumb: the logo goes to Modules and the module name to its first page
+* SocialBUMP Tweaks: the Modules page lists each module's pages as links and its groups as small switches, and Features pages switch each feature with a small switch
+* SocialBUMP Tweaks: group pages of Bricks Tweaks and Site Kit have the Features page bar, with the count, Enable all and Disable all, collapse buttons and Save changes
+* SocialBUMP Tweaks: every SocialBUMP admin menu item, SEO for AI included, shows the mark in SocialBUMP green on a dark tile
+* SocialBUMP Tweaks: one colour picker everywhere, Email Signatures included, with a Theme colours menu listing the site's Bricks, Core Framework, Elementor and theme colours
+* SocialBUMP Tweaks: Cmd+S (Ctrl+S on Windows) saves on every Tweaks page, or says there's nothing to save
+* SocialBUMP Tweaks: the Unsaved chip sits on the card's top edge, so the card no longer moves when it shows
+* SocialBUMP Tweaks: Select all and Select none on tick lists, as buttons or small text links
+* SocialBUMP Tweaks: open admin tabs keep in step, so a change saved in one tab shows in the others without a reload
+* SocialBUMP Tweaks: in Safari, the page no longer jumps when you pick a colour or when part of it redraws
+* Bricks Tweaks: added AT Stylesheet Live Reload, so saving a WPCodeBox stylesheet in Advanced Themer reloads it in open tabs
+* Site Kit: Block Admin Access and Hide Toolbar On The Front End have Select all and Select none under their role boxes
+* Email Signatures: no default company. Any company can be deleted while there's another, and deleting one asks whether to move its people to another company or delete them too
+* Email Signatures: a new Import/Export page for people and templates. Export People lets you pick who to export, and opens from each company's bar too
+* Email Signatures: Add person for a company from its card and its bar on the Signatures page, which now shows with one company too
+* Email Signatures: company bars on the Signatures page line up, with the Active, Inactive and Deleted counts on the right
+* Email Signatures: company cards show the brand colours under the name (click them to edit) and the website with a globe icon, so a long website no longer pushes the switch out of the card
+* Email Signatures: a company card's Default Template opens a popup to set its Default Template and the ones its people can pick
+* Email Signatures: the Templates page's Used by menu filters straight away, and template cards line up across a row
+* Email Signatures: Duplicate a person from their card. With more than one company it asks which company the copy goes in; the copy starts Inactive with (copy) after the last name. Preview on admin cards is now just the eye icon.
+* SocialBUMP UI: new Actions dropdown button in the framework (white, or green for a page's main action), with a menu that can't be cut off by cards or popups and works from the keyboard. Email Signatures: person cards now have Preview, Edit, Copy link, Open and an Actions menu with Duplicate, Move to company, Email signature link, Download CSV and Delete. Move to company is new.
+* Installs page: Actions is now the framework's dropdown (still green), so it opens, closes and works from the keyboard like every other Actions menu, and nothing can cut it off.
 
 = 0.6.4 =
 * Email Signatures: new icons in a Downloads group (PDF, Download, File, Book and Video), and LinkedIn is now the plain "in"; companies' icons are redrawn on the next admin visit.

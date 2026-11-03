@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.Security.NonceVerification
 $sb_trashed  = $manage && isset( $_GET['trashed'] ) ? absint( $_GET['trashed'] ) : 0;
 $sb_restored = $manage && isset( $_GET['restored'] ) ? absint( $_GET['restored'] ) : 0;
+$sb_copied   = $manage && isset( $_GET['copied'] ) ? absint( $_GET['copied'] ) : 0;
+$sb_moved    = $manage && isset( $_GET['person_moved'] ) ? absint( $_GET['person_moved'] ) : 0;
 $sb_purged   = $manage && ! empty( $_GET['purged'] );
 // phpcs:enable
 
@@ -57,6 +59,12 @@ $sb_pick = $everyone && count( $groups ) > 1;
 	<?php endif; ?>
 	<?php if ( $sb_restored && get_post_type( $sb_restored ) === SB_EMAILSIG_CPT ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( get_the_title( $sb_restored ) . ' restored to ' . ( get_post_status( $sb_restored ) === 'publish' ? 'Active.' : 'Inactive.' ) ); ?></p></div>
+	<?php endif; ?>
+	<?php if ( $sb_copied && get_post_type( $sb_copied ) === SB_EMAILSIG_CPT ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( get_the_title( $sb_copied ) . ' added to ' . SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $sb_copied ) ) . ' as Inactive. Check them, then switch them on.' ); ?></p></div>
+	<?php endif; ?>
+	<?php if ( $sb_moved && get_post_type( $sb_moved ) === SB_EMAILSIG_CPT ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( get_the_title( $sb_moved ) . ' moved to ' . SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $sb_moved ) ) . '.' ); ?></p></div>
 	<?php endif; ?>
 	<?php if ( $sb_purged ) : ?>
 		<div class="notice notice-success is-dismissible"><p>Deleted for good.</p></div>

@@ -33,17 +33,7 @@
 
 	/** A saved colour as hex, the way the server works it out, or ''. */
 	function hex(value) {
-		value = (value || '').trim().toLowerCase();
-		if (/^--[a-z0-9_-]+$/.test(value)) value = 'var(' + value + ')';
-		if (/^#[0-9a-f]{6}$/.test(value)) return value;
-		if (/^#[0-9a-f]{3}$/.test(value)) return '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
-		if (Object.prototype.hasOwnProperty.call(colours, value)) return colours[value];
-		var b = /^var\(--sb-brand-([a-z-]+)\)$/.exec(value);
-		if (b) return (cfg.brand || {})[b[1].replace(/-/g, '_')] || '';
-		for (var i = 0; i < palette.length; i++) {
-			if (palette[i].value === value) return palette[i].hex;
-		}
-		return '';
+		return SBTweaksColour.lookup(value, { colours: colours, brand: cfg.brand, palette: palette });
 	}
 
 	/** Draw in company $id's colours and social icons. */
@@ -138,111 +128,27 @@
 
 	/** Show what each colour field comes out as; a blank one shows what it falls back to. */
 	function paintSwatches() {
-		$form.find('.sb-emailsig-colour').each(function () {
-			var $wrap = $(this);
-			var input = $wrap.find('.sb-tweaks-colour__value')[0];
-			var swatch = $wrap.find('.sb-tweaks-colour__swatch')[0];
-			var own = hex(input.value);
-			var fallback = $wrap.attr('data-fallback');
-			var shown = own || fallbackColour(fallback);
-
-			$wrap.toggleClass('is-inherited', !own);
-			$wrap.toggleClass('is-unknown', input.value.trim() !== '' && !own);
-			if (shown && swatch.value !== shown) swatch.value = shown;
-		});
+		SBTweaksColour.paint(form);
 	}
 
+	/** Set a field with real events: save-state.js listens with addEventListener. */
 	function setValue(input, value) {
-		input.value = value;
-		// A real DOM event: save-state.js listens with addEventListener.
-		input.dispatchEvent(new Event('input', { bubbles: true }));
-		input.dispatchEvent(new Event('change', { bubbles: true }));
+		SBTweaksColour.set(input, value);
 	}
 
-	var $menu = null;
-	var menuFor = null;
-
-	function closeMenu() {
-		if ($menu) {
-			$menu.remove();
-			$menu = null;
-		}
-		if (menuFor) {
-			menuFor.setAttribute('aria-expanded', 'false');
-			menuFor = null;
-		}
-	}
-
-	function openMenu(button) {
-		var input = $(button).closest('.sb-emailsig-colour').find('.sb-tweaks-colour__value')[0];
-		var rect = button.getBoundingClientRect();
-
-		closeMenu();
-		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
-
-		palette.forEach(function (c, i) {
-			// A heading where the colours' source changes (Brand colours, Bricks: Theme Colours, ...).
-			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) {
-				$('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
-			}
-			$('<button type="button" role="option"></button>')
-				.append($('<i></i>').css('background', c.hex))
-				.append($('<span></span>').text(c.name))
-				.append($('<code></code>').text(c.hex))
-				.on('click', function () {
-					setValue(input, c.value);
-					closeMenu();
-					input.focus();
-				})
-				.appendTo($menu);
-		});
-
-		$menu.appendTo(document.body).css({
-			top: rect.bottom + window.scrollY + 4,
-			left: Math.max(8, Math.min(rect.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - 268))
-		});
-		menuFor = button;
-		button.setAttribute('aria-expanded', 'true');
-		$menu.find('button').first().trigger('focus');
-	}
-
+	/**
+	 * The colour fields: the framework's (SBTweaksColour), with this page's
+	 * menu (the previewed company's), its lookup (hex, theme and brand colours
+	 * only, as the server takes them) and what a blank one falls back to.
+	 */
 	function initColours() {
 		$form.find('.sb-emailsig-colour').each(function () {
-			var $wrap = $(this);
-			var input = $wrap.find('.sb-tweaks-colour__value')[0];
-			var swatch = $wrap.find('.sb-tweaks-colour__swatch')[0];
-			var theme = $wrap.find('.sb-emailsig-colour__theme')[0];
-
-			// Picking with the swatch writes its hex into the box.
-			swatch.addEventListener('input', function () {
-				if (input.value !== swatch.value) setValue(input, swatch.value);
+			SBTweaksColour.attach(this, {
+				palette: function () { return palette; },
+				hex: hex,
+				fallback: function (f) { return fallbackColour(f.wrap.getAttribute('data-fallback')); }
 			});
-
-			if (palette.length && theme) {
-				theme.hidden = false;
-				theme.setAttribute('aria-expanded', 'false');
-				theme.addEventListener('click', function (e) {
-					e.preventDefault();
-					if (menuFor === theme) {
-						closeMenu();
-					} else {
-						openMenu(theme);
-					}
-				});
-			}
 		});
-
-		$(document).on('mousedown', function (e) {
-			if ($menu && !$(e.target).closest('.sb-emailsig-palette, .sb-emailsig-colour__theme').length) closeMenu();
-		});
-		$(document).on('keydown', function (e) {
-			if (e.key === 'Escape' && $menu) {
-				var back = menuFor;
-				closeMenu();
-				if (back) back.focus();
-			}
-		});
-		$(window).on('resize scroll', closeMenu);
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -482,7 +388,7 @@
 			clearTimeout(timer);
 			shownCompany = personCompany();
 			useCompany(shownCompany);
-			closeMenu();
+			SBTweaksColour.close();
 			paintSwatches();
 			update();
 		});

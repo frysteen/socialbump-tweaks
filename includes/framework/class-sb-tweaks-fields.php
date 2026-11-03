@@ -10,7 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and drifting. Adding a field type is now one edit here.
  *
  * Types: checkbox, switch, color, number (min, max, step), select (options),
- * multicheck (options, invert, select_all), text. Any field can carry a
+ * multicheck (options, invert, select_all: true for buttons above, 'text' for
+ * text links under the boxes), text. Any field can carry a
  * description, and hide_when names a checkbox key in the same feature that
  * hides this field while ticked. options may be an array or a callable.
  */
@@ -49,13 +50,16 @@ class SB_Tweaks_Fields {
 
 			switch ( $type ) {
 				case 'color':
-					// Text box takes hex, rgb()/hsl() or var(--name). The swatch fills in a hex.
-					$swatch = preg_match( '/^#[0-9a-f]{6}$/i', (string) $value ) ? (string) $value : '#ffffff';
-
-					echo '<span class=' . $q . 'sb-tweaks-colour' . $q . '>'
-						. '<input type=' . $q . 'color' . $q . ' class=' . $q . 'sb-tweaks-colour__swatch' . $q . ' value=' . $q . esc_attr( $swatch ) . $q . ' aria-label=' . $q . esc_attr( $label ) . $q . '>'
-						. '<input type=' . $q . 'text' . $q . ' class=' . $q . 'sb-tweaks-colour__value code' . $q . ' id=' . $q . esc_attr( $field_id ) . $q . ' name=' . $q . esc_attr( $name ) . $q . ' value=' . $q . esc_attr( (string) $value ) . $q . ' placeholder=' . $q . esc_attr( isset( $field['placeholder'] ) ? $field['placeholder'] : '' ) . $q . ' spellcheck=' . $q . 'false' . $q . ' autocomplete=' . $q . 'off' . $q . '>'
-						. '</span>';
+					// The one colour field (colour()): hex, rgb()/hsl() or var(--name), with the Theme colours menu.
+					echo self::colour( // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+						[
+							'name'        => $name,
+							'id'          => $field_id,
+							'value'       => (string) $value,
+							'label'       => $label,
+							'placeholder' => isset( $field['placeholder'] ) ? $field['placeholder'] : '',
+						]
+					);
 					break;
 
 				case 'switch':
@@ -72,12 +76,12 @@ class SB_Tweaks_Fields {
 					// its own all and none. Both are buttons rather than submits,
 					// marked always on so the unsaved changes reminder never
 					// mistakes one for the save button.
-					if ( ! empty( $field['select_all'] ) ) {
-						echo '<span class=' . $q . 'sb-tweaks-checklist__tools sb-toggles' . $q . '>'
-							. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button-link sb-toggle' . $q . ' data-sb-always-on data-sb-tweaks-check=' . $q . 'all' . $q . '>' . esc_html__( 'Select all', 'sb-tweaks' ) . '</button>'
-							. '<span aria-hidden=' . $q . 'true' . $q . '>|</span>'
-							. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button-link sb-toggle' . $q . ' data-sb-always-on data-sb-tweaks-check=' . $q . 'none' . $q . '>' . esc_html__( 'Select none', 'sb-tweaks' ) . '</button>'
-							. '</span>';
+					// 'select_all' => true: joined buttons above the boxes; 'text':
+					// small text links under them (Sam, 3 November 2026).
+					$tools_text = 'text' === ( $field['select_all'] ?? '' );
+
+					if ( ! empty( $field['select_all'] ) && ! $tools_text ) {
+						echo self::check_tools(); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup.
 					}
 
 					echo '<span class=' . $q . 'sb-tweaks-checklist' . $q . '>';
@@ -89,6 +93,10 @@ class SB_Tweaks_Fields {
 					}
 
 					echo '</span>';
+
+					if ( $tools_text ) {
+						echo self::check_tools( true ); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup.
+					}
 					break;
 
 				case 'select':
@@ -184,6 +192,70 @@ class SB_Tweaks_Fields {
 		}
 	}
 
+	/**
+	 * Select all | Select none above a checklist (Sam, 3 November 2026): one
+	 * markup for PHP and scripts, as SBTweaksFields.checkTools() in
+	 * framework.js draws the same. Buttons rather than submits, marked always
+	 * on so the unsaved changes reminder never takes one for the save button.
+	 * framework.js's [data-sb-tweaks-check] handler does the ticking, and
+	 * ui.css draws them as a joined pair, on a page or in a popup; $text
+	 * draws them as small text links instead (.sb-toggles--text), where
+	 * buttons would be too heavy. A checklist field asks for that with
+	 * 'select_all' => 'text'.
+	 */
+	public static function check_tools( $text = false ) {
+		$q = chr( 34 );
+
+		return '<span class=' . $q . 'sb-tweaks-checklist__tools sb-toggles' . ( $text ? ' sb-toggles--text' : '' ) . $q . '>'
+			. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button-link sb-toggle' . $q . ' data-sb-always-on data-sb-tweaks-check=' . $q . 'all' . $q . '>' . esc_html__( 'Select all', 'sb-tweaks' ) . '</button>'
+			. '<span aria-hidden=' . $q . 'true' . $q . '>|</span>'
+			. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'button-link sb-toggle' . $q . ' data-sb-always-on data-sb-tweaks-check=' . $q . 'none' . $q . '>' . esc_html__( 'Select none', 'sb-tweaks' ) . '</button>'
+			. '</span>';
+	}
+
+	/**
+	 * The colour field: one component for every colour picker in SocialBUMP
+	 * Tweaks (Sam, 3 November 2026). A swatch, a box for the value and the
+	 * Theme colours button, which assets/js/colour.js attaches to by itself
+	 * (every [data-sb-colour]) with the site's colours, left on the page here
+	 * once. A page that needs more (its own menu, what a blank one shows, a
+	 * stricter lookup) attaches with options in its own script: see colour.js.
+	 * The page loads the sb-tweaks-colour script and stylesheet.
+	 *
+	 * $a: name, id, value, label (the swatch's), placeholder, class (more
+	 * classes on the wrapper), attrs (more wrapper attributes, such as
+	 * data-fallback), input_attrs (more box attributes, such as data-default),
+	 * swatch (the hex it shows before the script runs).
+	 */
+	public static function colour( array $a ) {
+		$q      = chr( 34 );
+		$value  = isset( $a['value'] ) ? (string) $a['value'] : '';
+		$hex6   = '/^#[0-9a-f]{6}$/i';
+		$swatch = ( ! empty( $a['swatch'] ) && preg_match( $hex6, (string) $a['swatch'] ) ) ? (string) $a['swatch'] : ( preg_match( $hex6, $value ) ? $value : '#ffffff' );
+		$wrap   = '';
+		$box    = '';
+
+		foreach ( (array) ( $a['attrs'] ?? [] ) as $key => $val ) {
+			$wrap .= ' ' . esc_attr( $key ) . '=' . $q . esc_attr( (string) $val ) . $q;
+		}
+
+		foreach ( (array) ( $a['input_attrs'] ?? [] ) as $key => $val ) {
+			$box .= ' ' . esc_attr( $key ) . '=' . $q . esc_attr( (string) $val ) . $q;
+		}
+
+		return '<span class=' . $q . 'sb-tweaks-colour' . ( ! empty( $a['class'] ) ? ' ' . esc_attr( $a['class'] ) : '' ) . $q . ' data-sb-colour' . $wrap . '>'
+			. '<input type=' . $q . 'color' . $q . ' class=' . $q . 'sb-tweaks-colour__swatch' . $q . ' value=' . $q . esc_attr( $swatch ) . $q . ' aria-label=' . $q . esc_attr( (string) ( $a['label'] ?? '' ) ) . $q . '>'
+			. '<input type=' . $q . 'text' . $q . ' class=' . $q . 'sb-tweaks-colour__value code' . $q
+			. ( ! empty( $a['id'] ) ? ' id=' . $q . esc_attr( $a['id'] ) . $q : '' )
+			. ( ! empty( $a['name'] ) ? ' name=' . $q . esc_attr( $a['name'] ) . $q : '' )
+			. ' value=' . $q . esc_attr( $value ) . $q
+			. ' placeholder=' . $q . esc_attr( (string) ( $a['placeholder'] ?? '' ) ) . $q
+			. ' spellcheck=' . $q . 'false' . $q . ' autocomplete=' . $q . 'off' . $q . $box . '>'
+			. '<button type=' . $q . 'button' . $q . ' class=' . $q . 'sb-tweaks-colour__theme' . $q . ' aria-label=' . $q . esc_attr__( 'Theme colours', 'sb-tweaks' ) . $q . ' data-sb-tip=' . $q . esc_attr__( 'Theme colours', 'sb-tweaks' ) . $q . ' aria-expanded=' . $q . 'false' . $q . ' hidden>'
+			. '<span class=' . $q . 'dashicons dashicons-art' . $q . ' aria-hidden=' . $q . 'true' . $q . '></span></button>'
+			. '</span>'
+			. ( class_exists( 'SB_Tweaks_Colours' ) ? SB_Tweaks_Colours::data_tag() : '' );
+	}
 	/**
 	 * A safe CSS colour: hex, rgb()/hsl(), or a variable like var(--primary)
 	 * or var(--primary, #fff). Returns '' for anything else, so nothing

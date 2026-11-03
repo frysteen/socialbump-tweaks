@@ -26,11 +26,7 @@
 
 	/** A box's value as hex: a hex, or a theme colour looked up; '' if neither. */
 	function hexOf(value) {
-		value = (value || '').trim().toLowerCase();
-		if (/^--[a-z0-9_-]+$/.test(value)) value = 'var(' + value + ')';
-		if (/^#[0-9a-f]{6}$/.test(value)) return value;
-		if (/^#[0-9a-f]{3}$/.test(value)) return '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
-		return Object.prototype.hasOwnProperty.call(colours, value) ? colours[value] : '';
+		return SBTweaksColour.lookup(value, { colours: colours });
 	}
 
 	/** Every template's social and contact icons for the company, as PNGs. */
@@ -66,70 +62,24 @@
 		});
 	}
 
-	/* The theme colour menu, under a field's button (as on the Branding tab). */
-	var $menu = null;
-
-	function closeMenu() {
-		if ($menu) { $menu.remove(); $menu = null; }
-	}
-
-	function openMenu(button, set) {
-		var rect = button.getBoundingClientRect();
-		closeMenu();
-		$menu = $('<div class="sb-emailsig-palette" role="listbox"></div>');
-		palette.forEach(function (c, i) {
-			if (c.group && (i === 0 || palette[i - 1].group !== c.group)) $('<div class="sb-emailsig-palette__head"></div>').text(c.group).appendTo($menu);
-			$('<button type="button" role="option"></button>')
-				.append($('<i></i>').css('background', c.hex))
-				.append($('<span></span>').text(c.name))
-				.append($('<code></code>').text(c.hex))
-				.on('click', function () { set(c.value); closeMenu(); })
-				.appendTo($menu);
-		});
-		$menu.appendTo(document.body).css({
-			top: rect.bottom + window.scrollY + 4,
-			left: Math.max(8, Math.min(rect.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - 268))
-		});
-	}
-
-	$(document).on('mousedown', function (e) {
-		if ($menu && !$(e.target).closest('.sb-emailsig-palette, .sb-emailsig-colour__theme').length) closeMenu();
-	});
-
-	/** One brand colour's row in the popup: picker, box and theme menu. */
+	/**
+	 * One brand colour's row in the popup: the framework's colour field
+	 * (SBTweaksColour) with the theme colours menu. Blank shows the default,
+	 * dashed; a blank Accent shows the Primary.
+	 */
 	function field(key, b) {
 		var $row = $('<div class="sb-tweaks-dialog__field sb-emailsig-brand-pop__field"></div>');
-		var $wrap = $('<span class="sb-tweaks-colour sb-emailsig-colour"></span>');
-		var $swatch = $('<input type="color" class="sb-tweaks-colour__swatch">').attr('aria-label', b.name);
-		var $box = $('<input type="text" class="sb-tweaks-colour__value code" spellcheck="false" autocomplete="off">')
-			.attr('placeholder', key === 'accent' ? 'Brand Primary' : (b['default'] || ''))
-			.val(b.raw || '');
+		var wrap = SBTweaksColour.field({ label: b.name, value: b.raw || '', placeholder: key === 'accent' ? 'Brand Primary' : (b['default'] || ''), className: 'sb-emailsig-colour' }, {
+			palette: palette,
+			hex: hexOf,
+			fallback: function () {
+				if (key !== 'accent') return b['default'] || b.hex;
+				return hexOf($row.closest('.sb-emailsig-brand-pop').find('[data-key="primary"] .sb-tweaks-colour__value').val()) || b.hex;
+			}
+		});
 
-		// The swatch shows what the box comes out as; blank, the default (dashed).
-		function paint() {
-			var own = hexOf($box.val());
-			var shown = own || (key === 'accent' ? (hexOf($row.closest('.sb-emailsig-brand-pop').find('[data-key="primary"] .sb-tweaks-colour__value').val()) || b.hex) : (b['default'] || b.hex));
-			$wrap.toggleClass('is-inherited', !own);
-			$wrap.toggleClass('is-unknown', $box.val().trim() !== '' && !own);
-			if ($swatch.val() !== shown) $swatch.val(shown);
-		}
-
-		$swatch.on('input change', function () { $box.val(this.value); paint(); });
-		$box.on('input', paint);
-
-		$wrap.append($swatch, $box);
-		if (palette.length) {
-			$('<button type="button" class="sb-emailsig-colour__theme" aria-label="Theme colours" data-sb-tip="Theme colours"><span class="dashicons dashicons-art" aria-hidden="true"></span></button>')
-				.on('click', function (e) {
-					e.preventDefault();
-					if ($menu) { closeMenu(); return; }
-					openMenu(this, function (v) { $box.val(v); paint(); });
-				})
-				.appendTo($wrap);
-		}
-
-		$row.attr('data-key', key).append($('<span></span>').text(b.name), $wrap);
-		$row.data('paint', paint);
+		$row.attr('data-key', key).append($('<span></span>').text(b.name), wrap);
+		$row.data('paint', function () { wrap._sbColour.paint(); });
 		return $row;
 	}
 
@@ -160,7 +110,7 @@
 				});
 			})
 			.then(function () {
-				closeMenu();
+				SBTweaksColour.close();
 				if (window.SBTweaksConfirm) window.SBTweaksConfirm.close();
 				toast('Brand colours saved', 'ok');
 			})
@@ -208,6 +158,115 @@
 				if (!go.disabled) save($pop, co, btn);
 			}, true);
 		}
-		$modal.on('click', function (ev) { if (ev.target === this) closeMenu(); });
+		$modal.on('click', function (ev) { if (ev.target === this) SBTweaksColour.close(); });
+	});
+	/* ------------------------------------------------------------------ *
+	 * Templates (Sam, 3 November 2026): the Default Template's name on a
+	 * company's card opens a popup with the Default Template (a menu) above
+	 * the ones its people can pick (ticks), as on Edit company's Company tab:
+	 * the default's tick is on and locked, and stays on when it stops being
+	 * the default. Save keeps both (templates_save) and updates the card.
+	 * ------------------------------------------------------------------ */
+
+	function templatesBody(d) {
+		var $pop = $('<div class="sb-emailsig-tpl-pop"></div>');
+		var $main = $('<select></select>');
+		var $list = $('<div class="sb-emailsig-tpl-pop__list" role="group" aria-label="Templates"></div>');
+
+		d.all.forEach(function (t) {
+			$('<option></option>').val(t[0]).text(t[1]).prop('selected', t[0] === d.main).appendTo($main);
+			$('<label class="sb-emailsig-tpl-pop__item"></label>')
+				.append($('<input type="checkbox">').val(t[0]).prop('checked', (d.set || []).indexOf(t[0]) !== -1), $('<span></span>').text(t[1]))
+				.appendTo($list);
+		});
+
+		$pop.append(
+			$('<label class="sb-tweaks-dialog__field"></label>').append($('<span></span>').text('Default Template'), $main, $('<p class="description"></p>').text('Used for everyone in this company.')),
+			$('<div class="sb-tweaks-dialog__field"></div>').append($('<span></span>').text('Templates'), $list, $('<p class="description"></p>').text('The ones people can pick on their signature page. The Default Template always is.')),
+			'<p class="sb-emailsig-brand-pop__msg" role="status" aria-live="polite"></p>'
+		);
+
+		// The default's box: ticked and locked.
+		function lock() {
+			$list.find('label').each(function () {
+				var box = this.querySelector('input');
+				var main = box.value === $main.val();
+				if (main) box.checked = true;
+				box.setAttribute('aria-disabled', main ? 'true' : 'false');
+				this.classList.toggle('is-locked', main);
+				if (main) this.setAttribute('data-sb-tip', 'The Default Template, always available'); else this.removeAttribute('data-sb-tip');
+			});
+		}
+
+		// Not disabled, so it's still sent: a click on the locked one just does nothing.
+		$list[0].addEventListener('click', function (e) {
+			var label = e.target.closest('label');
+			if (label && label.classList.contains('is-locked')) e.preventDefault();
+		}, true);
+		$main.on('change', lock);
+		lock();
+
+		return $pop;
+	}
+
+	function saveTemplates($pop, co) {
+		var $go = $pop.closest('.sb-tweaks-dialog').find('.sb-tweaks-dialog__go');
+		var $msg = $pop.find('.sb-emailsig-brand-pop__msg');
+		var main = $pop.find('select').val();
+		var set = $pop.find('.sb-emailsig-tpl-pop__list input:checked').map(function () { return this.value; }).get();
+
+		$go.prop('disabled', true).text('Saving…');
+		$msg.text('').removeClass('is-error');
+
+		post({ action: 'sb_emailsig_templates_save', nonce: cfg.nonce, co: co, main: main, templates: JSON.stringify(set) })
+			.then(function (res) {
+				if (!res || !res.success) throw new Error((res && res.data) || 'Not saved. Try again.');
+				document.querySelectorAll('[data-sb-emailsig-tpls="' + co + '"]').forEach(function (el) {
+					el.textContent = res.data.name;
+					el.setAttribute('data-sb-emailsig-tpls-data', JSON.stringify(res.data.data));
+				});
+				document.querySelectorAll('[data-sb-emailsig-tpl-count="' + co + '"]').forEach(function (el) {
+					el.textContent = res.data.count;
+					if (el.nextSibling) el.nextSibling.textContent = ' ' + res.data.noun;
+				});
+				if (window.SBTweaksConfirm) window.SBTweaksConfirm.close();
+				toast('Templates saved', 'ok');
+				// Open Templates pages in other tabs show it too (SBTweaksSync).
+				if (window.SBTweaksSync) window.SBTweaksSync.send('email-signatures/templates', { company: co });
+			})
+			.catch(function (err) {
+				$msg.text(err && err.message ? err.message : 'Not saved. Try again.').addClass('is-error');
+				$go.prop('disabled', false).text('Save');
+			});
+	}
+
+	$(document).on('click', '[data-sb-emailsig-tpls]', function (e) {
+		e.preventDefault();
+		if (!window.SBTweaksConfirm) return;
+
+		var btn = this;
+		var co = btn.getAttribute('data-sb-emailsig-tpls');
+		var d = {};
+		try { d = JSON.parse(btn.getAttribute('data-sb-emailsig-tpls-data') || '{}'); } catch (err) { d = {}; }
+		if (!d.all || !d.all.length) return;
+
+		var $pop = templatesBody(d);
+		var $modal = window.SBTweaksConfirm.open({
+			title: (btn.getAttribute('data-sb-emailsig-tpls-name') || 'Company') + ' templates',
+			body: $pop,
+			cancel: 'Cancel',
+			action: 'Save'
+		});
+
+		// Save stays open until it's done (the popup's own button would close it first).
+		var go = $modal.find('.sb-tweaks-dialog__go')[0];
+		if (go) {
+			go.parentNode.addEventListener('click', function (ev) {
+				if (!ev.target.closest || !ev.target.closest('.sb-tweaks-dialog__go')) return;
+				ev.stopPropagation();
+				ev.preventDefault();
+				if (!go.disabled) saveTemplates($pop, co);
+			}, true);
+		}
 	});
 })(jQuery);

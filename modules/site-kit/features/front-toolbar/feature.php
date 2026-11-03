@@ -42,8 +42,9 @@ return [
 		 */
 		'roles' => [
 			'type'    => 'multicheck',
-			'label'   => 'Hide the admin toolbar for these roles',
-			'options' => 'sb_site_kit_front_toolbar_roles',
+			'label'      => 'Hide the admin toolbar for these roles',
+			'options'    => 'sb_site_kit_front_toolbar_roles',
+			'select_all' => 'text',
 			'default' => array_keys( sb_site_kit_front_toolbar_roles() ),
 		],
 	],

@@ -12,7 +12,7 @@ the detail on each feature. changes.md holds its 23 release notes, 0.1.0 to
 
 ## What it does
 
-Twelve features in three groups, each with its own switch:
+Thirteen features in three groups, each with its own switch:
 
 - Bricks Elements: Image Carousel (sb-bricks-image-carousel), an SEO friendly
   Splide carousel with real img tags, ACF gallery support, breakpoints,
@@ -21,8 +21,8 @@ Twelve features in three groups, each with its own switch:
   ACF Relationship, ACF Repeater, Bricks Content, Post Type, WooCommerce
   Archive Display.
 - Extras: ACF Loop Sorting (repeater and relationship loops, each with its own
-  setting), ACF Gallery Loop, Clean Builder Panels, Default To WP Editor,
-  Gutenberg Block Styles, Hide Unpublished ACF Posts.
+  setting), ACF Gallery Loop, AT Stylesheet Live Reload, Clean Builder Panels,
+  Default To WP Editor, Gutenberg Block Styles, Hide Unpublished ACF Posts.
 
 The module requires Bricks (the framework checks the active theme, because
 themes load after plugins and BRICKS_VERSION is not defined while modules
@@ -202,3 +202,45 @@ whole snippet indented.
   markers. The Courses page lost one Book Now entry: the draft product "Open
   Pit Lane: Performance Night Sessions" (3223) in course 598's
   course_related_products, which the new switch now hides, as meant.
+
+## AT Stylesheet Live Reload (November 2026)
+
+features/at-live-reload, an Extras tweak, on by default, unavailable without
+Advanced Themer and WPCodeBox 2. Sam edits WPCodeBox stylesheets in AT's
+Advanced CSS (its autocomplete knows every site variable; WPCodeBox's own
+editor only knows the ones in the snippet open), but saving there never
+reloaded open front-end tabs, which he needs for states only the live page
+shows (form errors, notices).
+
+How WPCodeBox reloads (read from WPCodeBox 1.4.1, Snippet/GlobalCSS.php
+outputAutoreload()): its editor writes the localStorage key wpcb2Reload, and
+a script it prints in wp_head for admins listens for the storage event in
+other tabs, then re-fetches its link.wpcb2-external-style tags with a random
+wpcb_rand and its style.wpcb2-inline-style tags through admin-ajax
+wpcb2_get_dev_code. Browser only, same browser, no server polling.
+
+How AT saves (AT 3.5, classes/ajax.php save_advanced_css_data()): admin-ajax
+save_advanced_css_ajax_function posts advanced_css, a list of items; those
+whose category starts wpcodebox are WPCodeBox snippets, saved through
+\Wpcb2\Api\Api::updateSnippet(), so SCSS compiles and the external file is
+rewritten. It never writes wpcb2Reload.
+
+SB_Bricks_AT_Live_Reload::flag() hooks that AJAX action at priority 1, before
+AT. For changed (hasChanged), not removed WPCodeBox items it checks
+wpcb_snippets for devMode = 1 (Autoreload Changes) or codeType scssp (a
+partial, whose save recompiles other sheets), and if any match sets the
+cookie sb_bricks_wpcb_reload for 60 seconds, not httponly. script(), on
+wp_footer in the builder's own window only (bricks_is_builder_main(), admins),
+wraps XMLHttpRequest and fetch so that after every request it looks for the
+cookie, clears it and writes wpcb2Reload. AT's own stylesheets (category
+custom, at framework) are left alone: they are not WPCodeBox's.
+
+Came from WPCodeBox snippet 46 on bricks.socialbump.com.au ("AT to WPCodeBox
+Autoreload Bridge", cookie sb_wpcb_reload), tested there by Sam on
+3 November 2026 with the heading on /admin-page/testing-live-change/. Switch
+that snippet off once the site has a SocialBUMP Tweaks with this feature; both
+running only writes the key twice. Checked on the hub: the feature discovers,
+boots and registers both hooks; flag() set the cookie for Custom CSS (devMode
+1) and not for Gutenberg Blocks (devMode 0), an unchanged item, a removed item
+or an AT custom sheet; the printed script passes node --check. Not yet seen
+working in a browser from the plugin.

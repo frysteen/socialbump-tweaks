@@ -11,8 +11,19 @@
  *   other plugins' notices are left where they are.
  * - Cards on a settings form show an Unsaved chip and an amber ring while
  *   something in them differs from what was saved. Clicking the chip saves.
+ *   The chip sits on the card's top edge, out of the way of the title and
+ *   anything in the head, so nothing in the card moves when it shows.
  * - Tooltips: data-sb-tip="Copy link" on an icon button, in place of title.
  * - Character counts: data-sb-count-for="{field id}" on a span.
+ * - Dropdowns (SB_Tweaks_UI::dropdown()): the button opens its menu and
+ *   closes any other; a click outside, Escape or picking an item closes it.
+ *   Arrow keys, Home and End step through the items; items with
+ *   aria-disabled="true" do nothing. The menu is placed against the window,
+ *   so nothing can cut it off: under the button, or over it when there's no
+ *   room under it. Scrolling the page closes it.
+ * - SBTweaksUI.redraw( parts, fn ): rebuild parts of a page without it
+ *   jumping (see redraw()).
+ * - SBTweaksUI.closeMenus(): close whichever dropdown is open.
  */
 ( function () {
 	'use strict';
@@ -319,6 +330,9 @@
 		} );
 	}
 
+	// Parts swapped in by SBTweaksSync.refresh() get their labels too.
+	document.addEventListener( 'sb-tweaks:refreshed', labelTips );
+
 	/* ---------- Character counts ---------- */
 
 	/*
@@ -405,6 +419,9 @@
 		}
 	}
 
+	// The save shortcut, as the Mac or anything else writes it (save-state.js).
+	var SAVE_KEYS = /Mac|iPhone|iPad/.test( navigator.platform || navigator.userAgent || '' ) ? '\u2318S' : 'Ctrl+S';
+
 	function watchCards() {
 		document.querySelectorAll( 'form[data-sb-dirty] .sb-tweaks-card' ).forEach( function ( card ) {
 			var saved = cardState( card );
@@ -421,11 +438,13 @@
 					chip.type = 'button';
 					chip.className = 'sb-ui-unsaved';
 					chip.textContent = 'Unsaved';
-					chip.setAttribute( 'data-sb-tip', 'Click to save' );
+					chip.setAttribute( 'data-sb-tip', 'Click to save, or press ' + SAVE_KEYS );
 					chip.addEventListener( 'click', function () {
 						save( card.closest( 'form' ) );
 					} );
-					head.appendChild( chip );
+					// On the card, not in its title: floated on the top edge (ui.css),
+					// so the title never wraps and the card never changes height.
+					card.appendChild( chip );
 				} else if ( ! edited && chip ) {
 					chip.parentNode.removeChild( chip );
 					chip = null;
@@ -436,6 +455,216 @@
 			card.addEventListener( 'change', check );
 		} );
 	}
+
+	/* ---------- Redrawing part of a page ---------- */
+
+	/**
+	 * Rebuild parts of a page without the page jumping (Sam, 3 November 2026).
+	 *
+	 * Emptying a part and filling it again leaves the page shorter for a
+	 * moment. Measured in that moment, as Safari can, a page scrolled near its
+	 * foot has to scroll up to fit, and it doesn't come back. This holds each
+	 * part at its height while fn runs, then lets go, and returns what fn does.
+	 *
+	 *   SBTweaksUI.redraw( parts, fn )
+	 *
+	 * parts: an element, a list of them, a NodeList, jQuery or a selector.
+	 */
+	function redraw( parts, fn ) {
+		var list = typeof parts === 'string' ? document.querySelectorAll( parts ) : parts;
+
+		if ( ! list ) {
+			list = [];
+		} else if ( list.nodeType === 1 ) {
+			list = [ list ];
+		} else if ( list.jquery ) {
+			list = list.get();
+		}
+
+		var held = Array.prototype.filter.call( list, Boolean ).map( function ( el ) {
+			var was = el.style.minHeight;
+
+			el.style.minHeight = el.offsetHeight + 'px';
+
+			return [ el, was ];
+		} );
+
+		try {
+			return fn();
+		} finally {
+			held.forEach( function ( h ) {
+				h[0].style.minHeight = h[1];
+			} );
+		}
+	}
+
+	/* ---------- Dropdowns ---------- */
+
+	var dropOpen = null;
+
+	function dropItems( d ) {
+		return Array.prototype.filter.call( d.querySelectorAll( '.sb-ui-dropdown__item' ), function ( item ) {
+			return item.getAttribute( 'aria-disabled' ) !== 'true';
+		} );
+	}
+
+	function dropClose( d, focus ) {
+		var button = d.querySelector( '.sb-ui-dropdown__button' );
+		var menu   = d.querySelector( '.sb-ui-dropdown__menu' );
+
+		menu.hidden = true;
+		menu.classList.remove( 'is-up' );
+		menu.style.top  = '';
+		menu.style.left = '';
+		d.classList.remove( 'is-open' );
+		button.setAttribute( 'aria-expanded', 'false' );
+
+		if ( focus ) {
+			button.focus( { preventScroll: true } );
+		}
+
+		if ( dropOpen === d ) {
+			dropOpen = null;
+		}
+	}
+
+	function dropShow( d, first ) {
+		var button = d.querySelector( '.sb-ui-dropdown__button' );
+		var menu   = d.querySelector( '.sb-ui-dropdown__menu' );
+
+		if ( dropOpen && dropOpen !== d ) {
+			dropClose( dropOpen );
+		}
+
+		hideTip();
+		menu.hidden = false;
+		d.classList.add( 'is-open' );
+		button.setAttribute( 'aria-expanded', 'true' );
+		dropOpen = d;
+
+		// Against the window: under the button, its right edge with the
+		// button's (the left with --left), kept on screen; over it when there's
+		// no room under it but there is over it.
+		var box  = menu.getBoundingClientRect();
+		var from = button.getBoundingClientRect();
+		var left = d.classList.contains( 'sb-ui-dropdown--left' ) ? from.left : from.right - box.width;
+		var top  = from.bottom + 6;
+
+		if ( top + box.height > window.innerHeight - 8 && from.top - box.height - 6 > 8 ) {
+			top = from.top - box.height - 6;
+			menu.classList.add( 'is-up' );
+		}
+
+		menu.style.left = Math.round( Math.max( 8, Math.min( left, document.documentElement.clientWidth - box.width - 8 ) ) ) + 'px';
+		menu.style.top  = Math.round( top ) + 'px';
+
+		if ( first ) {
+			var items = dropItems( d );
+
+			if ( items.length ) {
+				items[0].focus( { preventScroll: true } );
+			}
+		}
+	}
+
+	// An item that can't be used does nothing (before its own handlers hear it).
+	document.addEventListener( 'click', function ( e ) {
+		var item = e.target.closest ? e.target.closest( '.sb-ui-dropdown__item[aria-disabled="true"]' ) : null;
+
+		if ( item ) {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+		}
+	}, true );
+
+	document.addEventListener( 'click', function ( e ) {
+		var button = e.target.closest ? e.target.closest( '.sb-ui-dropdown__button' ) : null;
+
+		if ( button ) {
+			var d = button.closest( '.sb-ui-dropdown' );
+
+			e.preventDefault();
+
+			if ( button.disabled ) {
+				return;
+			}
+
+			if ( dropOpen === d ) {
+				dropClose( d );
+			} else {
+				dropShow( d, e.detail === 0 );
+			}
+
+			return;
+		}
+
+		if ( ! dropOpen ) {
+			return;
+		}
+
+		// Picking an item: its own work goes ahead, and the menu closes.
+		if ( dropOpen.contains( e.target ) ) {
+			if ( e.target.closest( '.sb-ui-dropdown__item' ) ) {
+				dropClose( dropOpen );
+			}
+
+			return;
+		}
+
+		dropClose( dropOpen );
+	} );
+
+	// Placed against the window, so the page moving under it closes it (its own list scrolling doesn't).
+	window.addEventListener( 'scroll', function ( e ) {
+		if ( dropOpen && ! ( e.target instanceof Node && dropOpen.contains( e.target ) ) ) {
+			dropClose( dropOpen );
+		}
+	}, true );
+
+	window.addEventListener( 'resize', function () {
+		if ( dropOpen ) {
+			dropClose( dropOpen );
+		}
+	} );
+
+	document.addEventListener( 'keydown', function ( e ) {
+		var button = e.target.closest ? e.target.closest( '.sb-ui-dropdown__button' ) : null;
+
+		if ( button && ( e.key === 'ArrowDown' || e.key === 'ArrowUp' ) ) {
+			e.preventDefault();
+			dropShow( button.closest( '.sb-ui-dropdown' ), true );
+
+			return;
+		}
+
+		if ( ! dropOpen ) {
+			return;
+		}
+
+		if ( e.key === 'Escape' ) {
+			e.preventDefault();
+			dropClose( dropOpen, true );
+
+			return;
+		}
+
+		if ( e.key === 'Tab' ) {
+			dropClose( dropOpen );
+
+			return;
+		}
+
+		var items = dropItems( dropOpen );
+		var at    = items.indexOf( document.activeElement );
+		var to    = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: items.length - 1 }[ e.key ];
+
+		if ( to === undefined || ! items.length ) {
+			return;
+		}
+
+		e.preventDefault();
+		items[ ( to + items.length ) % items.length ].focus( { preventScroll: true } );
+	} );
 
 	function ready() {
 		// After WordPress has moved notices below the banner.
@@ -451,5 +680,13 @@
 		ready();
 	}
 
-	window.SBTweaksUI = { toast: toast, mode: setMode, hideTip: hideTip };
+	// For a page's own script: close whichever dropdown is open (the Installs
+	// page does when an update starts).
+	function closeMenus() {
+		if ( dropOpen ) {
+			dropClose( dropOpen );
+		}
+	}
+
+	window.SBTweaksUI = { toast: toast, mode: setMode, hideTip: hideTip, redraw: redraw, closeMenus: closeMenus };
 } )();

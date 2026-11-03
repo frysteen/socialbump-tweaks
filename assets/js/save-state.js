@@ -10,6 +10,12 @@
  * Any form marked data-sb-dirty is watched. A button marked data-sb-save is
  * treated as a save button even when it is not a submit, and one marked
  * data-sb-always-on is left alone. Shared by the SocialBUMP plugins.
+ *
+ * Cmd+S (Ctrl+S off a Mac) saves too, as it does in Bricks (Sam, 3 November
+ * 2026): the form you're working in, else the first with changes. With
+ * nothing to save it says so, instead of the browser offering to save the
+ * page as a file. It works from inside a text editor (TinyMCE) box as well,
+ * and does nothing while a popup is open.
  */
 ( function () {
 	'use strict';
@@ -17,6 +23,9 @@
 	var LABEL_CLEAN = 'Nothing to save';
 	var WARNING     = 'You have unsaved changes.';
 	var pending     = 0;
+
+	// Each watched form: { form, dirty(), saving(), save() }.
+	var watched     = [];
 
 	function snapshot( form ) {
 		var data = [];
@@ -242,6 +251,21 @@
 			note.setAttribute( 'hidden', 'hidden' );
 		}
 
+		watched.push( {
+			form: form,
+			dirty: function () {
+				paint();
+
+				return !! dirty && ! saving;
+			},
+			saving: function () {
+				return saving;
+			},
+			save: function () {
+				submit( form );
+			}
+		} );
+
 		form.addEventListener( 'input', paint );
 		form.addEventListener( 'change', paint );
 
@@ -329,8 +353,87 @@
 		button.style.minWidth = Math.ceil( width ) + 'px';
 	}
 
+	/** Cmd+S or Ctrl+S: save what needs saving, and never the browser's Save Page. */
+	function shortcut( event ) {
+		if ( ! ( event.metaKey || event.ctrlKey ) || event.altKey || event.shiftKey ) {
+			return;
+		}
+
+		if ( String( event.key || '' ).toLowerCase() !== 's' && event.keyCode !== 83 ) {
+			return;
+		}
+
+		event.preventDefault();
+
+		// Held down, or a popup has the page's attention: nothing more.
+		if ( event.repeat || document.querySelector( '.sb-tweaks-modal' ) ) {
+			return;
+		}
+
+		// What's typed in an editor box reaches its form field first.
+		if ( window.tinymce && typeof window.tinymce.triggerSave === 'function' ) {
+			window.tinymce.triggerSave();
+		}
+
+		var dirty = watched.filter( function ( w ) {
+			return w.dirty();
+		} );
+
+		if ( ! dirty.length ) {
+			// Already on its way: the page is about to change.
+			if ( watched.some( function ( w ) { return w.saving(); } ) ) {
+				return;
+			}
+
+			if ( window.SBTweaksUI && window.SBTweaksUI.toast ) {
+				window.SBTweaksUI.toast( LABEL_CLEAN, 'info' );
+			}
+
+			return;
+		}
+
+		var here = document.activeElement;
+
+		( dirty.filter( function ( w ) {
+			return w.form.contains( here );
+		} )[0] || dirty[0] ).save();
+	}
+
+	/**
+	 * Editor boxes are pages of their own, so their keys need listening to
+	 * there too. Run at the start and again once the page has loaded, as the
+	 * editor script can arrive after this one.
+	 */
+	var editorsHooked = false;
+
+	function editors() {
+		var mce = window.tinymce;
+
+		if ( editorsHooked || ! mce || typeof mce.on !== 'function' ) {
+			return;
+		}
+
+		editorsHooked = true;
+
+		var hook = function ( ed ) {
+			if ( ed && typeof ed.on === 'function' && ! ed.sbSaveKey ) {
+				ed.sbSaveKey = true;
+				ed.on( 'keydown', shortcut );
+			}
+		};
+
+		Array.prototype.forEach.call( ( mce.get && mce.get() ) || [], hook );
+
+		mce.on( 'AddEditor', function ( e ) {
+			hook( e.editor );
+		} );
+	}
+
 	function start() {
 		Array.prototype.forEach.call( document.querySelectorAll( 'form[data-sb-dirty]' ), watch );
+		document.addEventListener( 'keydown', shortcut, true );
+		editors();
+		window.addEventListener( 'load', editors );
 	}
 
 	if ( document.readyState === 'loading' ) {

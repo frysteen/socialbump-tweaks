@@ -78,7 +78,7 @@ class SB_EmailSig_Staff {
 		return $type !== '' && post_type_exists( $type ) ? $type : '';
 	}
 
-	/** A person's company's staff pages' post type, or '' ($post_id 0: a new person, so the default company's). */
+	/** A person's company's staff pages' post type, or '' ($post_id 0: a new person, so the first company's). */
 	public static function person_type( $post_id ) {
 		return self::type( SB_EmailSig_Company::of_person( (int) $post_id ) );
 	}
@@ -201,6 +201,60 @@ class SB_EmailSig_Staff {
 		$type = self::person_type( $post_id );
 
 		return ( $id && $type !== '' && get_post_type( $id ) === $type ) ? $id : 0;
+	}
+
+	/** True when person $id's Linked to page works in company $to too (its team pages are that type), or they have none. */
+	public static function link_follows( $id, $to ) {
+		$page = self::page_id( $id );
+
+		return ! $page || get_post_type( $page ) === self::type( (int) $to );
+	}
+
+	/**
+	 * Field $field of person $id as it should be kept in company $to: as it
+	 * is, or, when their Linked to page can't follow them there and the field
+	 * holds its {tokens}, the text it shows now (read in their own company).
+	 */
+	public static function value_for( $id, $field, $to ) {
+		$raw = (string) get_post_meta( (int) $id, $field, true );
+
+		if ( strpos( $raw, '{' ) === false || self::link_follows( $id, $to ) ) {
+			return $raw;
+		}
+
+		return (string) SB_EmailSig_Company::with(
+			SB_EmailSig_Company::of_person( (int) $id ),
+			function () use ( $field, $id ) {
+				return get_field( $field, (int) $id );
+			}
+		);
+	}
+
+	/**
+	 * Person $from going into company $to as $into: a copy (Duplicate), or
+	 * themselves (Move, or their company deleted and its people moved). When
+	 * their Linked to page can't follow them there, the fields it fills in
+	 * get the text they show now and the link is dropped, so nothing they
+	 * show goes missing (Sam, 3 November 2026). Call it before $into's company
+	 * changes. True when it did.
+	 */
+	public static function carry( $from, $into, $to ) {
+		if ( self::link_follows( $from, $to ) ) {
+			return false;
+		}
+
+		foreach ( self::TOKEN_FIELDS as $key ) {
+			$field = substr( $key, 6 ); // field_sb_emailsig_x: sb_emailsig_x.
+
+			if ( metadata_exists( 'post', (int) $from, $field ) ) {
+				update_post_meta( (int) $into, $field, wp_slash( self::value_for( $from, $field, $to ) ) );
+			}
+		}
+
+		delete_post_meta( (int) $into, 'sb_emailsig_staff_page' );
+		delete_post_meta( (int) $into, '_sb_emailsig_staff_page' );
+
+		return true;
 	}
 
 	/** The staff page's address, while it's published. */
@@ -365,9 +419,9 @@ class SB_EmailSig_Staff {
 		check_ajax_referer( 'sb_emailsig_staff', 'nonce' );
 
 		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-		// The company picked on the page (staff.js), else the default.
+		// The company picked on the page (staff.js), else the first.
 		$co = isset( $_POST['company'] ) ? absint( $_POST['company'] ) : 0;
-		$co = SB_EmailSig_Company::valid( $co ) ? $co : SB_EmailSig_Company::default_id();
+		$co = SB_EmailSig_Company::valid( $co ) ? $co : SB_EmailSig_Company::first_id();
 
 		if ( ! current_user_can( 'edit_posts' ) || ! $id || ! in_array( get_post_type( $id ), self::types(), true ) || ! current_user_can( 'read_post', $id ) ) {
 			wp_send_json_error( null, 403 );
@@ -420,7 +474,7 @@ class SB_EmailSig_Staff {
 				'nonce' => wp_create_nonce( 'sb_emailsig_staff' ),
 				// The companies with staff pages, and whose a new person is.
 				'types' => (object) array_map( '__return_true', $types ),
-				'def'   => SB_EmailSig_Company::default_id(),
+				'def'   => SB_EmailSig_Company::first_id(),
 			)
 		);
 	}

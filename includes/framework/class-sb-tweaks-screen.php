@@ -142,7 +142,6 @@ class SB_Tweaks_Screen {
 	public function boot() {
 		add_action( 'admin_menu', [ $this, 'add_menu' ], 20 );
 		add_action( 'admin_enqueue_scripts', [ $this, 'styles' ] );
-		add_action( 'admin_head', [ $this, 'icon_styles' ] );
 		add_action( 'admin_bar_menu', [ $this, 'admin_bar' ], 100 );
 
 		// Drag to reorder and collapse on the Features page, kept per user.
@@ -422,65 +421,32 @@ class SB_Tweaks_Screen {
 	}
 
 	/**
-	 * The module's pages, along the bottom of the banner. The menu lists them
-	 * already, but on a long admin menu the module can be a scroll away, and
-	 * its pages only show while you are on one of them.
-	 */
-	private function render_nav() {
-		$items = $this->bar_items();
-
-		if ( count( $items ) < 2 ) {
-			return;
-		}
-
-		$current = $this->current_item( $items );
-
-		echo '<nav class="sb-tweaks-header__nav">';
-
-		foreach ( $items as $slug => $title ) {
-			echo '<a class="sb-tweaks-header__link' . ( $slug === $current ? ' is-current' : '' ) . '" href="' . esc_url( $this->page_url( $slug ) ) . '">' . esc_html( $title ) . '</a>';
-		}
-
-		echo '</nav>';
-	}
-
-	/**
-	 * Dark SocialBUMP banner at the top of every page of this module. The hr
-	 * after it tells WordPress to put admin notices below the banner, not
-	 * inside it. The version badge is the plugin's: modules do not have
-	 * versions of their own, and it links to Updates only once that page
-	 * exists.
+	 * The SocialBUMP banner at the top of every page of this module
+	 * (SB_Tweaks_UI::header()): the logo to SocialBUMP Tweaks' Modules page,
+	 * the module's name to its first page (front_door()), the page you're on,
+	 * and the module's pages along the bottom. The menu lists them already,
+	 * but on a long admin menu the module can be a scroll away, and its pages
+	 * only show while you are on one of them. No version badge: a module ships
+	 * inside SocialBUMP Tweaks, whose own pages show the plugin's version.
 	 */
 	public function render_header( $title, $intro = '' ) {
-		$heading = $this->def['heading'];
+		$items = $this->bar_items();
+		$now   = $this->current_item( $items );
+		$nav   = [];
 
-		echo '<div class="sb-tweaks-header"><div class="sb-tweaks-header__brand">';
-		echo '<a class="sb-tweaks-header__home" href="' . esc_url( $this->page_url( $this->front_door() ) ) . '">';
-		echo '<img class="sb-tweaks-header__logo" src="' . esc_url( SB_TWEAKS_URL . 'assets/img/socialbump-logo-light.svg' ) . '" alt="SocialBUMP" width="203" height="28">';
-		echo '</a>';
-		echo '<h1 class="sb-tweaks-header__title">' . esc_html( $heading );
-
-		if ( $title !== $heading ) {
-			echo ' <span class="sb-tweaks-header__page">' . esc_html( $title ) . '</span>';
+		foreach ( $items as $slug => $name ) {
+			$nav[] = [ $this->page_url( $slug ), $name, $slug === $now ];
 		}
 
-		echo '</h1>';
-
-		// No version badge: a module has no version of its own. It ships inside
-		// SocialBUMP Tweaks, whose own pages show the plugin's version.
-		if ( class_exists( 'SB_Tweaks_UI' ) ) {
-			echo SB_Tweaks_UI::mode_switch(); // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped by SB_Tweaks_UI.
-		}
-
-		echo '</div>';
-
-		if ( $intro !== '' ) {
-			echo '<p class="sb-tweaks-header__intro">' . esc_html( $intro ) . '</p>';
-		}
-
-		$this->render_nav();
-
-		echo '</div><hr class="wp-header-end">';
+		echo SB_Tweaks_UI::header( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in header().
+			[
+				'name'     => $this->def['heading'],
+				'name_url' => $this->page_url( $this->front_door() ),
+				'page'     => $title,
+				'intro'    => $intro,
+				'nav'      => $nav,
+			]
+		);
 	}
 
 	/**
@@ -504,6 +470,7 @@ class SB_Tweaks_Screen {
 		echo '<input type="hidden" name="action" value="sb_tweaks_save_groups">';
 		echo '<input type="hidden" name="sb_tweaks_module" value="' . esc_attr( $this->def['id'] ) . '">';
 		wp_nonce_field( 'sb_tweaks_save_groups' );
+		echo '<input type=' . chr( 34 ) . 'hidden' . chr( 34 ) . ' name=' . chr( 34 ) . 'sb_tweaks_features_shown' . chr( 34 ) . ' value=' . chr( 34 ) . '1' . chr( 34 ) . '>';
 
 		// By name until the user drags them; then in their order, new ones by name at the end.
 		$titles = [];
@@ -564,31 +531,35 @@ class SB_Tweaks_Screen {
 				$card .= '<p class="sb-tweaks-card__needs">' . sprintf( esc_html__( 'Needs %s installed and active.', 'sb-tweaks' ), esc_html( implode( ' and ', $needs ) ) ) . '</p>';
 			}
 
-			$card .= '<ul class="sb-tweaks-features">';
+			// Each feature as a small switch, saved with the group switches (Sam,
+			// 3 November 2026). A feature with no switch is on whenever its group
+			// is, so it keeps a dot.
+			$card .= '<ul class=' . chr( 34 ) . 'sb-tweaks-features' . chr( 34 ) . '>';
 
 			foreach ( $features as $feature_id => $feature ) {
-				// A feature with no switch is on whenever its group is: there
-				// is no state stored for it, so asking for one left it looking
-				// switched off with no way to switch it on.
-				$always = ! empty( $feature['always'] );
-				$lit    = $on && ( $always || ! empty( $states_of[ $feature_id ] ) ) && ! $this->features->missing( $feature_id ) && ! $this->features->unavailable( $feature_id );
+				$missing = $this->features->missing( $feature_id );
+				$blocked = $this->features->unavailable( $feature_id );
+				$always  = ! empty( $feature['always'] );
+				$f_on    = ! $missing && ! $blocked && ( $always || ! empty( $states_of[ $feature_id ] ) );
 
-				// A feature can report its own switches, so the list shows what is really on.
-				$parts = ( ! empty( $feature['features'] ) && is_callable( $feature['features'] ) ) ? (array) call_user_func( $feature['features'] ) : [];
-
-				if ( ! $parts ) {
-					$parts = [ [ 'label' => $feature['title'], 'on' => true ] ];
+				if ( $always ) {
+					$card .= SB_Tweaks_Cards::dot_row( $feature['title'], $on && $f_on );
+				} else {
+					/* translators: %s: plugin name(s) */
+					$tip   = $missing ? sprintf( __( 'Needs %s installed and active.', 'sb-tweaks' ), implode( ' and ', $missing ) ) : $blocked;
+					$card .= SB_Tweaks_Cards::toggle_row( 'sb_tweaks_features[' . $feature_id . ']', $feature['title'], $f_on, (bool) ( $missing || $blocked ), $tip );
 				}
 
-				foreach ( $parts as $part ) {
-					$part_on = $lit && ! empty( $part['on'] );
+				// A feature can report its own parts (FAQ Settings, From Price):
+				// listed under it, and set on its own page.
+				$parts = ( ! empty( $feature['features'] ) && is_callable( $feature['features'] ) ) ? (array) call_user_func( $feature['features'] ) : [];
 
-					$card .= '<li class="' . ( $part_on ? 'is-on' : 'is-off' ) . '"><span class="sb-tweaks-dot"></span>' . esc_html( $part['label'] ) . '</li>';
+				foreach ( $parts as $part ) {
+					$card .= SB_Tweaks_Cards::dot_row( isset( $part['label'] ) ? (string) $part['label'] : '', $f_on && ! empty( $part['on'] ), 'is-part' . ( $f_on ? '' : ' is-muted' ) );
 				}
 			}
 
 			$card .= '</ul>';
-
 			if ( $on ) {
 				$card .= '<p class="sb-tweaks-card__link"><a href="' . esc_url( $this->page_url( $this->group_page_slug( $group ) ) ) . '">' . esc_html__( 'Settings', 'sb-tweaks' ) . '</a></p>';
 			}
@@ -628,23 +599,63 @@ class SB_Tweaks_Screen {
 			return;
 		}
 
-		echo '<form method="post" autocomplete="off" data-sb-dirty action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		$form = 'sb-tweaks-group-form';
+		$key  = $this->group_cards_key( $group );
+
+		echo '<form id="' . esc_attr( $form ) . '" method="post" autocomplete="off" data-sb-dirty action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="sb_tweaks_save">';
 		echo '<input type="hidden" name="sb_tweaks_module" value="' . esc_attr( $this->def['id'] ) . '">';
 		echo '<input type="hidden" name="sb_tweaks_group" value="' . esc_attr( $group ) . '">';
 		wp_nonce_field( 'sb_tweaks_save' );
-		echo '<div class="sb-tweaks-grid">';
 
 		$states = $this->features->get_states();
 
 		// Wide cards last, the same order the Features page lists them in.
-		foreach ( $this->page_order( $features ) as $id => $feature ) {
+		$ordered = $this->page_order( $features );
+		$shown   = 0;
+		$lit     = 0;
+
+		// Counted the way the script counts: cards with a switch, on and available.
+		foreach ( $ordered as $id => $feature ) {
+			if ( ! empty( $feature['always'] ) ) {
+				continue;
+			}
+
+			$shown++;
+			$lit += ( ! empty( $states[ $id ] ) && ! $this->features->missing( $id ) && ! $this->features->unavailable( $id ) ) ? 1 : 0;
+		}
+
+		// The same bar as the Features page (Sam, 3 November 2026): the count
+		// with Enable all and Disable all, the collapse buttons, then Save
+		// changes. A group of settings cards only has nothing to switch, so it
+		// gets the collapse buttons alone.
+		$tools = [];
+
+		if ( $shown ) {
+			$tools[] = [ __( 'Features', 'sb-tweaks' ), SB_Tweaks_Cards::switches( $key, $lit, $shown ) ];
+		}
+
+		$tools[] = [ __( 'Cards', 'sb-tweaks' ), SB_Tweaks_Cards::toolbar( $key ) ];
+
+		echo SB_Tweaks_UI::bar( $tools, SB_Tweaks_UI::save_button( $form ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+
+		// Cards collapse, kept per user, but stay where they are: a wide card
+		// can only sit at the bottom, and the Features page lists them in this
+		// order too.
+		echo '<div class="sb-tweaks-grid"' . SB_Tweaks_Cards::container_attributes( $key ) . ' data-sb-cards-fixed>';
+
+		foreach ( $ordered as $id => $feature ) {
 			$this->render_card( $id, $feature, $states );
 		}
 
 		echo '</div>';
 		submit_button( esc_html__( 'Save changes', 'sb-tweaks' ), 'primary sb-save--clean' );
 		echo '</form></div>';
+	}
+
+	/** The key a group page's cards keep their collapsed state under, per user. */
+	private function group_cards_key( $group ) {
+		return sanitize_key( $this->features->groups_option() . '_' . $group );
 	}
 
 	/**
@@ -679,7 +690,7 @@ class SB_Tweaks_Screen {
 		// toggle stuck in the on position would only invite someone to try
 		// turning it off.
 		printf(
-			'<div class="sb-tweaks-card%1$s%2$s%5$s" id="sb-tweaks-%6$s-feature-%7$s"><div class="sb-tweaks-card__head"><h3>%3$s</h3>%4$s</div>',
+			'<div class="sb-tweaks-card%1$s%2$s%5$s" id="sb-tweaks-%6$s-feature-%7$s"%8$s><div class="sb-tweaks-card__head"><h3>%3$s</h3>%4$s</div>',
 			$on ? ' is-on' : '',
 			( $missing || $blocked ) ? ' is-unavailable' : '',
 			esc_html( $feature['title'] ),
@@ -692,7 +703,8 @@ class SB_Tweaks_Screen {
 			),
 			empty( $feature['wide'] ) ? '' : ' sb-tweaks-card--wide',
 			esc_attr( sanitize_key( $this->def['id'] ) ),
-			esc_attr( sanitize_key( $id ) )
+			esc_attr( sanitize_key( $id ) ),
+			SB_Tweaks_Cards::card_attribute( $id )
 		);
 
 		if ( $blocked ) {
@@ -849,7 +861,7 @@ class SB_Tweaks_Screen {
 		$css = SB_TWEAKS_PATH . 'assets/css/admin.css';
 		$ver = file_exists( $css ) ? SB_TWEAKS_VERSION . '.' . filemtime( $css ) : SB_TWEAKS_VERSION;
 
-		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [], $ver );
+		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [ 'sb-tweaks-colour' ], $ver );
 
 		// The shared SocialBUMP look, over the top of admin.css.
 		if ( class_exists( 'SB_Tweaks_UI' ) ) {
@@ -876,7 +888,7 @@ class SB_Tweaks_Screen {
 		$js = SB_TWEAKS_PATH . 'assets/js/framework.js';
 
 		if ( file_exists( $js ) ) {
-			wp_enqueue_script( 'sb-tweaks-framework', SB_TWEAKS_URL . 'assets/js/framework.js', [ 'jquery' ], SB_TWEAKS_VERSION . '.' . filemtime( $js ), true );
+			wp_enqueue_script( 'sb-tweaks-framework', SB_TWEAKS_URL . 'assets/js/framework.js', [ 'jquery', 'sb-tweaks-colour' ], SB_TWEAKS_VERSION . '.' . filemtime( $js ), true );
 
 			// The progress popup, for anything that takes more than a moment.
 			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/progress.js' ) ) {
@@ -939,24 +951,11 @@ class SB_Tweaks_Screen {
 		return false;
 	}
 
-	/** Make the mark dim and brighten like the Dashicons around it. */
-	public function icon_styles() {
-		// Under a parent menu there is no menu item of ours to dim.
-		if ( $this->parent() !== '' ) {
-			return;
-		}
-
-		$item = '#adminmenu #toplevel_page_' . $this->slug();
-
-		echo '<style>' . $item . ' div.wp-menu-image.svg{opacity:0.6;transition:opacity .1s ease-in-out;}';
-		echo $item . ':hover div.wp-menu-image.svg,' . $item . '.wp-has-current-submenu div.wp-menu-image.svg,' . $item . '.current div.wp-menu-image.svg{opacity:1;}</style>';
-	}
-
 	/**
 	 * The SocialBUMP exclamation as a data URI for the admin menu.
 	 *
-	 * WordPress does not recolour an SVG menu icon, only Dashicons, so this
-	 * one is white and the dimming is done in icon_styles(). Built by
+	 * SB_Tweaks_UI::menu_styles() draws the green tile over it on every
+	 * admin page, so this white copy only shows if that is missing. Built by
 	 * concatenation with chr( 34 ): a quote mangled in the middle of it
 	 * produces markup that silently draws nothing.
 	 */

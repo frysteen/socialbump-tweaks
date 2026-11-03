@@ -31,7 +31,6 @@ class SB_Tweaks_Settings {
 	public function boot() {
 		add_action( 'admin_menu', [ $this, 'add_menu' ], 20 );
 		add_action( 'admin_enqueue_scripts', [ $this, 'styles' ] );
-		add_action( 'admin_head', [ $this, 'icon_styles' ] );
 		add_action( 'admin_bar_menu', [ $this, 'admin_bar' ], 100 );
 		add_action( 'admin_post_sb_tweaks_save_modules', [ $this, 'save_modules' ] );
 
@@ -217,19 +216,51 @@ class SB_Tweaks_Settings {
 			echo '<p class="sb-tweaks-card__needs">' . sprintf( esc_html__( 'Failed to load: %s', 'sb-tweaks' ), esc_html( $failed ) ) . '</p>';
 		}
 
-		// The module's groups, lit while the module is running and the group is on.
+		/**
+		 * The module's groups (Sam, 3 November 2026). A module with a Features
+		 * page lists them as small switches, saved with the module switches. A
+		 * module of pages (Email Signatures, or Image Management under Media)
+		 * lists its pages as links.
+		 */
 		if ( $features ) {
+			$q        = chr( 34 );
 			$sections = $features->groups();
+			$screen   = SB_Tweaks_Modules::instance()->screen( $id );
+			$switches = $screen && $screen->parent() === '' && ! $screen->pages_only();
+			$states   = ( $screen && ! $switches ) ? $screen->ordered_groups() : $features->group_states();
 
-			echo '<ul class="sb-tweaks-features">';
+			if ( $switches ) {
+				echo '<input type=' . $q . 'hidden' . $q . ' name=' . $q . 'sb_tweaks_module_groups_shown[' . esc_attr( $id ) . ']' . $q . ' value=' . $q . '1' . $q . '>';
+			}
 
-			foreach ( $features->group_states() as $group => $group_on ) {
-				echo '<li class="' . ( $group_on ? 'is-on' : 'is-off' ) . '"><span class="sb-tweaks-dot"></span>' . esc_html( isset( $sections[ $group ]['title'] ) ? $sections[ $group ]['title'] : $group ) . '</li>';
+			echo '<ul class=' . $q . 'sb-tweaks-features' . $q . '>';
+
+			foreach ( $states as $group => $group_on ) {
+				$title = isset( $sections[ $group ]['title'] ) ? $sections[ $group ]['title'] : $group;
+				$has   = (bool) $features->in_group( $group );
+
+				if ( $switches ) {
+					// The Features page leaves out a group with nothing in it, and so does this.
+					if ( ! $has ) {
+						continue;
+					}
+
+					$needs = $features->group_needs( $group );
+					/* translators: %s: plugin name(s) */
+					$tip   = $needs ? sprintf( __( 'Needs %s installed and active.', 'sb-tweaks' ), implode( ' and ', $needs ) ) : '';
+
+					echo SB_Tweaks_Cards::toggle_row( 'sb_tweaks_module_groups[' . $id . '][' . $group . ']', $title, $group_on && ! $needs, (bool) $needs, $tip ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped by SB_Tweaks_Cards.
+
+					continue;
+				}
+
+				$url = ( $screen && $on && ! $failed && $group_on && $has ) ? $screen->page_url( $screen->group_page_slug( $group ) ) : '';
+
+				echo SB_Tweaks_Cards::link_row( $url, $title, $group_on ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped by SB_Tweaks_Cards.
 			}
 
 			echo '</ul>';
 		}
-
 		if ( $on && ! $failed ) {
 			// Its first page: the Features page, or the first page of a module
 			// that sits under another menu (Image Management under Media).
@@ -282,6 +313,18 @@ class SB_Tweaks_Settings {
 
 		update_option( SB_TWEAKS_OPTION, $states );
 
+		// Group switches from the module cards (Sam, 3 November 2026), only for
+		// the modules whose card showed them.
+		$shown  = isset( $_POST['sb_tweaks_module_groups_shown'] ) ? (array) wp_unslash( $_POST['sb_tweaks_module_groups_shown'] ) : [];
+		$groups = isset( $_POST['sb_tweaks_module_groups'] ) ? (array) wp_unslash( $_POST['sb_tweaks_module_groups'] ) : [];
+
+		foreach ( array_keys( $shown ) as $module ) {
+			$features = SB_Tweaks_Modules::instance()->features( sanitize_key( $module ) );
+
+			if ( $features ) {
+				SB_Tweaks_Save::store_groups( $features, isset( $groups[ $module ] ) ? (array) $groups[ $module ] : [] );
+			}
+		}
 		wp_safe_redirect(
 			add_query_arg(
 				[
@@ -382,73 +425,33 @@ class SB_Tweaks_Settings {
 		echo '</div>';
 	}
 	/**
-	 * The row of links under the banner.
-	 *
-	 * Hidden while there is only one page to go to, which is how a client site
-	 * sees it until a module is switched on.
-	 */
-	private function render_nav() {
-		$items = $this->pages();
-
-		if ( count( $items ) < 2 ) {
-			return;
-		}
-
-		$q     = chr( 34 );
-		$page  = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-		$notes = count( (array) get_option( 'sb_tweaks_pending_changes', [] ) );
-
-		echo '<nav class=' . $q . 'sb-tweaks-header__nav' . $q . '>';
-
-		foreach ( $items as $slug => $title ) {
-			$badge = '';
-
-			if ( $slug === self::PAGE_SLUG . '-publishing' && $notes > 0 ) {
-				$badge = '<span class=' . $q . 'sb-tweaks-header__badge' . $q . '>' . esc_html( number_format_i18n( $notes ) ) . '</span>';
-			}
-
-			echo '<a class=' . $q . 'sb-tweaks-header__link' . ( $slug === $page ? ' is-current' : '' ) . $q . ' href=' . $q . esc_url( admin_url( 'admin.php?page=' . $slug ) ) . $q . '>' . esc_html( $title ) . $badge . '</a>';
-		}
-
-		echo '</nav>';
-	}
-	/**
-	 * The dark banner every page opens with.
-	 *
-	 * The version badge links to the Updates page, where the version check and
-	 * the settings export and import live.
+	 * The SocialBUMP banner on SocialBUMP Tweaks' own pages
+	 * (SB_Tweaks_UI::header()): Tweaks, linked to Modules, the page you're
+	 * on, the version badge (to Updates, where the version check and the
+	 * settings export and import live) and the pages along the bottom, hidden
+	 * while there's only one to go to, which is how a client site sees it
+	 * until a module is switched on. Publishing carries how many changes are
+	 * waiting to go out.
 	 */
 	private function render_header( $title, $intro = '' ) {
-		$q    = chr( 34 );
-		$name = __( 'Tweaks', 'sb-tweaks' );
-		$home = esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) );
-		$logo = esc_url( SB_TWEAKS_URL . 'assets/img/socialbump-logo-light.svg' );
+		$page  = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		$notes = count( (array) get_option( 'sb_tweaks_pending_changes', [] ) );
+		$nav   = [];
 
-		echo '<div class=' . $q . 'sb-tweaks-header' . $q . '><div class=' . $q . 'sb-tweaks-header__brand' . $q . '>';
-		echo '<a class=' . $q . 'sb-tweaks-header__home' . $q . ' href=' . $q . $home . $q . '>';
-		echo '<img class=' . $q . 'sb-tweaks-header__logo' . $q . ' src=' . $q . $logo . $q . ' alt=' . $q . 'SocialBUMP' . $q . ' width=' . $q . '203' . $q . ' height=' . $q . '28' . $q . '></a>';
-		echo '<h1 class=' . $q . 'sb-tweaks-header__title' . $q . '>' . esc_html( $name );
-
-		if ( $title !== $name ) {
-			echo ' <span class=' . $q . 'sb-tweaks-header__page' . $q . '>' . esc_html( $title ) . '</span>';
+		foreach ( $this->pages() as $slug => $name ) {
+			$nav[] = [ admin_url( 'admin.php?page=' . $slug ), $name, $slug === $page, $slug === self::PAGE_SLUG . '-publishing' ? $notes : 0 ];
 		}
 
-		echo '</h1>';
-		echo '<a class=' . $q . 'sb-tweaks-header__version' . $q . ' href=' . $q . esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG . '-updates' ) ) . $q . '>v' . esc_html( SB_TWEAKS_VERSION ) . '</a>';
-
-		if ( class_exists( 'SB_Tweaks_UI' ) ) {
-			echo SB_Tweaks_UI::mode_switch(); // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped by SB_Tweaks_UI.
-		}
-
-		echo '</div>';
-
-		if ( $intro !== '' ) {
-			echo '<p class=' . $q . 'sb-tweaks-header__intro' . $q . '>' . esc_html( $intro ) . '</p>';
-		}
-
-		$this->render_nav();
-
-		echo '</div><hr class=' . $q . 'wp-header-end' . $q . '>';
+		echo SB_Tweaks_UI::header( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in header().
+			[
+				'name'     => __( 'Tweaks', 'sb-tweaks' ),
+				'name_url' => admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
+				'page'     => $title,
+				'intro'    => $intro,
+				'version'  => [ 'v' . SB_TWEAKS_VERSION, admin_url( 'admin.php?page=' . self::PAGE_SLUG . '-updates' ) ],
+				'nav'      => $nav,
+			]
+		);
 	}
 	public function styles( $hook ) {
 		if ( strpos( (string) $hook, self::PAGE_SLUG ) === false ) {
@@ -458,7 +461,7 @@ class SB_Tweaks_Settings {
 		$css = SB_TWEAKS_PATH . 'assets/css/admin.css';
 		$ver = file_exists( $css ) ? SB_TWEAKS_VERSION . '.' . filemtime( $css ) : SB_TWEAKS_VERSION;
 
-		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [], $ver );
+		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [ 'sb-tweaks-colour' ], $ver );
 
 		// The shared SocialBUMP look, dark mode included, on all four pages.
 		if ( class_exists( 'SB_Tweaks_UI' ) ) {
@@ -479,7 +482,7 @@ class SB_Tweaks_Settings {
 		$js = SB_TWEAKS_PATH . 'assets/js/framework.js';
 
 		if ( file_exists( $js ) ) {
-			wp_enqueue_script( 'sb-tweaks-framework', SB_TWEAKS_URL . 'assets/js/framework.js', [ 'jquery' ], SB_TWEAKS_VERSION . '.' . filemtime( $js ), true );
+			wp_enqueue_script( 'sb-tweaks-framework', SB_TWEAKS_URL . 'assets/js/framework.js', [ 'jquery', 'sb-tweaks-colour' ], SB_TWEAKS_VERSION . '.' . filemtime( $js ), true );
 
 			// The progress popup, for anything that takes more than a moment.
 			if ( file_exists( SB_TWEAKS_PATH . 'assets/js/progress.js' ) ) {
@@ -520,14 +523,6 @@ class SB_Tweaks_Settings {
 		$svg .= '<path d=' . $q . $path . $q . '/></g></svg>';
 
 		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
-	}
-
-	/** Make the mark dim and brighten like the Dashicons around it. */
-	public function icon_styles() {
-		$item = '#adminmenu #toplevel_page_' . self::PAGE_SLUG;
-
-		echo '<style>' . $item . ' div.wp-menu-image.svg{opacity:0.6;transition:opacity .1s ease-in-out;}';
-		echo $item . ':hover div.wp-menu-image.svg,' . $item . '.wp-has-current-submenu div.wp-menu-image.svg,' . $item . '.current div.wp-menu-image.svg{opacity:1;}</style>';
 	}
 
 	/** The admin colour scheme accent, from the framework's shared copy. */

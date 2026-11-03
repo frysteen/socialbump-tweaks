@@ -356,13 +356,28 @@
 		if (card && foot) {
 			var tools = document.createElement('span');
 			tools.className = 'sb-emailsig-preview-pop__tools';
-			card.querySelectorAll('.sb-emailsig-person__actions > [data-sb-emailsig-copy-text], .sb-emailsig-person__actions > a[target="_blank"], .sb-emailsig-person__actions > [data-sb-emailsig-send]').forEach(function (b) {
+			card.querySelectorAll('.sb-emailsig-person__actions > [data-sb-emailsig-copy-text], .sb-emailsig-person__actions > a[target="_blank"]').forEach(function (b) {
 				var c = b.cloneNode(true);
 				c.classList.remove('button-small', 'is-done', 'is-loading');
 				c.disabled = false;
 				if (c.classList.contains('sb-emailsig-icon')) c.classList.add('sb-tweaks-button--icon');
 				tools.appendChild(c);
 			});
+			// Email signature link lives in the card's Actions menu (Sam, 3
+			// November 2026): an icon button like the others here.
+			var send = card.querySelector('.sb-emailsig-person__actions [data-sb-emailsig-send]');
+			if (send) {
+				var mail = document.createElement('button');
+				var says = send.getAttribute('aria-label') || 'Email signature link';
+				var icon = send.querySelector('svg');
+				mail.type = 'button';
+				mail.className = 'button sb-emailsig-icon sb-tweaks-button--icon';
+				mail.setAttribute('data-sb-emailsig-send', send.getAttribute('data-sb-emailsig-send'));
+				mail.setAttribute('data-sb-tip', says);
+				mail.setAttribute('aria-label', says);
+				if (icon) mail.appendChild(icon.cloneNode(true));
+				tools.appendChild(mail);
+			}
 			if (tools.children.length) foot.insertBefore(tools, foot.firstChild);
 		}
 
@@ -397,16 +412,6 @@
 		if (!pick) return;
 		var input = pick.form && pick.form.querySelector('input[type="file"]');
 		if (input) input.click();
-	});
-
-	/* Export follows the Company menu beside it (one company at a time). */
-	document.addEventListener('change', function (e) {
-		if (!e.target.matches || !e.target.matches('[data-sb-emailsig-people-co]')) return;
-		var link = document.querySelector('[data-sb-emailsig-export]');
-		if (!link) return;
-		var url = new URL(link.href, window.location.href);
-		url.searchParams.set('co', e.target.value);
-		link.href = url.toString();
 	});
 
 	document.addEventListener('change', function (e) {

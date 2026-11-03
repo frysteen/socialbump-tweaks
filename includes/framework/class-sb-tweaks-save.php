@@ -54,30 +54,9 @@ class SB_Tweaks_Save {
 
 		$group     = isset( $_POST['sb_tweaks_group'] ) ? sanitize_key( wp_unslash( $_POST['sb_tweaks_group'] ) ) : '';
 		$list      = $group !== '' ? $features->in_group( $group ) : $features->switchable();
-		$saved     = (array) get_option( $features->features_option(), [] );
 		$submitted = isset( $_POST['sb_tweaks_features'] ) ? (array) wp_unslash( $_POST['sb_tweaks_features'] ) : [];
 
-		// One group's page only submits its own features, so start from
-		// everything already saved. Otherwise saving one page would wipe every
-		// other group.
-		$states = $saved;
-
-		foreach ( $list as $id => $feature ) {
-			// A feature with no switch has no state to save; its settings still do.
-			if ( ! empty( $feature['always'] ) ) {
-				continue;
-			}
-
-			// A greyed out feature can't be changed here, so keep what it had.
-			if ( $features->missing( $id ) || $features->unavailable( $id ) ) {
-				$states[ $id ] = array_key_exists( $id, $saved ) ? (int) (bool) $saved[ $id ] : (int) (bool) $feature['default'];
-				continue;
-			}
-
-			$states[ $id ] = ! empty( $submitted[ $id ] ) ? 1 : 0;
-		}
-
-		update_option( $features->features_option(), $states );
+		self::store_features( $features, $list, $submitted );
 
 		// Card settings.
 		$posted_settings = isset( $_POST['sb_tweaks_settings'] ) ? (array) wp_unslash( $_POST['sb_tweaks_settings'] ) : [];
@@ -126,7 +105,54 @@ class SB_Tweaks_Save {
 
 		list( $features, $screen ) = $module;
 
-		$posted = isset( $_POST['sb_tweaks_groups'] ) ? (array) wp_unslash( $_POST['sb_tweaks_groups'] ) : [];
+		self::store_groups( $features, isset( $_POST['sb_tweaks_groups'] ) ? (array) wp_unslash( $_POST['sb_tweaks_groups'] ) : [] );
+
+		// The feature switches its cards list (Sam, 3 November 2026): every
+		// feature in a declared group, the same ones render_groups() draws.
+		if ( ! empty( $_POST['sb_tweaks_features_shown'] ) ) {
+			$listed = [];
+
+			foreach ( array_keys( $features->groups() ) as $group ) {
+				$listed += $features->in_group( $group );
+			}
+
+			self::store_features( $features, $listed, isset( $_POST['sb_tweaks_features'] ) ? (array) wp_unslash( $_POST['sb_tweaks_features'] ) : [] );
+		}
+
+		wp_safe_redirect( add_query_arg( [ 'page' => $screen->slug(), 'updated' => 'true' ], admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Save the switches of the features listed, keeping every other feature as
+	 * saved: a group page lists its own, the Features page all it draws.
+	 */
+	public static function store_features( SB_Tweaks_Features $features, array $list, array $submitted ) {
+		$saved = (array) get_option( $features->features_option(), [] );
+
+		// Start from everything saved, so one page never wipes another's.
+		$states = $saved;
+
+		foreach ( $list as $id => $feature ) {
+			// A feature with no switch has no state to save; its settings still do.
+			if ( ! empty( $feature['always'] ) ) {
+				continue;
+			}
+
+			// A greyed out feature can't be changed here, so keep what it had.
+			if ( $features->missing( $id ) || $features->unavailable( $id ) ) {
+				$states[ $id ] = array_key_exists( $id, $saved ) ? (int) (bool) $saved[ $id ] : (int) (bool) $feature['default'];
+				continue;
+			}
+
+			$states[ $id ] = ! empty( $submitted[ $id ] ) ? 1 : 0;
+		}
+
+		update_option( $features->features_option(), $states );
+	}
+
+	/** Save a module's group switches, from its Features page or its card on the Modules page. */
+	public static function store_groups( SB_Tweaks_Features $features, array $posted ) {
 		$saved  = (array) get_option( $features->groups_option(), [] );
 		$states = [];
 
@@ -141,8 +167,5 @@ class SB_Tweaks_Save {
 		}
 
 		update_option( $features->groups_option(), $states );
-
-		wp_safe_redirect( add_query_arg( [ 'page' => $screen->slug(), 'updated' => 'true' ], admin_url( 'admin.php' ) ) );
-		exit;
 	}
 }

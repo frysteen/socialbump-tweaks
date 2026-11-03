@@ -8,7 +8,10 @@
  * Export (data-sb-emailsig-export-open) asks whether to lock the colours
  * first, then sends its form, which downloads the .json file.
  *
- * Used by (data-sb-emailsig-used) opens the page for the company picked.
+ * Used by (data-sb-emailsig-used) filters the cards on the page, no reload
+ * (Sam, 3 November 2026): each card lists the companies it's used by
+ * (data-sb-emailsig-used-by), and the address keeps ?used= so a reload or a
+ * shared link opens filtered the same.
  */
 (function () {
 	'use strict';
@@ -77,13 +80,41 @@
 		}
 	});
 
-	// Used by (Sam, 1 November 2026): the page again for that company, or Not in use.
+	// Used by (Sam, 1 and 3 November 2026): the templates a company uses, or
+	// Not in use, filtered on the page.
 	var used = document.querySelector('[data-sb-emailsig-used]');
 	if (used) {
 		used.addEventListener('change', function () {
-			var url = new URL(used.getAttribute('data-sb-emailsig-used'), window.location.href);
-			if (used.value) url.searchParams.set('used', used.value);
-			window.location.href = url.toString();
+			var pick = used.value;
+			var shown = 0;
+
+			document.querySelectorAll('[data-sb-emailsig-used-by]').forEach(function (card) {
+				var by = (card.getAttribute('data-sb-emailsig-used-by') || '').split(',').filter(Boolean);
+				var match = pick === '' || (pick === 'none' ? !by.length : by.indexOf(pick) !== -1);
+				card.classList.toggle('is-filtered', !match);
+				if (match) shown++;
+			});
+
+			var none = document.querySelector('[data-sb-emailsig-used-none]');
+			var text = document.querySelector('[data-sb-emailsig-used-none-text]');
+			if (none) none.hidden = shown > 0;
+			if (text) text.textContent = text.getAttribute(pick === 'none' ? 'data-none' : 'data-company');
+
+			if (window.history && window.history.replaceState) {
+				var url = new URL(window.location.href);
+				if (pick) url.searchParams.set('used', pick); else url.searchParams.delete('used');
+				window.history.replaceState(null, '', url.toString());
+			}
+		});
+	}
+
+	// Another tab changed a company's templates (the popup on the Companies
+	// page, brand.js): the cards and the empty message come again from the
+	// server, filtered by Used by as they are now (SBTweaksSync, Sam,
+	// 3 November 2026).
+	if (window.SBTweaksSync && document.querySelector('.sb-emailsig-templates')) {
+		window.SBTweaksSync.on('email-signatures/templates', function () {
+			window.SBTweaksSync.refresh(['.sb-emailsig-templates', '[data-sb-emailsig-used-none]']);
 		});
 	}
 })();

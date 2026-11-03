@@ -3,7 +3,7 @@
  * Plugin Name: SocialBUMP Tweaks
  * Plugin URI:  https://socialbump.com.au
  * Description: SocialBUMP site tweaks in switchable modules. Turn on only the parts a site needs.
- * Version:     0.6.4
+ * Version:     0.6.5
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author:      SocialBUMP
@@ -37,7 +37,7 @@ if ( PHP_VERSION_ID < 80000 ) {
 // Tells the SocialBUMP hub this site has the plugin, its version and whether it is active.
 require_once __DIR__ . '/includes/class-socialbump-reporter.php';
 
-define( 'SB_TWEAKS_VERSION', '0.6.4' );
+define( 'SB_TWEAKS_VERSION', '0.6.5' );
 define( 'SB_TWEAKS_FILE', __FILE__ );
 define( 'SB_TWEAKS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SB_TWEAKS_URL', plugin_dir_url( __FILE__ ) );
@@ -167,16 +167,20 @@ function sb_tweaks_boot() {
 	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-cards.php';
 	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-bar.php';
 	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-fields.php';
+require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-colours.php';
 	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-save.php';
 	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-features.php';
 	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-screen.php';
 	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-modules.php';
+	require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-progress.php';
+	SB_Tweaks_Progress::boot();
 
 	// Which modules this site may use, set from the hub: read before the modules are.
 	require_once SB_TWEAKS_PATH . 'includes/class-sb-tweaks-policy.php';
 	SB_Tweaks_Policy::boot();
 
 	SB_Tweaks_UI::boot();
+	SB_Tweaks_Colours::boot();
 	SB_Tweaks_Settings::instance()->boot();
 	SB_Tweaks_Save::boot();
 	SB_Tweaks_Modules::instance()->boot();

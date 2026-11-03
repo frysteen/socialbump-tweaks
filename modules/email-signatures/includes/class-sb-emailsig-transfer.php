@@ -1,7 +1,8 @@
 <?php
 /**
  * People export and import, as a CSV file (one row per person) for Excel,
- * Numbers or Google Sheets. On the Signatures page, for administrators.
+ * Numbers or Google Sheets. On the Import/Export page (moved from the
+ * Signatures page's bar, Sam, 3 November 2026), for administrators.
  *
  * One company at a time (Sam, 1 November 2026): with more than one, a
  * Company menu beside Export and Import picks it. Export writes that
@@ -80,6 +81,7 @@ class SB_EmailSig_Transfer {
 		add_action( 'admin_post_sb_emailsig_people_read', array( __CLASS__, 'read' ) );
 		add_action( 'admin_post_sb_emailsig_people_import', array( __CLASS__, 'import' ) );
 		add_action( 'admin_post_sb_emailsig_people_cancel', array( __CLASS__, 'cancel' ) );
+		add_action( 'wp_ajax_sb_emailsig_people_list', array( __CLASS__, 'people_list' ) );
 	}
 
 	private static function allowed() {
@@ -89,7 +91,7 @@ class SB_EmailSig_Transfer {
 	}
 
 	private static function page_url( array $args = array() ) {
-		return add_query_arg( $args, admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures' ) );
+		return add_query_arg( $args, admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-transfer' ) );
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -151,11 +153,11 @@ class SB_EmailSig_Transfer {
 		return wp_nonce_url( admin_url( 'admin-post.php?action=sb_emailsig_people_export' ), 'sb_emailsig_people_export' );
 	}
 
-	/** The company asked for ($v), else the default one. */
+	/** The company asked for ($v), else the first. */
 	private static function company( $v ) {
 		$co = absint( $v );
 
-		return SB_EmailSig_Company::valid( $co ) ? $co : SB_EmailSig_Company::default_id();
+		return SB_EmailSig_Company::valid( $co ) ? $co : SB_EmailSig_Company::first_id();
 	}
 
 	/** Company $co's people, active and not (as the Signatures page lists them). */
@@ -163,13 +165,104 @@ class SB_EmailSig_Transfer {
 		return SB_EmailSig_Admin::people( array( 'publish', 'draft' ), (int) $co );
 	}
 
+	/**
+	 * Export as an icon (Sam, 3 November 2026), administrators only: on a
+	 * person's card (array( 'person' => id ), the file has just them) and a
+	 * company's (array( 'co' => id ), its people). Either imports back on the
+	 * Import/Export page.
+	 */
+	public static function export_button( array $args, $label ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return '';
+		}
+
+		return '<a class="button button-small sb-emailsig-icon" href="' . esc_url( add_query_arg( $args, self::export_url() ) ) . '" data-sb-tip="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '">' . SB_EmailSig_Admin::icon( 'down' ) . '</a>';
+	}
+
+	/**
+	 * Export People (Sam, 3 November 2026): a button that opens the popup to
+	 * pick which of company $co's people go in the CSV (people-export.js).
+	 * On a company's bar on the Signatures page ("People") and the Export
+	 * People card on the Import/Export page ("Export"). Administrators, in
+	 * the admin only.
+	 */
+	public static function export_people_button( $co, $label = 'People', $tip = '' ) {
+		if ( ! current_user_can( 'manage_options' ) || ! is_admin() ) {
+			return '';
+		}
+
+		$tip = $tip !== '' ? $tip : 'Export ' . SB_EmailSig_Company::name( $co ) . '\'s people as a CSV';
+
+		return '<button type="button" class="button button-small" data-sb-emailsig-export-people="' . (int) $co . '" data-sb-tip="' . esc_attr( $tip ) . '">' . SB_EmailSig_Admin::icon( 'down' ) . esc_html( $label ) . '</button>';
+	}
+
+	/** The Export People popup's script, for a page with its buttons. */
+	public static function enqueue_export() {
+		wp_enqueue_script( 'sb-emailsig-people-export', SB_EMAILSIG_URL . 'assets/people-export.js', array( 'jquery', 'sb-tweaks-confirm' ), SB_EmailSig_Module::asset_version( 'assets/people-export.js' ), true );
+		wp_localize_script(
+			'sb-emailsig-people-export',
+			'sbEmailsigPeopleExport',
+			array(
+				'ajax'  => admin_url( 'admin-ajax.php' ),
+				'post'  => admin_url( 'admin-post.php' ),
+				'nonce' => wp_create_nonce( 'sb_emailsig_people_export' ),
+			)
+		);
+	}
+
+	/** The popup's list: company $co's people (active and not), by name, with their job title. */
+	public static function people_list() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Only administrators can export people.', 403 );
+		}
+
+		check_ajax_referer( 'sb_emailsig_people_export', 'nonce' );
+
+		$co  = self::company( isset( $_POST['co'] ) ? wp_unslash( $_POST['co'] ) : 0 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- absint in company().
+		$out = array();
+
+		foreach ( self::people_of( $co ) as $id ) {
+			$out[] = array(
+				'id'     => (int) $id,
+				'name'   => trim( (string) get_field( 'sb_emailsig_name', $id ) ),
+				'role'   => trim( wp_strip_all_tags( (string) get_field( 'sb_emailsig_job_title', $id ) ) ),
+				'active' => get_post_status( $id ) === 'publish',
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'company' => SB_EmailSig_Company::name( $co ),
+				'people'  => $out,
+			)
+		);
+	}
+
 	public static function export() {
 		self::allowed();
 		check_admin_referer( 'sb_emailsig_people_export' );
 		SB_EmailSig_Data::$as_typed = true; // Shortcodes exported as typed, not run.
 
-		$co     = self::company( isset( $_GET['co'] ) ? wp_unslash( $_GET['co'] ) : 0 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- absint in company().
+		// The company and, from the Export People popup, who in it (Sam,
+		// 3 November 2026): posted, so a long list fits. Only its own people.
+		$co     = self::company( isset( $_REQUEST['co'] ) ? wp_unslash( $_REQUEST['co'] ) : 0 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- absint in company().
 		$people = self::people_of( $co );
+
+		if ( isset( $_POST['people'] ) && is_array( $_POST['people'] ) ) {
+			$picked = array_map( 'absint', wp_unslash( $_POST['people'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- absint.
+			$people = array_values( array_intersect( $people, $picked ) );
+		}
+
+		// One person, from their card (Sam, 3 November 2026).
+		$one = isset( $_GET['person'] ) ? absint( $_GET['person'] ) : 0;
+
+		if ( $one && get_post_type( $one ) === SB_EMAILSIG_CPT && get_post_status( $one ) !== 'trash' ) {
+			$people = array( $one );
+			$co     = SB_EmailSig_Company::of_person( $one );
+		} else {
+			$one = 0;
+		}
+
 		$rows   = array();
 		$most   = 0;
 
@@ -209,7 +302,8 @@ class SB_EmailSig_Transfer {
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		$slug = count( SB_EmailSig_Company::all() ) > 1 ? sanitize_title( SB_EmailSig_Company::name( $co ) ) . '-' : '';
-		header( 'Content-Disposition: attachment; filename="email-signature-people-' . $slug . gmdate( 'Y-m-d' ) . '.csv"' );
+		$what = $one ? 'person-' . sanitize_title( get_the_title( $one ) ) . '-' : 'people-' . $slug;
+		header( 'Content-Disposition: attachment; filename="email-signature-' . $what . gmdate( 'Y-m-d' ) . '.csv"' );
 
 		$out = fopen( 'php://output', 'w' );
 		fwrite( $out, "\xEF\xBB\xBF" ); // So Excel reads it as UTF-8. phpcs:ignore WordPress.WP.AlternativeFunctions
@@ -418,15 +512,43 @@ class SB_EmailSig_Transfer {
 	}
 
 	/* ------------------------------------------------------------------ *
-	 * Preview (the Signatures page, ?people=preview)
+	 * Preview (the Import/Export page, ?people=preview)
 	 * ------------------------------------------------------------------ */
 
 	public static function previewing() {
 		return isset( $_GET['people'] ) && $_GET['people'] === 'preview' && current_user_can( 'manage_options' ); // phpcs:ignore WordPress.Security.NonceVerification
 	}
 
-	/** The Export and Import row at the top of the Signatures page, with any notice. */
-	public static function render_bar() {
+	/**
+	 * The Import/Export page: an import being checked shows its preview,
+	 * otherwise the people file's card.
+	 */
+	public static function render_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			echo '<div class="sb-ui-empty"><p>Only administrators can import or export people.</p></div>';
+
+			return;
+		}
+
+		if ( self::previewing() ) {
+			self::render_preview();
+
+			return;
+		}
+
+		// The people file, then template import (Sam, 3 November 2026), side by side.
+		echo '<div class="sb-tweaks-grid">';
+		self::render_card();
+
+		if ( class_exists( 'SB_EmailSig_Templates' ) ) {
+			SB_EmailSig_Templates::render_import_card();
+		}
+
+		echo '</div>';
+	}
+
+	/** The Export People card: Company (with more than one), Export and Import, with any notice above it. */
+	public static function render_card() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
@@ -461,22 +583,31 @@ class SB_EmailSig_Transfer {
 		$menu = '';
 
 		if ( count( $all ) > 1 ) {
-			$menu = '<select name="co" form="sb-emailsig-import" data-sb-emailsig-people-co aria-label="Company">';
+			$menu = '<select id="sb-emailsig-people-co" name="co" form="sb-emailsig-import" data-sb-emailsig-people-co>';
 			foreach ( $all as $co ) {
 				$menu .= '<option value="' . (int) $co . '"' . selected( $co, $pick, false ) . '>' . esc_html( SB_EmailSig_Company::name( $co ) ) . '</option>';
 			}
 			$menu .= '</select>';
 		}
 
-		echo '<div class="sb-ui-bar__group sb-emailsig-transfer"><span class="sb-ui-bar__label">People file</span>';
-		echo $menu; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
-		echo '<a class="button button-small" href="' . esc_url( add_query_arg( 'co', $pick, self::export_url() ) ) . '" data-sb-emailsig-export data-sb-tip="' . esc_attr( $menu ? 'Download this company\'s people as a CSV' : 'Download everyone as a CSV' ) . '">' . SB_EmailSig_Admin::icon( 'down' ) . 'Export</a>';
+		echo '<div class="sb-tweaks-card sb-emailsig-transfer">';
+		echo '<div class="sb-tweaks-card__head"><h3>Export People</h3></div>';
+		echo '<p class="sb-tweaks-card__desc">' . esc_html( ( $menu ? 'One company\'s people' : 'Everyone' ) . ' as a spreadsheet file (CSV) for Excel, Numbers or Google Sheets. Import checks the file and shows what it will do first: nothing is saved until you say so, and it never deletes anyone.' ) . '</p>';
+		echo '<div class="sb-emailsig-transfer__body">';
+
+		if ( $menu ) {
+			echo '<div class="sb-tweaks-field"><label class="sb-tweaks-field__label" for="sb-emailsig-people-co">Company</label>' . $menu . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
+		}
+
+		echo '<div class="sb-emailsig-transfer__actions">';
+		echo self::export_people_button( $pick, 'Export', $menu ? 'Pick which of this company\'s people to export' : 'Pick who to export' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in export_people_button().
 		echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="sb-emailsig-import" data-sb-emailsig-import>';
 		echo '<input type="hidden" name="action" value="sb_emailsig_people_read">';
 		wp_nonce_field( 'sb_emailsig_people_read' );
 		echo '<input type="file" name="sb_emailsig_people" accept=".csv,text/csv" required aria-label="People CSV file" class="screen-reader-text" tabindex="-1">';
 		echo '<button type="button" class="button button-small" data-sb-emailsig-import-pick data-sb-tip="' . esc_attr( $menu ? 'Check a CSV before adding anyone to this company' : 'Check a CSV before adding anyone' ) . '">' . SB_EmailSig_Admin::icon( 'up' ) . 'Import</button>';
-		echo '</form></div>';
+		echo '</form>';
+		echo '</div></div></div>';
 	}
 
 	public static function render_preview() {

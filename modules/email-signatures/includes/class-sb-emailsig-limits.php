@@ -10,7 +10,7 @@
  * a tip saying why (button()), on the team pages too, and nothing more can be
  * added or switched on. Over one (a limit lowered on the hub), the newest go
  * off: people past it Inactive, companies switched off (SB_EmailSig_Switch,
- * never the default one), templates left out of SB_EmailSig_Templates::all()
+ * the oldest kept on), templates left out of SB_EmailSig_Templates::all()
  * so nobody can use them until the limit goes up. Nothing is deleted.
  * apply() runs once per change of limits.
  */
@@ -64,7 +64,7 @@ class SB_EmailSig_Limits {
 		return array_values( array_diff( array_map( 'intval', $ids ), array( (int) $except ) ) );
 	}
 
-	/** Companies switched on, the default first, then oldest first; but $except. */
+	/** Companies switched on, oldest first; but $except. */
 	public static function companies( $except = 0 ) {
 		$on = array();
 
@@ -75,12 +75,6 @@ class SB_EmailSig_Limits {
 		}
 
 		sort( $on );
-
-		$default = (int) SB_EmailSig_Company::default_id();
-
-		if ( in_array( $default, $on, true ) ) {
-			$on = array_merge( array( $default ), array_values( array_diff( $on, array( $default ) ) ) );
-		}
 
 		return $on;
 	}

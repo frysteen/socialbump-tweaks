@@ -17,6 +17,8 @@ class SB_EmailSig_Companies {
 		add_action( 'admin_post_sb_emailsig_company_delete', array( __CLASS__, 'delete' ) );
 		add_action( 'wp_ajax_sb_emailsig_brand_save', array( __CLASS__, 'brand_save' ) );
 		add_action( 'wp_ajax_sb_emailsig_brand_icons', array( __CLASS__, 'brand_icons' ) );
+		// The Default Template and the ones people can pick, from a company's card (brand.js).
+		add_action( 'wp_ajax_sb_emailsig_templates_save', array( __CLASS__, 'templates_save' ) );
 		add_filter( 'acf/pre_save_post', array( __CLASS__, 'limit_new' ), 5 );
 	}
 
@@ -95,6 +97,70 @@ class SB_EmailSig_Companies {
 	 * (a hex or a theme colour; blank for the default), then kept, and what
 	 * the page needs to redraw the company's icons in them sent back.
 	 */
+	/**
+	 * A company's templates for the popup (brand.js): its Default Template,
+	 * the ones its people can pick, and every template as [ id, name ].
+	 */
+	private static function templates_data( $co ) {
+		return array(
+			'main' => SB_EmailSig_Templates::main_for( $co ),
+			'set'  => array_values( SB_EmailSig_Templates::set_for( $co ) ),
+			'all'  => array_map(
+				function ( $id, $tpl ) {
+					return array( (string) $id, $tpl['name'] );
+				},
+				array_keys( SB_EmailSig_Templates::all() ),
+				SB_EmailSig_Templates::all()
+			),
+		);
+	}
+
+	/** The Default Template's name on a company's card, as the button that opens its templates popup. */
+	private static function templates_link( $co, $name ) {
+		return '<button type="button" class="sb-emailsig-tpl-link" data-sb-emailsig-tpls="' . (int) $co . '" data-sb-emailsig-tpls-name="' . esc_attr( SB_EmailSig_Company::name( $co ) ) . '" data-sb-emailsig-tpls-data="' . esc_attr( wp_json_encode( self::templates_data( $co ) ) ) . '" data-sb-tip="Change the Default Template and the ones people can pick">' . esc_html( $name ) . '</button>';
+	}
+
+	/**
+	 * Save a company's templates from the popup (Sam, 3 November 2026), as
+	 * its Company tab would: the Default Template, and the ones its people
+	 * can pick, which always include the default. Logged as an edit.
+	 */
+	public static function templates_save() {
+		$co   = self::brand_check();
+		$main = isset( $_POST['main'] ) ? sanitize_text_field( wp_unslash( $_POST['main'] ) ) : '';
+		$list = isset( $_POST['templates'] ) ? json_decode( wp_unslash( $_POST['templates'] ), true ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- checked below.
+		$tpl  = SB_EmailSig_Templates::get( $main );
+
+		if ( ! $tpl ) {
+			wp_send_json_error( 'Pick a Default Template.' );
+		}
+
+		$set = array( (string) $tpl['id'] );
+
+		foreach ( is_array( $list ) ? $list : array() as $id ) {
+			$t = SB_EmailSig_Templates::get( sanitize_text_field( (string) $id ) );
+
+			if ( $t && ! in_array( (string) $t['id'], $set, true ) ) {
+				$set[] = (string) $t['id'];
+			}
+		}
+
+		update_field( 'field_sb_emailsig_main_template', (string) $tpl['id'], $co );
+		update_field( 'field_sb_emailsig_templates', $set, $co );
+		SB_EmailSig_Log::add( 'edited', 'company', $co );
+
+		$count = count( SB_EmailSig_Templates::set_for( $co ) );
+
+		wp_send_json_success(
+			array(
+				'name'  => $tpl['name'],
+				'count' => $count,
+				'noun'  => _n( 'template', 'templates', $count ),
+				'data'  => self::templates_data( $co ),
+			)
+		);
+	}
+
 	public static function brand_save() {
 		$co      = self::brand_check();
 		$colours = isset( $_POST['colours'] ) ? json_decode( wp_unslash( $_POST['colours'] ), true ) : null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- cleaned below.
@@ -225,8 +291,10 @@ class SB_EmailSig_Companies {
 			return;
 		}
 
+		$moved   = isset( $_GET['moved'] ) ? absint( $_GET['moved'] ) : 0;
+		$purged  = isset( $_GET['purged'] ) ? absint( $_GET['purged'] ) : 0;
 		$notices = array(
-			'deleted' => array( 'success', 'Company deleted. Its people moved to ' . SB_EmailSig_Company::name( SB_EmailSig_Company::default_id() ) . '.' ),
+			'deleted' => array( 'success', 'Company deleted.' . ( $purged ? ' ' . sprintf( _n( 'Its %d person was deleted too.', 'Its %d people were deleted too.', $purged ), $purged ) : ( SB_EmailSig_Company::valid( $moved ) ? ' Its people moved to ' . SB_EmailSig_Company::name( $moved ) . '.' : '' ) ) ),
 			'failed'  => array( 'error', 'That didn\'t work. Try again.' ),
 		);
 		$notice  = isset( $_GET['done'] ) ? sanitize_key( wp_unslash( $_GET['done'] ) ) : '';
@@ -239,15 +307,9 @@ class SB_EmailSig_Companies {
 		self::render_list();
 	}
 
-	/** Every company as a card, the default first. */
+	/** Every company as a card, by name. Any can be deleted while there's another (Sam, 3 November 2026). */
 	private static function render_list() {
 		$all = SB_EmailSig_Company::all();
-		$def = SB_EmailSig_Company::default_id();
-
-		if ( $def && in_array( $def, $all, true ) ) {
-			$all = array_merge( array( $def ), array_values( array_diff( $all, array( $def ) ) ) );
-		}
-
 		// Everyone's team page (administrators and editors): every company, grouped.
 		$team = SB_EmailSig_Page::list_url();
 
@@ -270,7 +332,7 @@ class SB_EmailSig_Companies {
 		echo '<div class="sb-emailsig-people sb-emailsig-companies">';
 
 		foreach ( $all as $id ) {
-			self::card( $id, $id === $def );
+			self::card( $id, $all );
 		}
 
 		echo '</div>';
@@ -296,12 +358,13 @@ class SB_EmailSig_Companies {
 	}
 
 	/**
-	 * One company's card (Sam, 1 November 2026): its logo, name and switch,
-	 * its brand colours, its Phone, Email, Address and Default Template, its
-	 * people and templates (links to them), then Edit and Delete. Its parts
-	 * line up with the other cards' in a row (subgrid, admin.css).
+	 * One company's card (Sam, 1 November 2026): its logo, name with its brand
+	 * colours under it, and switch; its Website, Phone, Email, Address and
+	 * Default Template; its people and templates (links to them), then Edit, Add person
+	 * to it (administrators), its team page's links and Delete. Its parts line up with the other cards' in a row (subgrid,
+	 * admin.css).
 	 */
-	private static function card( $id, $is_default ) {
+	private static function card( $id, array $all ) {
 		$name    = SB_EmailSig_Company::name( $id );
 		$edit    = self::url( $id );
 		$site    = (string) get_post_meta( $id, 'sb_emailsig_website', true );
@@ -312,7 +375,7 @@ class SB_EmailSig_Companies {
 		$main    = SB_EmailSig_Templates::get( SB_EmailSig_Templates::main_for( $id ) );
 		$people  = self::people( $id );
 
-		echo '<article class="sb-tweaks-card sb-emailsig-template sb-emailsig-company' . ( $is_default ? ' is-main' : '' ) . esc_attr( SB_EmailSig_Switch::off_class( $id ) ) . '">';
+		echo '<article class="sb-tweaks-card sb-emailsig-template sb-emailsig-company' . esc_attr( SB_EmailSig_Switch::off_class( $id ) ) . '">';
 
 		echo '<div class="sb-emailsig-template__top">';
 		echo '<div class="sb-emailsig-company__who">';
@@ -332,34 +395,29 @@ class SB_EmailSig_Companies {
 			echo '<span class="sb-emailsig-company__logo sb-emailsig-company__logo--letter" style="background-color:' . esc_attr( $colour ) . ';" aria-hidden="true">' . esc_html( self::initial( $name ) ) . '</span>';
 		}
 
+		// The name, then its brand colours, a click to change one (swatches()). The
+		// website is with the details below (Sam, 3 November 2026): a long one up
+		// here pushed the switch out of the card.
 		echo '<div class="sb-emailsig-person__who">';
 		echo '<h3 class="sb-emailsig-person__name"><a href="' . esc_url( $edit ) . '">' . esc_html( $name ) . '</a></h3>';
-
-		if ( $host !== '' ) {
-			echo '<p class="sb-emailsig-person__job">' . esc_html( $host ) . '</p>';
-		}
-
+		echo self::swatches( $id ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in swatches().
 		echo '</div></div>';
 
-		// Default, then its on or off switch (SB_EmailSig_Switch), top right.
+		// Its on or off switch (SB_EmailSig_Switch), top right. No Default badge
+		// (Sam, 3 November 2026): the default can't be changed, so it said nothing.
 		echo '<div class="sb-emailsig-company__end">';
-		if ( $is_default ) {
-			echo '<span class="sb-emailsig-template__badge" data-sb-tip="People with no company of their own are in this one">Default</span>';
-		}
 		echo SB_EmailSig_Switch::control( $id ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in control().
 		echo '</div>';
 
 		echo '</div>';
 
-		// Its brand colours, a click to change one (swatches()).
-		echo '<div class="sb-emailsig-company__brand">' . self::swatches( $id ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in swatches().
-
-		// Its Phone, Email, Address and Default Template (Sam, 1 November
-		// 2026), each always there: one not set says so, a link to its field.
+		// Its Website, Phone, Email, Address and Default Template (Sam, 1 and 3
+		// November 2026), each always there: one not set says so, a link to its field.
 		$details = SB_EmailSig_Company::with(
 			$id,
-			function () use ( $id ) {
+			function () use ( $id, $host ) {
 				return array(
+					'website'       => array( 'globe', $host ),
 					'phone'         => array( 'phone', trim( (string) get_field( 'sb_emailsig_phone', $id ) ) ),
 					'company_email' => array( 'mail', trim( (string) get_field( 'sb_emailsig_company_email', $id ) ) ),
 					'address'       => array( 'pin', implode( ', ', SB_EmailSig_Data::lines( (string) get_field( 'sb_emailsig_address', $id ) ) ) ),
@@ -371,6 +429,11 @@ class SB_EmailSig_Companies {
 		echo '<ul class="sb-emailsig-company__details">';
 		foreach ( $details as $field => $row ) {
 			echo '<li>' . SB_EmailSig_Admin::icon( $row[0] ); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed markup.
+			if ( $field === 'main_template' && $main && current_user_can( 'manage_options' ) ) {
+				// The template's name opens its popup (Sam, 3 November 2026).
+				echo '<span>Default Template: ' . self::templates_link( $id, $main['name'] ) . '</span></li>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in templates_link().
+				continue;
+			}
 			echo $row[1] !== ''
 				? '<span data-sb-tip="' . esc_attr( $row[1] ) . '">' . esc_html( $row[1] ) . '</span>'
 				: '<a class="is-unset" href="' . esc_url( self::field_url( $id, $field ) ) . '">Not set</a>';
@@ -381,7 +444,7 @@ class SB_EmailSig_Companies {
 		// People and templates, to the Signatures and Templates pages for this company.
 		echo '<div class="sb-emailsig-template__stats">';
 		echo '<a href="' . esc_url( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-signatures&company=' . (int) $id ) ) . '" data-sb-tip="See its people"><strong>' . (int) $people . '</strong> ' . esc_html( _n( 'person', 'people', $people ) ) . '</a>';
-		echo '<a href="' . esc_url( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-templates&used=' . (int) $id ) ) . '" data-sb-tip="See its templates"><strong>' . count( $set ) . '</strong> ' . esc_html( _n( 'template', 'templates', count( $set ) ) ) . '</a>';
+		echo '<a href="' . esc_url( admin_url( 'admin.php?page=' . SB_EmailSig_Module::SLUG . '-templates&used=' . (int) $id ) ) . '" data-sb-tip="See its templates"><strong data-sb-emailsig-tpl-count="' . (int) $id . '">' . count( $set ) . '</strong> ' . esc_html( _n( 'template', 'templates', count( $set ) ) ) . '</a>';
 		echo '</div>';
 
 		echo '<div class="sb-emailsig-person__actions">';
@@ -389,19 +452,79 @@ class SB_EmailSig_Companies {
 
 		// Its team page: only its people (SB_EmailSig_Page::list_url()).
 		$team = SB_EmailSig_Page::list_url( $id );
+		// Add person to this company (administrators), before its team page's links (Sam, 3 November 2026).
+		echo SB_EmailSig_Admin::add_person_button( $id ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in add_person_button().
 		echo SB_EmailSig_Admin::link_buttons( $team, 'Copy team page link', 'Open team page', 'Copy ' . $name . '\'s team page link', 'Open ' . $name . '\'s team page' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in link_buttons().
 
-		if ( ! $is_default ) {
+		// Delete, on any company while there's another (Sam, 3 November 2026:
+		// no company is kept back). With people, the popup asks what happens to
+		// them (data-sb-tweaks-confirm-choose, confirm.js): move them to another
+		// company (named, or picked when there's more than one), say for a
+		// rebrand or a merger, or delete them too.
+		$others = array_values( array_diff( $all, array( (int) $id ) ) );
+
+		if ( $others ) {
+			$one   = count( $others ) === 1;
+			$count = count( self::all_people( $id ) );
+			$move  = array(
+				'value' => 'move',
+				'label' => $one ? 'Move them to ' . SB_EmailSig_Company::name( $others[0] ) : 'Move them to',
+				'note'  => 'For a rebrand or a merger: they keep their own details and take on that company\'s branding.',
+			);
+
+			if ( ! $one ) {
+				$move['menu'] = array(
+					'name'    => 'move_to',
+					'options' => array_map(
+						function ( $co ) {
+							return array( (string) $co, SB_EmailSig_Company::name( $co ) );
+						},
+						$others
+					),
+				);
+			}
+
+			$choose = $count ? array(
+				'name'    => 'people',
+				'label'   => 'Its ' . $count . ' ' . _n( 'person', 'people', $count ),
+				'type'    => 'radio',
+				'options' => array(
+					$move,
+					array(
+						'value'  => 'delete',
+						'label'  => 'Delete them too',
+						'note'   => 'Deleted for good with their photos, deleted ones included.',
+						'tone'   => 'danger',
+						'action' => 'Delete company and people',
+					),
+				),
+			) : null;
+
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="sb-emailsig-person__delete">';
 			echo '<input type="hidden" name="action" value="sb_emailsig_company_delete">';
 			echo '<input type="hidden" name="company" value="' . (int) $id . '">';
+			echo $one ? '<input type="hidden" name="move_to" value="' . (int) $others[0] . '">' : '';
 			wp_nonce_field( 'sb_emailsig_company_delete_' . $id );
-			echo '<button type="submit" class="button button-small sb-emailsig-icon sb-emailsig-icon--danger" data-sb-tip="Delete" aria-label="' . esc_attr( 'Delete ' . $name ) . '" data-sb-tweaks-confirm="' . esc_attr( 'Delete ' . $name . '? Its people move to ' . SB_EmailSig_Company::name( SB_EmailSig_Company::default_id() ) . ', and its details, branding and campaign banners go. This can\'t be undone.' ) . '" data-sb-tweaks-confirm-title="Delete company" data-sb-tweaks-confirm-action="Delete">' . SB_EmailSig_Admin::icon( 'trash' ) . '</button>';
+			echo '<button type="submit" class="button button-small sb-emailsig-icon sb-emailsig-icon--danger" data-sb-tip="Delete" aria-label="' . esc_attr( 'Delete ' . $name ) . '" data-sb-tweaks-confirm="' . esc_attr( 'Delete ' . $name . '? Its details, branding and campaign banners go. This can\'t be undone.' ) . '"' . ( $choose ? ' data-sb-tweaks-confirm-choose="' . esc_attr( wp_json_encode( $choose ) ) . '"' : '' ) . ' data-sb-tweaks-confirm-title="Delete company" data-sb-tweaks-confirm-action="Delete">' . SB_EmailSig_Admin::icon( 'trash' ) . '</button>';
 			echo '</form>';
 		}
 
 		echo '</div>';
 		echo '</article>';
+	}
+
+	/** Every one of company $id's people, deleted ones (Trash) included: ids. */
+	private static function all_people( $id ) {
+		return get_posts(
+			array(
+				'post_type'      => SB_EMAILSIG_CPT,
+				'post_status'    => SB_EmailSig_Company::STATUSES,
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'meta_key'       => SB_EmailSig_Company::PERSON_META, // phpcs:ignore WordPress.DB.SlowDBQuery
+				'meta_value'     => (int) $id, // phpcs:ignore WordPress.DB.SlowDBQuery
+			)
+		);
 	}
 
 	/** How many active people a company has. */
@@ -489,7 +612,7 @@ class SB_EmailSig_Companies {
 		echo '</div></section>';
 	}
 
-	/** Delete a company for good: its people move to the default one (SB_EmailSig_Company::deleting()). */
+	/** Delete a company for good, any while there's another: its people move to the one picked (move_to, else the first other one) or, with people=delete, are deleted too. */
 	public static function delete() {
 		$id = isset( $_POST['company'] ) ? absint( $_POST['company'] ) : 0;
 
@@ -499,16 +622,38 @@ class SB_EmailSig_Companies {
 			wp_die( 'You can\'t delete companies.', 403 );
 		}
 
-		$def = SB_EmailSig_Company::default_id();
+		$all = SB_EmailSig_Company::all();
+		$to  = isset( $_POST['move_to'] ) ? absint( $_POST['move_to'] ) : 0;
 
-		if ( ! SB_EmailSig_Company::valid( $id ) || $id === $def ) {
+		if ( ! SB_EmailSig_Company::valid( $id ) || count( $all ) < 2 ) {
 			wp_safe_redirect( add_query_arg( 'done', 'failed', self::url() ) );
 			exit;
 		}
 
+		// Its people, deleted ones too: moved to the company picked, or
+		// deleted for good with their photos (Sam, 3 November 2026). Then it goes.
+		$people = self::all_people( $id );
+		$purge  = isset( $_POST['people'] ) && 'delete' === $_POST['people'];
+
+		if ( $purge ) {
+			foreach ( $people as $person ) {
+				wp_delete_post( $person, true );
+			}
+		} else {
+			if ( ! SB_EmailSig_Company::valid( $to ) || $to === $id ) {
+				$to = SB_EmailSig_Company::first_id( $id );
+			}
+
+			foreach ( $people as $person ) {
+				// Their Linked to page's fields kept as text when it can't follow them.
+				SB_EmailSig_Staff::carry( $person, $person, $to );
+				update_post_meta( $person, SB_EmailSig_Company::PERSON_META, $to );
+			}
+		}
+
 		$ok = wp_delete_post( $id, true );
 
-		wp_safe_redirect( add_query_arg( 'done', $ok ? 'deleted' : 'failed', self::url() ) );
+		wp_safe_redirect( add_query_arg( $ok ? array( 'done' => 'deleted', $purge ? 'purged' : 'moved' => $purge ? count( $people ) : $to ) : array( 'done' => 'failed' ), self::url() ) );
 		exit;
 	}
 }

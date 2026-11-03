@@ -183,6 +183,18 @@ class SB_EmailSig_Module {
 		if ( ! empty( $_GET['purged'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>Deleted for good.</p></div>';
 		}
+
+		$copy = isset( $_GET['copied'] ) ? absint( $_GET['copied'] ) : 0;
+
+		if ( $copy && get_post_type( $copy ) === self::CPT ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( get_the_title( $copy ) . ' added to ' . SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $copy ) ) . ' as Inactive. Check them, then switch them on.' ) . '</p></div>';
+		}
+
+		$moved = isset( $_GET['person_moved'] ) ? absint( $_GET['person_moved'] ) : 0;
+
+		if ( $moved && get_post_type( $moved ) === self::CPT ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( get_the_title( $moved ) . ' moved to ' . SB_EmailSig_Company::name( SB_EmailSig_Company::of_person( $moved ) ) . '.' ) . '</p></div>';
+		}
 		// phpcs:enable
 	}
 
@@ -205,7 +217,7 @@ class SB_EmailSig_Module {
 		$css = SB_TWEAKS_PATH . 'assets/css/admin.css';
 		$ver = file_exists( $css ) ? self::version() . '.' . filemtime( $css ) : self::version();
 
-		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [], $ver );
+		wp_enqueue_style( 'sb-tweaks-admin', SB_TWEAKS_URL . 'assets/css/admin.css', [ 'sb-tweaks-colour' ], $ver );
 	}
 
 	/** The SocialBUMP banner above the people screens, like the module's own pages. */

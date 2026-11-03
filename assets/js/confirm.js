@@ -14,6 +14,24 @@
  *           data-sb-tweaks-confirm-title="Publish release"
  *           data-sb-tweaks-confirm-action="Publish">
  *
+ * Add data-sb-tweaks-confirm-choose (JSON) for a choice in the popup, put in
+ * the form just before it sends, in fields added when the form has none
+ * (Sam, 3 November 2026). A menu:
+ *
+ *   { "name": "move_to", "label": "Move its people to",
+ *     "options": [ [ "12", "Acme" ], ... ] }
+ *
+ * Or options to pick one of, each with a note, a menu of its own (enabled
+ * while it's picked), tone "danger" and the action button's words while
+ * it's picked:
+ *
+ *   { "name": "people", "label": "Its 3 people", "type": "radio",
+ *     "options": [ { "value": "move", "label": "Move them to",
+ *                    "menu": { "name": "move_to", "options": [ ... ] } },
+ *                  { "value": "delete", "label": "Delete them too",
+ *                    "note": "...", "tone": "danger",
+ *                    "action": "Delete company and people" } ] }
+ *
  * Add data-sb-tweaks-confirm-tone="danger" for a delete or reset. A button
  * whose class has --danger in it (sb-tweaks-button--danger) gets it anyway.
  *
@@ -189,6 +207,117 @@
 		return open( $.extend( { action: 'OK', alert: true }, options ) );
 	}
 
+	/** A form's field set to $value: the one named $name, or a hidden one added. */
+	function setField( form, name, value ) {
+		var f = form.elements[ name ];
+
+		if ( ! f ) {
+			f      = document.createElement( 'input' );
+			f.type = 'hidden';
+			f.name = name;
+			form.appendChild( f );
+		}
+
+		f.value = value;
+	}
+
+	function menu( spec ) {
+		var $menu = $( '<select></select>' );
+
+		spec.options.forEach( function ( o ) {
+			$( '<option></option>' ).val( o[ 0 ] ).text( o[ 1 ] ).appendTo( $menu );
+		} );
+
+		return $menu;
+	}
+
+	/** data-sb-tweaks-confirm-choose: { body, before } for ask(), or null. */
+	function choice( spec, form ) {
+		if ( ! spec || ! spec.name || ! spec.options || ! spec.options.length || ! form ) {
+			return null;
+		}
+
+		if ( spec.type !== 'radio' ) {
+			var $one = menu( spec );
+
+			return {
+				body: $( '<label class="sb-tweaks-dialog__field"></label>' ).append( $( '<span></span>' ).text( spec.label || '' ), $one ),
+				before: function () {
+					setField( form, spec.name, $one.val() );
+				}
+			};
+		}
+
+		var $set   = $( '<fieldset class="sb-tweaks-dialog__choices"></fieldset>' );
+		var group  = 'sb-tweaks-choice-' + Date.now();
+		var picked = spec.options.some( function ( o ) { return o.checked; } );
+
+		if ( spec.label ) {
+			$set.append( $( '<legend></legend>' ).text( spec.label ) );
+		}
+
+		var rows = spec.options.map( function ( o, i ) {
+			var $row   = $( '<div class="sb-tweaks-dialog__choice"></div>' ).toggleClass( 'is-danger', o.tone === 'danger' );
+			var $radio = $( '<input type="radio">' ).attr( 'name', group ).val( o.value ).prop( 'checked', picked ? !! o.checked : i === 0 );
+			var $menu  = o.menu && o.menu.name && o.menu.options && o.menu.options.length ? menu( o.menu ).attr( 'aria-label', o.label ) : null;
+
+			$row.append( $( '<label></label>' ).append( $radio, $( '<span></span>' ).text( o.label ) ) );
+
+			if ( $menu ) {
+				$row.append( $menu );
+			}
+
+			if ( o.note ) {
+				$row.append( $( '<p class="sb-tweaks-dialog__note"></p>' ).text( o.note ) );
+			}
+
+			$set.append( $row );
+
+			return { o: o, $radio: $radio, $menu: $menu };
+		} );
+
+		// Only the picked option's menu is on, and the action says what it will do.
+		var sync = function () {
+			var $go = $set.closest( '.sb-tweaks-dialog' ).find( '.sb-tweaks-dialog__go' );
+
+			if ( $go.length && undefined === $go.data( 'sbWords' ) ) {
+				$go.data( 'sbWords', $go.text() );
+			}
+
+			rows.forEach( function ( r ) {
+				var on = r.$radio.prop( 'checked' );
+
+				if ( r.$menu ) {
+					r.$menu.prop( 'disabled', ! on );
+				}
+
+				if ( on && $go.length ) {
+					$go.text( r.o.action || $go.data( 'sbWords' ) );
+				}
+			} );
+		};
+
+		$set.on( 'change', 'input[type="radio"]', sync );
+		setTimeout( sync, 0 );
+
+		return {
+			body: $set,
+			before: function () {
+				rows.forEach( function ( r ) {
+					if ( ! r.$radio.prop( 'checked' ) ) {
+						return;
+					}
+
+					setField( form, spec.name, r.o.value );
+
+					if ( r.$menu ) {
+						setField( form, r.o.menu.name, r.$menu.val() );
+					}
+				} );
+			}
+		};
+	}
+
 	window.SBTweaksConfirm = { open: open, close: close, ask: ask, confirmed: confirmed, tell: tell };
 
 	$( document ).on( 'click', '[data-sb-tweaks-confirm]', function ( e ) {
@@ -203,12 +332,21 @@
 		var field = $el.attr( 'data-sb-tweaks-confirm-field' );
 		var value = field && form && form.elements[ field ] ? form.elements[ field ].value : '';
 		var words = $.trim( $el.text() );
+		var made  = null;
+
+		try {
+			made = choice( JSON.parse( $el.attr( 'data-sb-tweaks-confirm-choose' ) || 'null' ), form );
+		} catch ( err ) {
+			made = null;
+		}
 
 		ask( this, {
 			title: $el.attr( 'data-sb-tweaks-confirm-title' ) || words,
 			message: String( $el.attr( 'data-sb-tweaks-confirm' ) ).split( '%s' ).join( value ),
 			action: $el.attr( 'data-sb-tweaks-confirm-action' ) || words,
-			tone: $el.attr( 'data-sb-tweaks-confirm-tone' ) || ( /--danger\b/.test( this.className ) ? 'danger' : '' )
+			tone: $el.attr( 'data-sb-tweaks-confirm-tone' ) || ( /--danger\b/.test( this.className ) ? 'danger' : '' ),
+			body: made ? made.body : null,
+			before: made ? made.before : null
 		} );
 	} );
 }( jQuery ) );

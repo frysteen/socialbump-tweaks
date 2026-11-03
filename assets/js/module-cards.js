@@ -65,6 +65,7 @@
 		var nonce     = grid.getAttribute( 'data-sb-cards-nonce' );
 		var collapsed = ( grid.getAttribute( 'data-sb-cards-collapsed' ) || '' ).split( ',' ).filter( Boolean );
 		var mine      = '[data-sb-cards-tools="' + key + '"] ';
+		var fixed     = grid.hasAttribute( 'data-sb-cards-fixed' );
 
 		function cards() {
 			return Array.prototype.slice.call( grid.children ).filter( function ( node ) {
@@ -309,10 +310,13 @@
 			toggle.type = 'button';
 			head.insertBefore( toggle, head.firstChild );
 
-			grip.type = 'button';
-			grip.setAttribute( 'aria-label', 'Move ' + title( card ) + ' (arrow keys)' );
-			grip.setAttribute( 'data-sb-tip', 'Drag to move' );
-			head.appendChild( grip );
+			// A grid marked data-sb-cards-fixed collapses but does not drag.
+			if ( ! fixed ) {
+				grip.type = 'button';
+				grip.setAttribute( 'aria-label', 'Move ' + title( card ) + ' (arrow keys)' );
+				grip.setAttribute( 'data-sb-tip', 'Drag to move' );
+				head.appendChild( grip );
+			}
 
 			// The title is a bigger target than the chevron, so it toggles too.
 			var heading = head.querySelector( 'h1, h2, h3, h4' );

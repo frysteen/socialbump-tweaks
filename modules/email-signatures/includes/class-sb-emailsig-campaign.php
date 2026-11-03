@@ -56,12 +56,13 @@ class SB_EmailSig_Campaign {
 	}
 
 	/**
-	 * The banner's fixed image address: ?{QUERY}=1 for the default company
-	 * (as before companies, so pasted signatures keep it), c{id} for others.
+	 * The banner's fixed image address: ?{QUERY}=1 for the company Settings
+	 * became (legacy_id(), as before companies, so pasted signatures keep
+	 * it), c{id} for the others.
 	 */
 	public static function image_url() {
 		$src = self::src();
-		$def = class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::default_id() : 0;
+		$def = class_exists( 'SB_EmailSig_Company' ) ? SB_EmailSig_Company::legacy_id() : 0;
 
 		return add_query_arg( self::QUERY, ( $src === 'option' || (int) $src === $def ) ? '1' : 'c' . (int) $src, home_url( '/' ) );
 	}
@@ -135,10 +136,18 @@ class SB_EmailSig_Campaign {
 		// Mail apps may keep it a few minutes; never longer from here.
 		header( 'Cache-Control: public, max-age=300', true );
 
-		// Its company: c{id}, else the default.
+		// Its company: c{id}, or 1 for the company Settings became. One that's
+		// gone has no banner (Sam, 3 November 2026: no default to fall back on).
 		$which = sanitize_text_field( wp_unslash( $_GET[ self::QUERY ] ) ); // phpcs:ignore WordPress.Security.NonceVerification
-		if ( preg_match( '/^c(\d+)$/', $which, $m ) && class_exists( 'SB_EmailSig_Company' ) && SB_EmailSig_Company::valid( (int) $m[1] ) ) {
-			SB_EmailSig_Company::enter( (int) $m[1] );
+		if ( class_exists( 'SB_EmailSig_Company' ) && SB_EmailSig_Company::all() ) {
+			$co = preg_match( '/^c(\d+)$/', $which, $m ) ? (int) $m[1] : ( '1' === $which ? SB_EmailSig_Company::legacy_id() : 0 );
+
+			if ( ! SB_EmailSig_Company::valid( $co ) ) {
+				status_header( 404 );
+				exit;
+			}
+
+			SB_EmailSig_Company::enter( $co );
 		}
 
 		// Its company switched off (SB_EmailSig_Switch): no banner at all.

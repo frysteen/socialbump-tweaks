@@ -462,9 +462,15 @@ class SB_EmailSig_Fields {
 		return $field;
 	}
 
-	/** A person's company: theirs, else the default (a new person). */
+	/** A person's company: theirs; a new person, the company Add person came from, else the first. */
 	public static function company_value( $value, $post_id ) {
-		return (string) ( is_numeric( $post_id ) ? SB_EmailSig_Company::of_person( (int) $post_id ) : SB_EmailSig_Company::default_id() );
+		if ( is_numeric( $post_id ) ) {
+			return (string) SB_EmailSig_Company::of_person( (int) $post_id );
+		}
+
+		$co = class_exists( 'SB_EmailSig_Person' ) ? SB_EmailSig_Person::new_company() : 0;
+
+		return (string) ( $co ? $co : SB_EmailSig_Company::first_id() );
 	}
 
 	/** Company shows only when there is a choice. */
