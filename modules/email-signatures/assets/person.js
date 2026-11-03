@@ -6,7 +6,8 @@
  * typed in. Their templates show as tabs above it when there's more than
  * one, and what the template shown leaves out is listed under it (Sam, 30
  * October 2026). The signature is scaled down to fit the column when it's
- * wider (zoom), as on Edit styles.
+ * wider (zoom), as on Edit styles. Show empty placeholders in the toolbar
+ * redraws it with or without the grey stand-ins (Sam, 3 November 2026).
  */
 (function () {
 	'use strict';
@@ -16,6 +17,7 @@
 	var box = document.getElementById('sb-emailsig-person-preview');
 	var tabs = document.getElementById('sb-emailsig-person-tpls');
 	var off = document.getElementById('sb-emailsig-person-off');
+	var empty = form ? form.querySelector('[data-sb-emailsig-show-empty]') : null;
 
 	if (!form || !box || !cfg.id) return;
 
@@ -63,6 +65,7 @@
 		});
 
 		out.set('template', shown);
+		out.set('empty', empty && empty.checked ? '1' : '');
 
 		return out;
 	}
@@ -117,6 +120,15 @@
 				if (t === tab) t.setAttribute('aria-current', 'page');
 				else t.removeAttribute('aria-current');
 			});
+			clearTimeout(timer);
+			update();
+		});
+	}
+
+	// Show empty placeholders: straight away. It has no name, so it's never a change to save.
+	if (empty) {
+		empty.addEventListener('change', function (e) {
+			e.stopPropagation();
 			clearTimeout(timer);
 			update();
 		});

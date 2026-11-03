@@ -734,6 +734,27 @@ and summary at the end").
   report fields and left 0.6.4 as it was. The popup tested in a browser with
   a pretend run, finishing and failing. Beta releases still show the spinner.
 
+### Small switch with a label (3 November 2026)
+
+SB_Tweaks_UI::small_switch( $label, $attrs ) prints the 28 by 16 switch
+(.sb-tweaks-switch--small) with its label beside it, label.sb-ui-switch (ui.css:
+inline-flex, 8px gap, 13px text, faded and not-allowed when disabled). $attrs go
+on the checkbox, escaped; true prints an attribute alone, false or null leaves
+it out. small_switch_box( $attrs ) is the switch alone, and
+SB_Tweaks_Cards::toggle_row() now uses it, so the switch markup is in one place
+(its rows checked the same element for element before and after, and the
+main page and Site Kit's Features page load with their switches). First used
+for Email Signatures' Show empty placeholders.
+
+### Text link (3 November 2026)
+
+a.sb-ui-link (ui.css, Text links): a link in the surrounding text's own colour
+and weight, with a 2px --sbui-green underline 3px under it, going
+--sbui-green-ink on hover. For a link inside a heading or sentence where the
+usual green link colour would be too loud. Pairs with data-sb-tip for a
+tooltip. First used for the template name in Email Signatures' Fields not used
+box.
+
 ### Empty toasts (3 November 2026)
 
 SBTweaksUI.toast() shows nothing and returns null when the message is empty or

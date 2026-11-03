@@ -210,9 +210,7 @@ class SB_Tweaks_Cards {
 
 		return '<li class=' . $q . 'has-toggle ' . ( $on && ! $disabled ? 'is-on' : 'is-off' ) . $q . '>'
 			. '<label class=' . $q . 'sb-tweaks-features__toggle' . ( $disabled ? ' is-disabled' : '' ) . $q . ( $tip !== '' ? ' data-sb-tip=' . $q . esc_attr( $tip ) . $q : '' ) . '>'
-			. '<span class=' . $q . 'sb-tweaks-switch sb-tweaks-switch--small' . $q . '>'
-			. '<input type=' . $q . 'checkbox' . $q . ' name=' . $q . esc_attr( $name ) . $q . ' value=' . $q . '1' . $q . checked( (bool) $on, true, false ) . disabled( (bool) $disabled, true, false ) . '>'
-			. '<span class=' . $q . 'sb-tweaks-switch__track' . $q . '><span class=' . $q . 'sb-tweaks-switch__dot' . $q . '></span></span></span>'
+			. SB_Tweaks_UI::small_switch_box( [ 'name' => $name, 'value' => '1', 'checked' => (bool) $on, 'disabled' => (bool) $disabled ] )
 			. '<span class=' . $q . 'sb-tweaks-features__label' . $q . '>' . esc_html( $label ) . '</span>'
 			. '</label></li>';
 	}

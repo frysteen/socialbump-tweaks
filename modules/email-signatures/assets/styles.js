@@ -207,6 +207,8 @@
 		data.push({ name: 'template', value: cfg.template });
 		var $person = $('.sb-emailsig-editor__person');
 		if ($person.length) data.push({ name: 'person', value: $person.val() });
+		// Show empty placeholders (Sam, 3 November 2026): off, none.
+		data.push({ name: 'empty', value: $('[data-sb-emailsig-show-empty]').is(':checked') ? '1' : '' });
 
 		return Promise.resolve($.post(cfg.ajax, $.param(data))).then(function (res) {
 			return res && res.success ? res.data : null;
@@ -364,7 +366,7 @@
 				tone: 'danger'
 			};
 			if (otherField) {
-				options.check = 'Reset the Layout page too (layout, Layout Settings, Container Settings and Footer Settings).';
+				options.check = 'Reset the Layout page too (layout, Layout Settings, Container Settings, Sign-Off Settings and Footer Settings).';
 			}
 			window.SBTweaksConfirm.open(options, function (checked) {
 				if (checked && otherField) {
@@ -390,6 +392,12 @@
 			useCompany(shownCompany);
 			SBTweaksColour.close();
 			paintSwatches();
+			update();
+		});
+
+		// Show empty placeholders: the preview again, with or without them.
+		$form.on('change', '[data-sb-emailsig-show-empty]', function () {
+			clearTimeout(timer);
 			update();
 		});
 

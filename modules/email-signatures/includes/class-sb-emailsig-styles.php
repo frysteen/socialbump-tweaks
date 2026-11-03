@@ -1210,7 +1210,7 @@ class SB_EmailSig_Styles {
 		$v      = self::values( $tpl );
 		$d      = self::defaults( $tpl );
 		$person = self::person_or_first( (int) get_user_meta( get_current_user_id(), self::PERSON_META, true ) );
-		$html   = SB_EmailSig_Render::html_from_data( SB_EmailSig_Templates::preview_data( $person, $tpl['id'] ), $tpl['id'] );
+		$html   = SB_EmailSig_Render::html_from_data( SB_EmailSig_Templates::preview_data( $person, $tpl['id'], true ), $tpl['id'] );
 		$name   = $tpl['name'] !== $tpl['default_name'] ? $tpl['name'] : '';
 
 		if ( isset( $_GET['saved'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
@@ -1410,9 +1410,9 @@ class SB_EmailSig_Styles {
 		echo '</div>';
 
 		echo '<div class="sb-emailsig-editor__side"><div class="sb-emailsig-editor__sticky">';
-		echo '<div class="sb-emailsig-editor__side-head"><h3>Preview</h3><span class="sb-emailsig-editor__status" aria-live="polite"></span>';
-		echo self::people_select( $person ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside.
-		echo '</div>';
+		// The Preview toolbar (the framework's bar), then the preview in its own
+		// card under it (Sam, 3 November 2026).
+		echo SB_Tweaks_UI::bar( [ [ '', '<h3 class="sb-ui-bar__title">Preview</h3>' . self::empty_switch() ] ], '<span class="sb-emailsig-editor__status" aria-live="polite"></span>' . self::people_select( $person ), 'sb-emailsig-editor__side-head' ); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
 		echo '<div class="sb-emailsig-preview sb-emailsig-editor__preview"><div class="sb-emailsig-editor__fit" id="sb-emailsig-style-preview">' . $html . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped in the template.
 		echo '<p class="sb-emailsig-editor__who"><span class="sb-emailsig-editor__scale"></span></p>';
 		echo '</div></div>';
@@ -1495,7 +1495,7 @@ class SB_EmailSig_Styles {
 		$v      = self::values( $tpl );
 		$d      = self::defaults( $tpl );
 		$person = self::person_or_first( (int) get_user_meta( get_current_user_id(), self::PERSON_META, true ) );
-		$html   = SB_EmailSig_Render::html_from_data( SB_EmailSig_Templates::preview_data( $person, $tpl['id'] ), $tpl['id'] );
+		$html   = SB_EmailSig_Render::html_from_data( SB_EmailSig_Templates::preview_data( $person, $tpl['id'], true ), $tpl['id'] );
 		$flags  = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
 		if ( isset( $_GET['saved'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
@@ -1536,16 +1536,18 @@ class SB_EmailSig_Styles {
 		echo '<div class="sb-emailsig-layout" data-sb-emailsig-layout-settings></div>';
 		echo '</div>';
 
-		// Two more cards layout.js fills in, each with its own Reset (Sam, 29 October 2026).
+		// More cards layout.js fills in, each with its own Reset (Sam, 29 October 2026;
+		// Sign-Off Settings out of Container Settings, 3 November 2026).
 		echo '<div class="sb-tweaks-card sb-emailsig-editor__card" data-sb-emailsig-layout-part="box"><div class="sb-tweaks-card__head"><h3>Container Settings</h3><button type="button" class="sb-emailsig-card-reset" disabled>Reset</button></div><div class="sb-emailsig-layout" data-sb-emailsig-layout-box></div></div>';
+		echo '<div class="sb-tweaks-card sb-emailsig-editor__card" data-sb-emailsig-layout-part="signoff"><div class="sb-tweaks-card__head"><h3>Sign-Off Settings</h3><button type="button" class="sb-emailsig-card-reset" disabled>Reset</button></div><div class="sb-emailsig-layout" data-sb-emailsig-layout-signoff></div></div>';
 		echo '<div class="sb-tweaks-card sb-emailsig-editor__card" data-sb-emailsig-layout-part="footer"><div class="sb-tweaks-card__head"><h3>Footer Settings</h3><button type="button" class="sb-emailsig-card-reset" disabled>Reset</button></div><div class="sb-emailsig-layout" data-sb-emailsig-layout-footer></div></div>';
 		echo '<p class="sb-emailsig-editor__actions"><button type="submit" class="button button-primary sb-save--clean">Save changes</button></p>';
 		echo '</div>';
 
 		echo '<div class="sb-emailsig-editor__side"><div class="sb-emailsig-editor__sticky">';
-		echo '<div class="sb-emailsig-editor__side-head"><h3>Preview</h3><span class="sb-emailsig-editor__status" aria-live="polite"></span>';
-		echo self::people_select( $person ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside.
-		echo '</div>';
+		// The Preview toolbar (the framework's bar), then the preview in its own
+		// card under it (Sam, 3 November 2026).
+		echo SB_Tweaks_UI::bar( [ [ '', '<h3 class="sb-ui-bar__title">Preview</h3>' . self::empty_switch() ] ], '<span class="sb-emailsig-editor__status" aria-live="polite"></span>' . self::people_select( $person ), 'sb-emailsig-editor__side-head' ); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
 		echo '<div class="sb-emailsig-preview sb-emailsig-editor__preview"><div class="sb-emailsig-editor__fit" id="sb-emailsig-style-preview">' . $html . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped in the template.
 		echo '<p class="sb-emailsig-editor__who"><span class="sb-emailsig-editor__scale"></span></p>';
 		echo '</div></div>';
@@ -1798,6 +1800,16 @@ class SB_EmailSig_Styles {
 		exit;
 	}
 
+	/**
+	 * Show empty placeholders, by the Preview heading on Edit styles,
+	 * Layout and the person page (Sam, 3 November 2026). Off to start: the preview as the
+	 * signature goes out. On: a grey stand-in where a part is empty. No name,
+	 * so it is never a change to save (save-state.js).
+	 */
+	public static function empty_switch() {
+		return SB_Tweaks_UI::small_switch( __( 'Show empty placeholders', 'sb-tweaks' ), [ 'data-sb-emailsig-show-empty' => true ] );
+	}
+
 	/** Live preview: the signature with the posted (unsaved) styles. */
 	public static function preview() {
 		if ( ! current_user_can( 'manage_options' ) || ! check_ajax_referer( 'sb_emailsig_preview', 'nonce', false ) ) {
@@ -1820,7 +1832,8 @@ class SB_EmailSig_Styles {
 
 		$values = self::sanitize( $tpl, self::with_layout( $tpl, $posted ) );
 		$person = self::requested_person();
-		$data   = SB_EmailSig_Templates::preview_data( $person, $tpl['id'] );
+		// Show empty placeholders off (or not sent): no stand-ins.
+		$data   = SB_EmailSig_Templates::preview_data( $person, $tpl['id'], empty( $_POST['empty'] ) );
 
 		// The person picked is remembered for this user, saved or not, so the
 		// page opens on them next time.

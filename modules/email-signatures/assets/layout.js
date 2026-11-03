@@ -26,8 +26,8 @@
  * Undo and Redo (Sam, 29 October 2026) step through the page's changes: the
  * layout and the Layout Settings fields, one step per change (a popup is one
  * step, recorded as it closes; typing settles before it counts). The X on a
- * block asks first, and Container Settings and Footer Settings each have a
- * Reset for their own part of the layout. Reset Template (Sam, 29 October
+ * block asks first, and Container Settings, Sign-Off Settings and Footer
+ * Settings each have a Reset for their own part of the layout. Reset Template (Sam, 29 October
  * 2026) puts everything on this page back to the design after asking; it is
  * one step for Undo and saves only with Save changes. It is only active once
  * something differs from the design, and its popup's tick resets Edit styles
@@ -307,6 +307,8 @@
 			hide_campaign: s.hide_campaign ? 1 : 0,
 			hide_text: s.hide_text ? 1 : 0,
 			hide_signoff: s.hide_signoff ? 1 : 0,
+			// The gap under the sign-off (Sam, 3 November 2026): Double unless set, and Reset goes back to it.
+			signoff_gap: spaceVal(s.signoff_gap, 'double'),
 			hold: s.hold.map(canonBlock)
 		};
 	}
@@ -359,7 +361,7 @@
 		state = s;
 		// Footer settings a layout saved before them hasn't got: as canon() reads them.
 		var full = canon(state);
-		['line_space_bottom', 'buttons_top', 'buttons_bottom', 'buttons_gap', 'text_padding', 'text_border', 'text_background', 'campaign_top', 'campaign_bottom', 'banners_top', 'banners_bottom', 'banners_gap'].forEach(function (k) {
+		['line_space_bottom', 'buttons_top', 'buttons_bottom', 'buttons_gap', 'text_padding', 'text_border', 'text_background', 'campaign_top', 'campaign_bottom', 'banners_top', 'banners_bottom', 'banners_gap', 'signoff_gap'].forEach(function (k) {
 			if (state[k] === undefined || state[k] === null) state[k] = full[k];
 		});
 	}
@@ -1713,11 +1715,11 @@
 	}
 
 	/**
-	 * Redraw the layout card and the Container and Footer cards, each held at
+	 * Redraw the layout card and the Container, Sign-Off and Footer cards, each held at
 	 * its height meanwhile, so the page doesn't jump in Safari (SBTweaksUI.redraw).
 	 */
 	function render() {
-		var parts = [root, document.querySelector('[data-sb-emailsig-layout-box]'), document.querySelector('[data-sb-emailsig-layout-footer]')];
+		var parts = [root, document.querySelector('[data-sb-emailsig-layout-box]'), document.querySelector('[data-sb-emailsig-layout-signoff]'), document.querySelector('[data-sb-emailsig-layout-footer]')];
 		return window.SBTweaksUI && window.SBTweaksUI.redraw ? window.SBTweaksUI.redraw(parts, draw) : draw();
 	}
 
@@ -1827,15 +1829,23 @@
 		$row1.append(colourField('Background colour', state.background, 'None', '', function (v) { state.background = v; }));
 		// The border's row: Line Width (or each side), its lock, Style and Colour (cardBorderRow()).
 		$row2 = cardBorderRow(state.border, 'box');
-		// Then Hide Sign-off, for the sign-off above it all (Sam, 30 October 2026).
+		$box.append($row1, $('<div class="sb-emailsig-item__name sb-emailsig-layout__sub">Border</div>'), $row2);
+
+		// Sign-Off Settings, a card of its own so it resets on its own (Sam, 3
+		// November 2026): Sign-off Gap, the space under the sign-off, and Hide
+		// Sign-off level with it. Hidden, there's no gap to set, so the dropdown
+		// is greyed out.
+		var $gap = cardStep(spaceControl('Sign-off Gap', state.signoff_gap, 'sb-emailsig-field'), function (v) { state.signoff_gap = v; });
 		var $sign = check('Hide Sign-off', state.hide_signoff);
+		var gapOff = function (off) { $gap.find('select, input').prop('disabled', off); $gap.toggleClass('is-disabled', off); };
+		gapOff(!!state.hide_signoff);
 		$sign.find('input').on('change', function () {
 			state.hide_signoff = this.checked ? 1 : 0;
+			gapOff(this.checked);
 			write();
 		});
-		$box.append($row1, $('<div class="sb-emailsig-item__name sb-emailsig-layout__sub">Border</div>'), $row2,
-			$('<div class="sb-emailsig-item__name sb-emailsig-layout__sub">Sign-off</div>'),
-			$('<div class="sb-emailsig-layout__controls"></div>').append($sign));
+		$('[data-sb-emailsig-layout-signoff]').empty().append($('<div class="sb-emailsig-fields sb-emailsig-layout__box"></div>').append($gap,
+			$('<div class="sb-emailsig-layout__checkfield"></div>').append('<span class="sb-emailsig-field__label" aria-hidden="true">&nbsp;</span>', $('<div class="sb-emailsig-layout__checkbox"></div>').append($sign))));
 
 		// Footer Settings: the Footer Divider, and Footer Controls to leave
 		// parts out of this template's signatures (Sam, 29 October 2026).
@@ -2012,6 +2022,8 @@
 		});
 		var $person = $('.sb-emailsig-editor__person');
 		if ($person.length) data.person = $person.val();
+		// Show empty placeholders (Sam, 3 November 2026): off, none.
+		data.empty = $('[data-sb-emailsig-show-empty]').is(':checked') ? 1 : '';
 		$.post(cfg.ajax, data).done(function (res) {
 			if (id !== asked) return;
 			if (res && res.success) {
@@ -2382,11 +2394,12 @@
 	}
 
 	/* ------------------------------------------------------------------ *
-	 * Container Settings and Footer Settings: their own Reset
+	 * Container Settings, Sign-Off Settings and Footer Settings: their own Reset
 	 * ------------------------------------------------------------------ */
 
 	var PARTS = {
-		box: ['padding', 'border', 'background', 'hide_signoff'],
+		box: ['padding', 'border', 'background'],
+		signoff: ['signoff_gap', 'hide_signoff'],
 		footer: ['line_below', 'line_below_style', 'line_colour', 'line_space', 'line_space_bottom', 'buttons_top', 'buttons_bottom', 'buttons_gap', 'text_padding', 'text_border', 'text_background', 'campaign_top', 'campaign_bottom', 'banners_top', 'banners_bottom', 'banners_gap', 'hide_buttons', 'hide_banners', 'hide_campaign', 'hide_text']
 	};
 
@@ -2507,7 +2520,7 @@
 	 * Reset Template's picks (Sam, 1 November 2026): layout (rows, columns,
 	 * gaps and blocks as the design has them), settings (each row, column,
 	 * gap and block's settings, in place), defaults (Layout Settings), box
-	 * (Container Settings) and footer (Footer Settings). Edit styles is the
+	 * (Container Settings), signoff (Sign-Off Settings) and footer (Footer Settings). Edit styles is the
 	 * form's own (resetOther).
 	 */
 	function resetPicked(pick) {
@@ -2533,7 +2546,7 @@
 			L.hold = L.hold.map(function (b) { return $.extend(b, blockDefault(b)); });
 		}
 		if (pick.defaults) DEFAULTS.forEach(function (k) { if (d.hasOwnProperty(k)) L[k] = d[k]; });
-		['box', 'footer'].forEach(function (part) {
+		['box', 'signoff', 'footer'].forEach(function (part) {
 			if (pick[part]) PARTS[part].forEach(function (k) { if (d.hasOwnProperty(k)) L[k] = copy(d[k]); });
 		});
 		field.value = JSON.stringify(canon(L));
@@ -2866,6 +2879,9 @@
 			}
 		});
 
+		// Show empty placeholders: the preview again, with or without them.
+		$(document).on('change', '[data-sb-emailsig-show-empty]', preview);
+
 		// The cards' Reset: Layout Settings its own fields and defaults, the
 		// layout card the design's layout (saved with Save changes).
 		$(document).on('click', '.sb-emailsig-card-reset', function () {
@@ -2938,6 +2954,7 @@
 				['settings', 'Row, column and widget settings', 'Each one\'s settings only. Extra rows, columns and widgets stay where they are.'],
 				['defaults', 'Layout Settings', ''],
 				['box', 'Container Settings', ''],
+				['signoff', 'Sign-Off Settings', ''],
 				['footer', 'Footer Settings', ''],
 				['styles', 'Edit styles', 'Sizes, photo, text, Info List Styles, social icons and buttons. Saves straight away, with this page.']
 			];

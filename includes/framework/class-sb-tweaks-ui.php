@@ -63,6 +63,32 @@ class SB_Tweaks_UI {
 		}
 	}
 
+	/**
+	 * A small switch with its label beside it (Sam, 3 November 2026): the 28
+	 * by 16 switch (.sb-tweaks-switch--small) for a setting of its own, such
+	 * as Email Signatures' Show empty placeholders by its Preview heading.
+	 * $attrs go on the checkbox (name, value, checked, disabled, data-*),
+	 * escaped here; true prints the attribute alone, false or null leaves it out.
+	 */
+	public static function small_switch( $label, array $attrs = [] ) {
+		return '<label class="sb-ui-switch">' . self::small_switch_box( $attrs ) . '<span class="sb-ui-switch__label">' . esc_html( $label ) . '</span></label>';
+	}
+
+	/** The small switch alone, for a row that brings its own label (SB_Tweaks_Cards::toggle_row()). */
+	public static function small_switch_box( array $attrs = [] ) {
+		$input = '<input type="checkbox"';
+
+		foreach ( $attrs as $name => $value ) {
+			if ( $value === null || $value === false ) {
+				continue;
+			}
+
+			$input .= ' ' . preg_replace( '/[^a-z0-9_:-]/i', '', (string) $name ) . ( $value === true ? '' : '="' . esc_attr( (string) $value ) . '"' );
+		}
+
+		return '<span class="sb-tweaks-switch sb-tweaks-switch--small">' . $input . '><span class="sb-tweaks-switch__track"><span class="sb-tweaks-switch__dot"></span></span></span>';
+	}
+
 	/** A thin upright line between groups of buttons in a bar (ui.css; Sam, 3 November 2026). */
 	public static function divider() {
 		return '<span class="sb-ui-bar__divider" aria-hidden="true"></span>';

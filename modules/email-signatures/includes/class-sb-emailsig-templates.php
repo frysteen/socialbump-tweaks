@@ -603,9 +603,14 @@ class SB_EmailSig_Templates {
 	}
 
 	/** Data for a preview: that person, or sample details, marked as a preview. */
-	public static function preview_data( $person, $tpl_id = '' ) {
+	public static function preview_data( $person, $tpl_id = '', $bare = false ) {
 		$d            = $person ? SB_EmailSig_Data::get( $person, $tpl_id ) : SB_EmailSig_Data::sample( $tpl_id );
 		$d['preview'] = true;
+
+		// Bare: no grey stand-ins for empty parts (the builder's switch off).
+		if ( $bare ) {
+			$d['bare'] = true;
+		}
 
 		return $d;
 	}

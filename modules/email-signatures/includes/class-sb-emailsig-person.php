@@ -323,14 +323,18 @@ class SB_EmailSig_Person {
 
 		// The signature, beside the cards.
 		echo '<div class="sb-emailsig-editor__side"><div class="sb-emailsig-editor__sticky">';
-		echo '<div class="sb-emailsig-editor__side-head"><h3>Preview</h3><span class="sb-emailsig-editor__status" aria-live="polite"></span>';
-		echo '</div>';
+		// The Preview toolbar (the framework's bar) with the template tabs, then
+		// the preview in its own card under it (Sam, 3 November 2026).
+		$view = null;
 
 		if ( $id ) {
 			$list = SB_EmailSig_Templates::available( $id );
 			$view = self::view( $id, $list, $list ? $list[0] : '' );
+		}
 
-			echo '<div class="sb-emailsig-person-editor__tpls" id="sb-emailsig-person-tpls">' . $view['switcher'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped in switcher().
+		echo SB_Tweaks_UI::bar( [ [ '', '<h3 class="sb-ui-bar__title">Preview</h3>' . ( $view ? SB_EmailSig_Styles::empty_switch() : '' ) ] ], '<span class="sb-emailsig-editor__status" aria-live="polite"></span>' . ( $view ? '<div class="sb-emailsig-person-editor__tpls" id="sb-emailsig-person-tpls">' . $view['switcher'] . '</div>' : '' ), 'sb-emailsig-editor__side-head' ); // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped in switcher().
+
+		if ( $view ) {
 			echo '<div class="sb-emailsig-preview sb-emailsig-editor__preview"><div class="sb-emailsig-person-editor__sig" id="sb-emailsig-person-preview">' . $view['html'] . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped in the template.
 			echo '<div class="sb-emailsig-person-editor__off" id="sb-emailsig-person-off">' . $view['off'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped in off().
 		} else {
@@ -621,7 +625,7 @@ class SB_EmailSig_Person {
 	 * yet, the switcher between their templates, and what that template
 	 * leaves out.
 	 */
-	private static function view( $id, array $list, $tpl_id ) {
+	private static function view( $id, array $list, $tpl_id, $bare = true ) {
 		$tpl_id = in_array( (string) $tpl_id, $list, true ) ? (string) $tpl_id : ( $list ? $list[0] : SB_EmailSig_Templates::current() );
 		$tpl    = SB_EmailSig_Templates::get( $tpl_id );
 		$out    = array(
@@ -637,9 +641,22 @@ class SB_EmailSig_Person {
 
 		$d            = SB_EmailSig_Data::get( $id, $tpl['id'] );
 		$d['preview'] = true;
+		// Show empty placeholders off (to start): the signature as it goes out (Sam, 3 November 2026).
+		if ( $bare ) {
+			$d['bare'] = true;
+		}
 		$out['html']  = SB_EmailSig_Render::html_from_data( $d, (string) $tpl['id'] );
-		$s            = SB_EmailSig_Styles::resolve( $tpl );
-		$out['off']   = self::off( isset( $s['layout'] ) && is_array( $s['layout'] ) ? SB_EmailSig_Layout::disabled( $s['layout'] ) : array() );
+		// Judged as their own company, so its Additional Info List Items are the
+		// ones listed, not another company's (3 November 2026).
+		$off          = SB_EmailSig_Company::with(
+			SB_EmailSig_Company::of_person( $id ),
+			function () use ( $tpl ) {
+				$s = SB_EmailSig_Styles::resolve( $tpl );
+
+				return isset( $s['layout'] ) && is_array( $s['layout'] ) ? SB_EmailSig_Layout::disabled( $s['layout'] ) : array();
+			}
+		);
+		$out['off']   = self::off( $off, (string) $tpl['name'], (string) $tpl['id'] );
 
 		return $out;
 	}
@@ -663,13 +680,27 @@ class SB_EmailSig_Person {
 		return $out . '</div>';
 	}
 
-	/** What the template leaves out, as chips under the preview. */
-	private static function off( array $labels ) {
+	/**
+	 * What the template leaves out, in a box under the preview (Sam, 3
+	 * November 2026): the template's name in the heading (a link to its
+	 * Layout page for those who can edit templates), a line saying these
+	 * won't show even when filled in, then a chip for each.
+	 */
+	private static function off( array $labels, $name, $tpl_id = '' ) {
 		if ( ! $labels ) {
 			return '';
 		}
 
-		$out = '<h4>Disabled on this template</h4><div class="sb-emailsig-person-editor__off-list">';
+		$tip  = 'Edit the ' . $name . ' template\'s layout';
+		$name = '<strong>' . esc_html( $name ) . '</strong>';
+
+		if ( $tpl_id !== '' && current_user_can( 'manage_options' ) ) {
+			$name = '<a class="sb-ui-link" href="' . esc_url( SB_EmailSig_Styles::layout_url( $tpl_id ) ) . '" data-sb-tip="' . esc_attr( $tip ) . '">' . $name . '</a>';
+		}
+
+		$out = '<h4>Fields not used in the ' . $name . ' template</h4>'
+			. '<p class="sb-emailsig-person-editor__off-note">These won\'t show in this signature, even when filled in.</p>'
+			. '<div class="sb-emailsig-person-editor__off-list">';
 
 		foreach ( $labels as $label ) {
 			$out .= '<span class="sb-emailsig-chip">' . esc_html( $label ) . '</span>';
@@ -742,6 +773,7 @@ class SB_EmailSig_Person {
 
 		$list = SB_EmailSig_Templates::available( $id, $co );
 		$show = isset( $_POST['template'] ) ? sanitize_text_field( wp_unslash( $_POST['template'] ) ) : '';
+		$bare = empty( $_POST['empty'] ); // Show empty placeholders off, or not sent.
 
 		$swap = function ( $value, $post_id, $field ) use ( $id, $over ) {
 			return ( (int) $post_id === $id && isset( $field['key'] ) && array_key_exists( $field['key'], $over ) ) ? $over[ $field['key'] ] : $value;
@@ -752,8 +784,8 @@ class SB_EmailSig_Person {
 		SB_EmailSig_Company::force( $id, $co );
 		$view = SB_EmailSig_Company::with(
 			SB_EmailSig_Company::of_person( $id ),
-			function () use ( $id, $list, $show ) {
-				return self::view( $id, $list, $show );
+			function () use ( $id, $list, $show, $bare ) {
+				return self::view( $id, $list, $show, $bare );
 			}
 		);
 		SB_EmailSig_Company::force( $id, null );

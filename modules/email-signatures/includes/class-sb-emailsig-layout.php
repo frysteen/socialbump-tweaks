@@ -284,22 +284,25 @@ class SB_EmailSig_Layout {
 	const ITEMS_ON = [ 'phone', 'mobile', 'email', 'website', 'address', 'vcard' ];
 
 	/**
-	 * What a layout leaves out, for the person page's preview (Sam, 30
-	 * October 2026): blocks in the holding area (not dividers), Info List
-	 * items no Info List in a column has ticked, and the footer parts Footer
-	 * Controls hide. Labels, in that order.
+	 * What a layout leaves out, for the box under the person page's preview
+	 * (Sam, 30 October and 3 November 2026): blocks in the holding area (not
+	 * dividers or text), then every Info List item no Info List in a column
+	 * has ticked, one by one, so it's clear why a filled-in field isn't
+	 * showing (the person's own Additional Info List Items as one, unless
+	 * ticked or in their own block), then the footer parts Footer Controls
+	 * hide. Labels, in that order.
 	 */
 	public static function disabled( array $layout ) {
 		$blocks = self::blocks();
-		$shown  = false;
 		$on     = [];
 		$out    = [];
+		// Named here by whose they are; the Layout page keeps blocks()' names (Sam, 3 November 2026).
+		$names  = [ 'photo' => 'Person Photo', 'logo' => 'Company Logo', 'logo_small' => 'Company Small Logo' ];
 
 		foreach ( self::all_columns( $layout ) as $col ) {
 			foreach ( (array) ( $col['blocks'] ?? [] ) as $b ) {
 				// The person's own items in a block of their own.
 				if ( ( $b['type'] ?? '' ) === 'person_info' ) {
-					$shown              = true;
 					$on['info_person'] = true;
 					continue;
 				}
@@ -307,8 +310,6 @@ class SB_EmailSig_Layout {
 				if ( ( $b['type'] ?? '' ) !== 'info' && ( $b['type'] ?? '' ) !== 'company_info' ) {
 					continue;
 				}
-
-				$shown = true;
 
 				foreach ( self::expand( $b['items'] ?? [] ) as $item ) {
 					if ( ! empty( $item['on'] ) ) {
@@ -321,8 +322,7 @@ class SB_EmailSig_Layout {
 		foreach ( (array) ( $layout['hold'] ?? [] ) as $b ) {
 			$type = (string) ( $b['type'] ?? '' );
 
-			// A spare Info List held back says nothing while another shows: its items are judged below.
-			if ( $type === 'divider' || $type === 'text' || ! isset( $blocks[ $type ] ) || ( $type === 'info' && $shown ) ) {
+			if ( $type === 'divider' || $type === 'text' || ! isset( $blocks[ $type ] ) ) {
 				continue;
 			}
 
@@ -331,20 +331,19 @@ class SB_EmailSig_Layout {
 				continue;
 			}
 
-			// The company's and person's items: judged one by one below.
-			if ( $type === 'company_info' || $type === 'person_info' ) {
+			// Info Lists and the company's and person's items: their items are judged one by one below.
+			if ( $type === 'info' || $type === 'company_info' || $type === 'person_info' ) {
 				continue;
 			}
 
-			$out[ 'b:' . $type ] = $blocks[ $type ];
+			$out[ 'b:' . $type ] = $names[ $type ] ?? $blocks[ $type ];
 		}
 
-		if ( $shown ) {
-			foreach ( self::items() as $key => $label ) {
-				// Save my contact details is judged as a block above.
-				if ( $key !== 'vcard' && empty( $on[ $key ] ) ) {
-					$out[ 'i:' . $key ] = $key === 'info_person' ? 'Their own Info List items' : $label;
-				}
+		foreach ( self::items() as $key => $label ) {
+			// Save my contact details is judged as a block above.
+			if ( $key !== 'vcard' && empty( $on[ $key ] ) ) {
+				// A company item says where it comes from (Sam, 3 November 2026).
+				$out[ 'i:' . $key ] = $key === 'info_person' ? 'Personal Additional Items' : ( strpos( $key, 'c:' ) === 0 ? 'Company Additional Field: ' . $label : $label );
 			}
 		}
 
@@ -979,6 +978,9 @@ class SB_EmailSig_Layout {
 			'hide_campaign' => empty( $raw['hide_campaign'] ) ? 0 : 1,
 			'hide_text'     => empty( $raw['hide_text'] ) ? 0 : 1,
 			'hide_signoff'  => empty( $raw['hide_signoff'] ) ? 0 : 1,
+			// Sign-off Gap (Container Settings, Sam, 3 November 2026): the space under
+			// the sign-off, a step or px. Double unless set (it was a fixed 20px).
+			'signoff_gap'   => self::space( $raw['signoff_gap'] ?? null, 'double' ),
 			'hold'       => $hold,
 		];
 	}
@@ -1234,6 +1236,15 @@ class SB_EmailSig_Layout {
 		return ! empty( self::$d['preview'] );
 	}
 
+	/**
+	 * The grey stand-ins for empty parts: in previews, unless the builder's
+	 * Show empty placeholders switch is off ($d['bare'], Sam, 3 November
+	 * 2026). Bare, a preview is the signature as it goes out.
+	 */
+	private static function stand_ins() {
+		return self::preview() && empty( self::$d['bare'] );
+	}
+
 	/** In previews, icons carry a marker so the page can show them in unsaved colours. */
 	private static function mark( $attr, $value ) {
 		return self::preview() ? ' ' . $attr . '="' . esc_attr( $value ) . '"' : '';
@@ -1271,7 +1282,7 @@ class SB_EmailSig_Layout {
 
 	/** A grey stand-in for something not set yet, in previews only. */
 	private static function ph( $label, $style = '' ) {
-		if ( ! self::preview() ) {
+		if ( ! self::stand_ins() ) {
 			return '';
 		}
 
@@ -1319,7 +1330,7 @@ class SB_EmailSig_Layout {
 		$out    = '<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;border-spacing:0;max-width:' . $width . 'px;-webkit-text-size-adjust:100%;font-family:' . esc_attr( $s['font'] ) . ';color:' . esc_attr( $s['text'] ) . ';">';
 
 		if ( $d['signoff'] && empty( $layout['hide_signoff'] ) ) {
-			$out .= '<tr><td style="padding:0 0 20px 0;' . esc_attr( $css['signoff'] ?? '' ) . '">' . esc_html( self::cased( 'signoff', $d['signoff'] ) ) . '</td></tr>';
+			$out .= '<tr><td style="padding:0 0 ' . self::px( $layout['signoff_gap'] ?? 'double' ) . 'px 0;' . esc_attr( $css['signoff'] ?? '' ) . '">' . esc_html( self::cased( 'signoff', $d['signoff'] ) ) . '</td></tr>';
 		}
 
 		$out .= self::columns( $layout );
@@ -1746,14 +1757,14 @@ class SB_EmailSig_Layout {
 			return self::a( $d['profile_link'], $img );
 		}
 
-		if ( ! self::preview() ) {
+		if ( ! self::stand_ins() ) {
 			return '';
 		}
 
 		$w = (int) ( $s['photo']['width'] ?? 130 );
 		$h = (int) round( $w / max( 0.01, (float) ( $s['photo']['ratio'] ?? 1 ) ) );
 
-		return '<div style="display:inline-block;width:' . ( $w - 4 ) . 'px;height:' . ( $h - 4 ) . 'px;line-height:' . ( $h - 4 ) . 'px;border:2px dashed #c3c4c7;border-radius:' . esc_attr( $round ) . ';background:#f6f7f7;color:#a7aaad;font-family:Arial,sans-serif;font-size:12px;text-align:center;">{photo}</div>';
+		return '<div style="display:inline-block;width:' . ( $w - 4 ) . 'px;height:' . ( $h - 4 ) . 'px;line-height:' . ( $h - 4 ) . 'px;border:2px dashed #c3c4c7;border-radius:' . esc_attr( $round ) . ';background:#f6f7f7;color:#a7aaad;font-family:Arial,sans-serif;font-size:12px;text-align:center;">{person photo}</div>';
 	}
 
 	/**
@@ -2019,7 +2030,7 @@ class SB_EmailSig_Layout {
 		$logo = $small ? ( $d['logo_small'] ?? null ) : ( $d['logo'] ?? null );
 
 		if ( ! $logo ) {
-			return self::ph( $small ? 'small logo' : 'logo' );
+			return self::ph( $small ? 'company small logo' : 'company logo' ); // Whose, in the stand-in (Sam, 3 November 2026).
 		}
 
 		$max_w = (int) ( $small ? ( self::$s['logo']['small_max_width'] ?? 60 ) : self::$s['logo']['max_width'] );
@@ -2275,7 +2286,7 @@ class SB_EmailSig_Layout {
 		};
 
 		// Footer Controls: a part left out leaves out its placeholder too.
-		if ( ! $d['buttons'] && self::preview() && ! $hide( 'buttons' ) ) {
+		if ( ! $d['buttons'] && self::stand_ins() && ! $hide( 'buttons' ) ) {
 			$out .= '<tr><td style="' . $pad( 'buttons' ) . '">' . self::ph( 'buttons' ) . '</td></tr>';
 		}
 
@@ -2324,7 +2335,7 @@ class SB_EmailSig_Layout {
 		);
 		$ttd = '<tr><td' . ( $tbg !== '' ? ' bgcolor="' . esc_attr( $tbg ) . '"' : '' ) . ' style="' . esc_attr( $tstyle ) . '">';
 
-		if ( ! $d['fine_print'] && self::preview() && ! $hide( 'text' ) ) {
+		if ( ! $d['fine_print'] && self::stand_ins() && ! $hide( 'text' ) ) {
 			$out .= $ttd . self::ph( 'footer text' ) . '</td></tr>';
 		}
 
@@ -2340,7 +2351,7 @@ class SB_EmailSig_Layout {
 			$out .= '<tr><td style="' . $pad( 'campaign' ) . '">' . self::a( $d['campaign']['link'], $img ) . '</td></tr>';
 		}
 
-		if ( ! $d['banners'] && self::preview() && ! $hide( 'banners' ) ) {
+		if ( ! $d['banners'] && self::stand_ins() && ! $hide( 'banners' ) ) {
 			$out .= '<tr><td style="' . $pad( 'banners' ) . '">' . self::ph( 'banners', 'display:block;width:' . min( 600, $width ) . 'px;max-width:100%;padding:24px 0;text-align:center;box-sizing:border-box;' ) . '</td></tr>';
 		}
 

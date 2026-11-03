@@ -230,7 +230,7 @@ body.sb-ui .sb-tweaks-wrap .sb-emailsig-template__stats > a, .sb-emailsig-templa
 /* The Layout page's fields: labels in one line across the top, every box the same height. */
 .sb-emailsig-layout__bar, .sb-emailsig-layout__box { align-items: flex-start; }
 .sb-emailsig-item__name.sb-emailsig-layout__sub { margin: 18px 0 6px; }
-.sb-emailsig-layout__bar select, .sb-emailsig-layout__bar input, .sb-emailsig-layout__box input { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; }
+.sb-emailsig-layout__bar select, .sb-emailsig-layout__bar input, .sb-emailsig-layout__box input:not([type="checkbox"]) { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; }
 .sb-emailsig-layout__bar select { padding-top: 0; padding-bottom: 0; line-height: 34px; }
 /* A colour in a layout popup (a divider's): the same height as the selects beside it. */
 .sb-emailsig-layout__pop .sb-emailsig-field--colour { display: flex; flex-direction: column; gap: 0; }
@@ -299,6 +299,13 @@ body .sb-tweaks-dialog__buttons .button.sb-emailsig-layout__copy { display: inli
 .sb-emailsig-layout__lock { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 36px; height: 36px; padding: 0; border: 1px solid var(--sbui-border-strong, #8c8f94); border-radius: 4px; background: var(--sbui-surface, #fff); color: var(--sbui-text-2, #50575e); cursor: pointer; }
 .sb-emailsig-layout__lock:hover, .sb-emailsig-layout__lock:focus-visible { border-color: var(--sbui-green-ink, #2271b1); color: var(--sbui-green-ink, #2271b1); }
 .sb-emailsig-layout__lockfield { flex: 0 0 auto; }
+/* Hide Sign-off beside Sign-off Gap: the tick box level with the dropdown,
+   under a label's worth of space (Sam, 3 November 2026). */
+.sb-emailsig-layout__checkfield { display: flex; flex: 0 0 auto; flex-direction: column; align-self: stretch; gap: 4px; }
+.sb-emailsig-layout__checkfield > .sb-emailsig-field__label { display: block; }
+.sb-emailsig-layout__checkbox { display: flex; flex: 1; align-items: center; }
+/* Sign-off Gap while Hide Sign-off is ticked: greyed out, label and all (Sam, 3 November 2026). */
+.sb-emailsig-field.is-disabled > .sb-emailsig-field__label { opacity: 0.55; }
 /* Width dropdowns (layout.js pxSelect()): 1px to 8px, None. */
 .sb-emailsig-layout__box select.sb-emailsig-layout__px { width: 96px; min-width: 96px; }
 
@@ -313,14 +320,16 @@ body .sb-tweaks-dialog__buttons .button.sb-emailsig-layout__copy { display: inli
 
 /* Preview */
 .sb-emailsig-editor__side { position: sticky; top: 48px; min-width: 0; }
-.sb-emailsig-editor__sticky { padding: 18px 20px; background: var(--sbui-surface, #fff); border: 1px solid var(--sbui-border, #dcdcde); border-radius: 6px; }
-.sb-emailsig-editor__side-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+/* The sticky part holds the Preview toolbar and the preview card, with no look of its own (Sam, 3 November 2026). */
+.sb-emailsig-editor__sticky { min-width: 0; }
+/* The Preview toolbar is the framework's bar (.sb-ui-bar): here at the top of the column, the card under it. */
+body.sb-ui .sb-emailsig-editor__side-head.sb-ui-bar { margin: 0 0 16px; }
 .sb-emailsig-editor__side-head h3 { margin: 0; font-size: 15px; line-height: 1.3; }
 .sb-emailsig-editor__status { color: var(--sbui-text-3, #787c82); font-size: 12px; }
 .sb-emailsig-editor__preview { padding: 20px; overflow: hidden; }
 .sb-emailsig-editor__fit { width: max-content; }
 .sb-emailsig-editor__who { margin: 8px 0 0; color: var(--sbui-text-3, #787c82); font-size: 12px; }
-.sb-emailsig-editor__side-head .sb-emailsig-editor__status { margin-left: auto; }
+body.sb-ui .sb-emailsig-editor__side-head .sb-ui-bar__end { margin-left: auto; }
 .sb-emailsig-editor__person { max-width: 220px; }
 @media (max-width: 1200px) {
 	.sb-emailsig-editor { grid-template-columns: minmax(0, 1fr); }
@@ -1000,16 +1009,21 @@ body.sb-ui .sb-tweaks-modal.sb-emailsig-layout-modal { background: rgba(18, 19, 
 .sb-emailsig-person-editor .sb-emailsig-editor__preview { overflow-x: auto; }
 .sb-emailsig-person-editor__sig { width: max-content; max-width: none; }
 .sb-emailsig-person-editor .sb-emailsig-editor__who { color: var(--sbui-text-3, #787c82); font-size: 12px; }
-.sb-emailsig-person-editor .sb-emailsig-editor__side-head { display: flex; align-items: center; gap: 10px; }
 body.sb-ui .sb-emailsig-editbar .sb-tweaks-switch { position: relative; margin-left: 6px; }
 
 /* The person page's preview (Sam, 30 October 2026): their templates as tabs
    above it, and what the template shown leaves out under it. */
-.sb-emailsig-person-editor__tpls:not(:empty) { max-width: 100%; margin: 0 0 12px; overflow-x: auto; }
-.sb-emailsig-person-editor__off:not(:empty) { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--sbui-border-strong, #c3c4c7); }
-body.sb-ui .sb-tweaks-wrap .sb-emailsig-person-editor__off h4, .sb-emailsig-person-editor__off h4 { margin: 0 0 8px; color: var(--sbui-text-3, #787c82); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.sb-emailsig-person-editor__tpls:not(:empty) { max-width: 100%; overflow-x: auto; }
+/* Fields not used in the template: a box of its own under the preview, halfway between the page's off white and white so it reads apart from the signature (Sam, 3 November 2026). */
+.sb-emailsig-person-editor__off:not(:empty) { margin-top: 16px; padding: 16px 20px; background: color-mix(in srgb, var(--sbui-surface-2, #f8f9f5) 50%, var(--sbui-surface, #fff)); border: 1px solid var(--sbui-border, #dcdcde); border-radius: var(--sbui-r-lg, 12px); }
+body.sb-ui .sb-tweaks-wrap .sb-emailsig-person-editor__off h4, .sb-emailsig-person-editor__off h4 { margin: 0 0 2px; color: var(--sbui-text, #1d2327); font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.sb-emailsig-person-editor__off h4 strong { font-weight: 700; }
+body.sb-ui .sb-tweaks-wrap .sb-emailsig-person-editor__off-note, .sb-emailsig-person-editor__off-note { margin: 0 0 12px; color: var(--sbui-text-3, #787c82); font-size: 12px; line-height: 1.5; }
 .sb-emailsig-person-editor__off-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.sb-tweaks-wrap .sb-emailsig-person-editor__off .sb-emailsig-chip { border-style: dashed; background: transparent; color: var(--sbui-text-3, #787c82); }
+/* Each chip lighter again, so it stands out on the box: white, or in dark mode the raised surface. */
+.sb-tweaks-wrap .sb-emailsig-person-editor__off .sb-emailsig-chip { border-style: dashed; border-color: var(--sbui-border-strong, #c3c4c7); background: var(--sbui-surface, #fff); color: var(--sbui-text-2, #50575e); }
+body.sb-ui.sb-ui-mode-dark .sb-tweaks-wrap .sb-emailsig-person-editor__off .sb-emailsig-chip { background: var(--sbui-surface-3); }
+@media (prefers-color-scheme: dark) { body.sb-ui.sb-ui-mode-auto .sb-tweaks-wrap .sb-emailsig-person-editor__off .sb-emailsig-chip { background: var(--sbui-surface-3); } }
 
 /* A person's preview popup: their link and email buttons on the left of the footer. */
 .sb-emailsig-preview-pop__tools { display: flex; align-items: center; gap: 6px; margin-right: auto; }

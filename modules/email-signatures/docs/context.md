@@ -403,9 +403,9 @@ editor draws it ($d['preview'], so a part with nothing in it shows its
 stand-in) by view(). Tabs above it (switcher()) show each template they
 can use, the company's Default Template first, from
 SB_EmailSig_Templates::available(); a tab redraws straight away. Under it,
-"Disabled on this template" lists what that template leaves out
-(SB_EmailSig_Layout::disabled(): held back blocks, Info List items no
-showing Info List ticks, and parts Footer Controls hide). The photo picked
+"Fields not used in the <name> template" lists what that template leaves
+out (SB_EmailSig_Layout::disabled(); see Fields not used box on the person
+page, below). The photo picked
 and the crop box's crop, ratio, shape and radius come from the form too:
 SB_EmailSig_Photo::live() reads them in place of the saved meta (a
 get_post_metadata filter) until unlive(), and the photo is made in the
@@ -2457,3 +2457,138 @@ as they were; a template that isn't one is refused).
   floated up an empty toast, three a switch, logged in or not (Sam). ui.js
   ignores empty toasts as well. Tested with a copy of the page: none on a
   switch, the copy messages still show.
+
+### Sign-off Gap (3 November 2026)
+
+- Container Settings, Sign-off: Sign-off Gap (the usual spacing dropdown,
+  spaceControl()) with Hide Sign-off beside it, level with the dropdown
+  (.sb-emailsig-layout__checkfield). The space under the sign-off, in layout
+  signoff_gap: a step or px, Double (16px) unless set, and Container Settings'
+  Reset puts it back to Double (Sam). It was a fixed 20px, so signatures with
+  none saved now have 16px.
+- Layout::sanitize() keeps it (space(), default 'double'); Layout::html() pads
+  the sign-off row with px( signoff_gap ). layout.js: canon() and the fill for
+  layouts saved before it, and PARTS.box for Reset.
+- The extra space seen above the columns is Row 1's own top padding (Triple,
+  24px, by default), not the sign-off's.
+- .sb-emailsig-layout__box input no longer sizes tick boxes (it made Hide
+  Sign-off 36px tall).
+- Checked: the Layout page copy in a browser (Double at the start, a change
+  posted with the layout, Reset back to Double, the tick box level, light and
+  dark), and on the hub (sanitize, 16px in a real signature, the page loads).
+
+### Sign-Off Settings card (3 November 2026)
+
+- Sign-off Gap and Hide Sign-off moved out of Container Settings into a card
+  of their own, Sign-Off Settings (data-sb-emailsig-layout-part="signoff",
+  filled into [data-sb-emailsig-layout-signoff]), after Container Settings,
+  so each resets on its own (Sam). Container Settings lost its Sign-off sub
+  heading. PARTS: box is padding, border and background; signoff is
+  signoff_gap and hide_signoff. Reset Template lists Sign-Off Settings too, and
+  Edit styles' Reset Template tick names it. render() holds the card still
+  while it redraws.
+- Hide Sign-off ticked greys out Sign-off Gap (disabled, its label faded,
+  .is-disabled): no sign-off, no gap.
+- Checked on the Layout page copy in a browser, light and dark: each card's
+  Reset only for its own changes and only resetting its own, the grey out on
+  and off, Reset Template's list. On the hub: the page loads with the three
+  cards.
+
+### Show empty placeholders (3 November 2026)
+
+- A small switch by the Preview heading on Edit styles and Layout
+  (Styles::empty_switch(), SB_Tweaks_UI::small_switch()). Off to start: the
+  preview is the signature as it goes out, no grey stand-ins. On: a stand-in
+  where a part is empty, as before (Sam). Not remembered between visits.
+- Layout::stand_ins() is preview() and not $d['bare']; ph(), the photo
+  stand-in and the buttons, footer text and banners stand-in rows use it.
+  preview() still marks icons for drawing in unsaved colours.
+  Templates::preview_data( $person, $tpl, $bare ) sets bare; both builder
+  pages open bare, and wp_ajax_sb_emailsig_preview is bare unless empty=1
+  (styles.js fetchPreview(), layout.js preview(); each page asks again on a
+  flick). The Templates page's placeholder view and the person page keep
+  their stand-ins.
+- The switch has no name, so save-state.js never counts it as a change.
+- Checked on the hub: Ashleigh Falla on template 544, 0 stand-ins off and 3 on;
+  both pages load with the switch. In a browser on the Layout page copy:
+  level with the heading, light and dark, each flick asking with empty 1 or
+  blank.
+
+### Preview toolbar (3 November 2026)
+
+- Edit styles, Layout and the person page: the Preview heading row is the
+  framework's toolbar (SB_Tweaks_UI::bar(), class sb-emailsig-editor__side-head
+  kept for the scripts), and the preview is its own card under it, 16px apart
+  (Sam). The sticky wrapper has no look of its own any more, so the preview is
+  about 42px wider (537px against 495px at 1440 wide).
+- Toolbar: Preview and, on Edit styles and Layout, Show empty placeholders on
+  the left; the Updating status and the person picker (or, on the person page,
+  the template tabs, #sb-emailsig-person-tpls) on the right. A new person's
+  page has the toolbar over its empty message.
+- Under the card: the shown at line, and on the person page the parts left out
+  (no dashed line now the card ends above them).
+- Popup previews are unchanged (Sam).
+- Checked on the hub: all four pages load with the toolbar and their parts. In
+  a browser on the Layout page copy: light and dark, the toolbar level with
+  the first card on the left, still sticky.
+
+### Fields not used box on the person page
+
+Sam, 3 November 2026: "Disabled on this template" took a second to work out.
+
+- Heading "Fields not used in the <strong>name</strong> template", then the
+  line "These won't show in this signature, even when filled in.", then the
+  chips (Person::off( $labels, $name )).
+- The box: .sb-emailsig-person-editor__off, halfway between surface-2 and
+  surface (color-mix), with a border and r-lg corners, so it's lighter than
+  the page but not white like the preview card. Chips lighter again: surface
+  (white) in light mode, surface-3 in dark; dashed border-strong edge, text-2.
+- The template name is a.sb-ui-link to its Layout page
+  (SB_EmailSig_Styles::layout_url()), tooltip "Edit the <name> template's
+  layout", for those with manage_options (who can edit templates); others get
+  the name in bold with no link. Checked on the hub: the link and tooltip on
+  533's edit page as an admin, plain bold with no user.
+- Layout::disabled() lists, in order: held back widgets (Photo, Logo, Small
+  logo, Company name, Social icons and the rest; Save my contact details only
+  when its widget is held back and no Info List in a column ticks it), then
+  every Info List item no Info List or Company Info List Items widget in a
+  column ticks, one by one (Company Email, each of the company's Additional
+  Info List Items by its Settings label), then "Personal Additional Items" as
+  one when it's neither ticked in an Info List nor in a column as its own
+  widget, then the footer parts Footer Controls hide.
+- Info List items are judged even when no Info List is in a column; a held
+  back Info List no longer shows as a chip of its own.
+- Person::view() judges inside SB_EmailSig_Company::with( of_person( id ) ),
+  so the company items listed are the person's own company's. Before, a
+  SocialBUMP person was shown The Cosmetic Studio Noosa's Bookings.
+- Checked on the hub 3 November 2026, every person and template. Classic:
+  Small logo. SocialBUMP: Small logo, Company Email, Personal Additional
+  Items. Minimal (Ashleigh, The Cosmetic Studio Noosa): Photo, Logo, Company
+  Email, Bookings. Gary (SocialBUMP) no longer gets Bookings. The edit page
+  for 533 loads with the box. The box's look was checked in a browser from
+  the page CSS, light and dark, not on the live page.
+
+### Show empty placeholders and whose-named parts on the person page
+
+Sam, 3 November 2026.
+
+- The person page's Preview toolbar has Show empty placeholders, the same
+  switch as Edit styles and Layout (SB_EmailSig_Styles::empty_switch(), now
+  public so there's one copy). Off to start: view( ..., $bare = true ) sets
+  $d['bare'], so the preview is the signature as it goes out. person.js sends
+  empty=1 when it's on and redraws straight away on a change; the template
+  tabs and typing keep its state. No name, so never a change to save.
+- Named by whose they are, in the preview stand-ins and the Fields not used
+  chips only (the fields and the Layout page's widget names are unchanged):
+  {person photo}, {company logo here}, {company small logo here}; chips
+  Person Photo, Company Logo, Company Small Logo (Layout::disabled()'s
+  $names). A company Additional Info List Item's chip reads
+  "Company Additional Field: <label>", so it's clear where it comes from. The stand-ins read this way in every preview, Edit styles and
+  Layout too.
+- Checked on the hub: 533's edit page loads with the switch and no stand-ins;
+  the preview request without empty gives none, with empty=1 gives
+  {person photo} (photo emptied), {company logo here}, {company small logo
+  here} and {banners here} as each template has them; Edit styles and Layout
+  still have their switch. person.js (the live file, md5 matched) tested in a
+  browser with a stand-in server: on sends empty=1 and redraws at once, off
+  redraws bare, typing keeps it off.

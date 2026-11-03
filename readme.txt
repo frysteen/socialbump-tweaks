@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.6
+Stable tag: 0.6.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,15 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.7 =
+* Email Signatures: a new Sign-Off Settings card on the Layout page, with its own Reset. It has Sign-off Gap, the space under the sign-off (Double, 16px, by default; it was a fixed 20px), and Hide Sign-off, which greys the gap out while ticked. Container Settings keeps padding, background and border.
+* Email Signatures: a Show empty placeholders switch by the Preview heading on Edit styles and Layout. Off (to start), the preview shows the signature as it goes out; on, a grey stand-in marks each empty part. SocialBUMP UI: a small switch with a label, for any page.
+* Email Signatures: the preview on Edit styles, Layout and the person page has a toolbar above it (Preview, the switch, the person picker or template tabs) and sits in its own card, a little wider than before.
+* Email Signatures: on the person page, the box under the preview now reads "Fields not used in the [template] template", says these won't show even when filled in, and sits in a light panel of its own. It names each field the template doesn't use: hidden widgets, each Info List item that isn't ticked (Company Email, each company Additional item) and Personal Additional Items. It now lists the person's own company's items, not another company's.
+* Email Signatures: in the person page's Fields not used box, the template name links to that template's Layout page, with a green underline and a tooltip (for those who can edit templates). The box is a shade lighter and each field's chip lighter again. SocialBUMP UI: a text link in the text's own colour with a green underline, for any page.
+* Email Signatures: the person page's preview has the Show empty placeholders switch too, off to start, so it shows the signature as it goes out. In previews and the Fields not used box, Photo, Logo and Small logo now read Person Photo, Company Logo and Company Small Logo.
+* Email Signatures: in the Fields not used box, a company Additional Info List Item reads "Company Additional Field: Bookings" (its label), so it's clear where it comes from.
 
 = 0.6.6 =
 * Email Signatures: switching template on a person's signature page no longer pops up three empty messages. SocialBUMP UI: a toast with no words is never shown.
