@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.8
+Stable tag: 0.6.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,10 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.9 =
+* Email Signatures: company logos and small logos now use a fixed address in signatures, like headshots, so a new logo in Branding shows in signatures already sent. Signatures need copying again once to pick this up. A removed logo shows as nothing; a switched-off company shows no logos or images.
+* Email Signatures: the Campaign Banner is on by default for new companies, so the banner space is ready in every signature when a campaign starts.
 
 = 0.6.8 =
 * New Signatures Manager user role (Email Signatures): manages signatures, companies and templates, uses Media and edits the connected staff pages, but sees nothing else in WordPress. Built on a new core system for module user roles; switching a module off turns its users into Subscribers.

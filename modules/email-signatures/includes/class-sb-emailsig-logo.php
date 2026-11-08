@@ -84,6 +84,7 @@ class SB_EmailSig_Logo {
 	}
 
 	public static function init() {
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_serve' ), 0 );
 		add_filter( 'sb_images/wanted_for', array( __CLASS__, 'wanted_for' ), 10, 2 );
 		add_filter( 'sb_images/attachment_size_groups', array( __CLASS__, 'groups' ) );
 		add_action( 'acf/save_post', array( __CLASS__, 'saved' ), 30 );
@@ -92,6 +93,119 @@ class SB_EmailSig_Logo {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_action( 'wp_ajax_sb_emailsig_logo_info', array( __CLASS__, 'ajax_info' ) );
 		add_action( 'wp_ajax_sb_emailsig_logo_crop', array( __CLASS__, 'ajax_crop' ) );
+	}
+
+	/* ------------------------------------------------------------------ *
+	 * Fixed addresses in signatures (Sam, 8 November 2026)
+	 * ------------------------------------------------------------------ */
+
+	/** The query a logo's fixed address uses: maybe_serve(). */
+	const QUERY = 'sblogo';
+
+	/**
+	 * A company's logo address in signatures, the same for good:
+	 * /?sblogo={company}-{m or s}-{template id}-{check}. Like a person's
+	 * photo (SB_EmailSig_Photo::fixed_url()), so a new logo in Branding shows
+	 * in signatures already pasted. One per template: each sets its own width.
+	 */
+	public static function fixed_url( $co, $small, $tpl_id ) {
+		$co   = (int) $co;
+		$kind = $small ? 's' : 'm';
+		$tpl  = (string) $tpl_id;
+
+		return add_query_arg( self::QUERY, $co . '-' . $kind . '-' . $tpl . '-' . SB_EmailSig_Tracking::sign( $co . '|logo|' . $kind . '|' . $tpl ), home_url( '/' ) );
+	}
+
+	/**
+	 * /?sblogo=: the company's logo or small logo as it is now, at the size
+	 * that template shows it (twice over, for sharp screens). None set: a
+	 * see-through PNG one pixel high. Not found while the company is switched
+	 * off or gone (Sam, 8 November 2026: no logos or images then). Browsers
+	 * check back each time (no-cache, with an ETag); mail apps and Gmail's
+	 * image proxy keep their own copies for a while.
+	 */
+	public static function maybe_serve() {
+		if ( ! isset( $_GET[ self::QUERY ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return;
+		}
+
+		SB_EmailSig_Page::private_headers( false );
+		header( 'Cache-Control: no-cache', true );
+
+		$code = sanitize_text_field( wp_unslash( $_GET[ self::QUERY ] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		$co   = preg_match( '/^(\d+)-([ms])-(\d+)-([a-f0-9]{8})$/', $code, $m ) ? (int) $m[1] : 0;
+
+		if ( ! $co || ! hash_equals( SB_EmailSig_Tracking::sign( $co . '|logo|' . $m[2] . '|' . $m[3] ), $m[4] ) || ! SB_EmailSig_Company::valid( $co ) || SB_EmailSig_Switch::is_off( $co ) ) {
+			status_header( 404 );
+			exit;
+		}
+
+		$small = 's' === $m[2];
+		$tpl   = $m[3];
+		$got   = SB_EmailSig_Company::with(
+			$co,
+			function () use ( $small, $tpl ) {
+				return self::fixed_file( $small, $tpl );
+			}
+		);
+
+		list( $path, $width ) = $got;
+
+		if ( $path !== '' ) {
+			$etag = '"' . md5( $path . '|' . filemtime( $path ) ) . '"';
+			header( 'ETag: ' . $etag );
+
+			if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && trim( wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) === $etag ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+				status_header( 304 );
+				exit;
+			}
+
+			$type = wp_check_filetype( $path );
+			header( 'Content-Type: ' . ( $type['type'] ?: 'image/png' ) );
+			header( 'Content-Length: ' . filesize( $path ) );
+			readfile( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			exit;
+		}
+
+		$png = SB_EmailSig_Campaign::spacer( $width );
+		header( 'Content-Type: image/png' );
+		header( 'Content-Length: ' . strlen( $png ) );
+		echo $png; // phpcs:ignore WordPress.Security.EscapeOutput
+		exit;
+	}
+
+	/**
+	 * Inside the company: [ the file to send ('' for none), the width the
+	 * template shows it at ]. The file is the one a signature drawn now would
+	 * use (SB_EmailSig_Data::src()); the template gone, the company's main.
+	 */
+	private static function fixed_file( $small, $tpl_id ) {
+		$tpl = SB_EmailSig_Templates::get( $tpl_id );
+		$tpl = $tpl ? $tpl : SB_EmailSig_Templates::get( SB_EmailSig_Templates::current() );
+		$s   = $tpl ? SB_EmailSig_Styles::resolve( $tpl ) : array();
+		$lo  = (array) ( $s['logo'] ?? array() );
+
+		$max_w = (int) ( $small ? ( $lo['small_max_width'] ?? 60 ) : ( $lo['max_width'] ?? 180 ) );
+		$max_h = (int) ( $small ? ( $lo['small_max_height'] ?? 0 ) : ( $lo['max_height'] ?? 0 ) );
+		$logo  = SB_EmailSig_Data::image( (int) get_field( $small ? 'sb_emailsig_logo_small' : 'sb_emailsig_logo', SB_EmailSig_Company::source(), false ) );
+
+		if ( ! $logo ) {
+			return array( '', max( 1, $max_w ) );
+		}
+
+		list( $w ) = SB_EmailSig_Data::fit( $logo, $max_w, $max_h );
+
+		$url  = (string) SB_EmailSig_Data::src( $logo, $w );
+		$up   = wp_get_upload_dir();
+		$base = set_url_scheme( (string) $up['baseurl'], 'https' );
+		$url  = set_url_scheme( $url, 'https' );
+		$path = strpos( $url, $base ) === 0 ? $up['basedir'] . substr( $url, strlen( $base ) ) : '';
+
+		if ( $path === '' || ! is_readable( $path ) ) {
+			$path = (string) get_attached_file( (int) $logo['id'] );
+		}
+
+		return array( is_readable( $path ) ? $path : '', max( 1, (int) $w ) );
 	}
 
 	/* ------------------------------------------------------------------ *

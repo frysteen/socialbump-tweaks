@@ -2064,6 +2064,17 @@ class SB_EmailSig_Layout {
 
 		list( $w, $h ) = SB_EmailSig_Data::fit( $logo, $max_w, $max_h );
 
+		// In signatures, the company's fixed address (Sam, 8 November 2026), so a
+		// new logo in Branding shows in signatures already pasted. Width only: a new
+		// logo of another shape keeps its own.
+		$co = class_exists( 'SB_EmailSig_Company' ) ? (int) SB_EmailSig_Company::current() : 0;
+
+		if ( ! empty( $d['fixed_logos'] ) && $co && ! empty( self::$tpl['id'] ) && class_exists( 'SB_EmailSig_Logo' ) ) {
+			$img = '<img src="' . esc_url( SB_EmailSig_Logo::fixed_url( $co, $small, self::$tpl['id'] ) ) . '" width="' . (int) $w . '" alt="' . esc_attr( $logo['alt'] ?: $d['company'] ) . '" style="' . self::img_display( $align ) . 'width:' . (int) $w . 'px;height:auto;border:0;outline:none;" />';
+
+			return self::a( $d['logo_link'] ?? '', $img );
+		}
+
 		$img = '<img src="' . esc_url( SB_EmailSig_Data::src( $logo, $w ) ) . '" width="' . (int) $w . '"' . ( $h ? ' height="' . (int) $h . '"' : '' ) . ' alt="' . esc_attr( $logo['alt'] ?: $d['company'] ) . '" style="' . self::img_display( $align ) . 'width:' . (int) $w . 'px;height:' . ( $h ? (int) $h . 'px' : 'auto' ) . ';' . ( $max_h ? 'max-height:' . $max_h . 'px;' : '' ) . 'border:0;outline:none;" />';
 
 		return self::a( $d['logo_link'] ?? '', $img );

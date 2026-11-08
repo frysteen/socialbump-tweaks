@@ -56,6 +56,10 @@ class SB_EmailSig_Render {
 			}
 		}
 
+		// Logos the same way (Sam, 8 November 2026): SB_EmailSig_Logo::fixed_url() in
+		// signatures, the Media Library file in previews.
+		$d['fixed_logos'] = $values === null && empty( $d['preview'] );
+
 		ob_start();
 		include $tpl['file'];
 		$html = (string) ob_get_clean();

@@ -1142,7 +1142,7 @@ class SB_EmailSig_Fields {
 						'name'          => 'sb_emailsig_campaign_show',
 						'type'          => 'true_false',
 						'ui'            => 1,
-						'default_value' => 0,
+						'default_value' => 1, // On for new companies (Sam, 8 November 2026), so the see-through strip is in every signature ready for a campaign. Saved companies keep theirs.
 						'instructions'  => 'A banner above any others that you can change here any time, even in signatures already in use.',
 						'wrapper'       => array( 'width' => '50' ),
 					),

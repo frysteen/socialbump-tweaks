@@ -2820,3 +2820,35 @@ Sam, 7 November 2026, asked for by a client.
   styles.php items 'tagline': 12px, 400, normal, no case change, blank colour
   Brand Text Light). Saved templates take these until changed.
 - Not a Text widget merge tag yet (offered, not asked for).
+
+### Logos at fixed addresses (8 November 2026)
+
+Sam, 8 November 2026.
+
+- In signatures (Render::html_from_data() with saved styles and not a
+  preview sets $d['fixed_logos']), the logo and small logo go by the
+  company's fixed address, SB_EmailSig_Logo::fixed_url():
+  /?sblogo={company}-{m or s}-{template id}-{check}, signed with
+  SB_EmailSig_Tracking::sign(). Previews keep the Media Library file. The img
+  has a width and height:auto (no height attribute or max-height), so a new
+  logo of another shape keeps its own.
+- SB_EmailSig_Logo::maybe_serve() (template_redirect, 0) sends the logo as
+  the company has it now, at the file a signature drawn now would use
+  (Data::src() for the template's width), with no-cache and an ETag. None
+  set: a see-through PNG one pixel high (Campaign::spacer()). Company
+  switched off or gone: 404, like the photo and the Campaign Banner (Sam: no
+  logos or images while a company is off).
+- Only when a logo is set: with none, the template leaves it out, so adding
+  one later needs the signature copied again (Sam's call; a placeholder would
+  leave its spacing behind). The same holds for photos. Signatures pasted
+  before this change keep their Media Library addresses until copied again.
+- The Campaign Banner switch (field_sb_emailsig_campaign_show) is on by
+  default for new companies, so the strip is in signatures ready for a
+  campaign. The hub's two companies had it saved off, so they're unchanged.
+- Checked on the hub: SocialBUMP's logo and small logo come from their fixed
+  addresses (the same file the direct address gave, 400 by 89; a repeat with
+  its ETag gets 304); The Cosmetic Studio, with no logo, gets the 180 by 1
+  see-through strip; a wrong check is 404. SocialBUMP switched off for a
+  moment: logo, photo and its Campaign Banner all 404, then back to normal.
+  Signatures have the fixed logo address with a width and no height;
+  previews keep the Media Library file. Not yet checked in Mail apps.
