@@ -1388,7 +1388,7 @@ assets/vendor/sortable, MIT).
   stays unmarked, nothing to save).
 - Blocks: Photo, Name and job title (name, qualifications and job title,
   stacked or on one row with a separator, and the spacing between them:
-  3px by default), Company name, Logo, Small logo,
+  3px by default), Company name, Company tagline, Logo, Small logo,
   Info List (as many as six), Save my contact details, Social icons (row
   or column, heading on or off, line up with the Info List's text past its
   icons), Divider (as many as six, each with its thickness). Every single block is in the layout
@@ -1590,7 +1590,7 @@ Spacing either side of a line (31 October 2026):
 
 Sam: a dark row with white text and icons, and any block's colours of its own, so anything can be built. Three layers, each blank to follow the one above: template (Edit styles), row, block.
 
-- Layout::COLOURS: a row's text, accent (labels, letters and separators) and icons; Name and job title (name, qualifications, job, accent), Company name (text), Info List (text, accent, icons), Save my contact details (text, icons), Social icons (heading, icons, icon background). Rows keep theirs as 'colours'; blocks as their 'colours' option. Theme and brand colours allowed, worked out in the company being drawn.
+- Layout::COLOURS: a row's text, accent (labels, letters and separators) and icons; Name and job title (name, qualifications, job, accent), Company name (text), Company tagline (text), Info List (text, accent, icons), Save my contact details (text, icons), Social icons (heading, icons, icon background). Rows keep theirs as 'colours'; blocks as their 'colours' option. Theme and brand colours allowed, worked out in the company being drawn.
 - Drawing: Layout::draw() puts a block's colours (else its row's) into the styles it draws with (colours_for(): the items' css colour, the lines colour for separators, the label colour), then puts them back. With none set nothing changes, so signatures stay as they were.
 - Icons in a colour of their own are PNGs like the rest: the Layout page draws a variant set for each colour a row or block uses (layout.js variantSpecs(), buildVariants()), sent with Save (in each company's set as 'variants') and kept by SB_EmailSig_Icons::save_variants() in the slot's 'variants', named by Layout::variant_key() (c or s, size, colour, background, radius). A key that misses (sizes or colours changed since, or never saved) shows the usual icon; a social row whose icon changed since (its svg's md5) does too. The preview draws them in the browser (swapVariants()). Re-save the Layout page after changing icon styles on Edit styles or a company's social rows to redraw them.
 
@@ -2118,6 +2118,196 @@ Gmail, and an old pasted signature picking up a new photo by itself.
 
 Ideas talked about and not built. Nothing here is promised.
 
+### Priority: everything from core (Sam, 4 November 2026)
+
+Ahead of everything else on this list. A brief any chat can pick up.
+
+**Goal**
+
+Every admin component and every admin style in SocialBUMP Tweaks comes from
+the core framework (SocialBUMP UI). Modules use core components as they are,
+and a module adds CSS only to change something specific to that module. A lot
+is in core already; the job is making sure all of it is, so nothing is built
+or styled twice.
+
+**Done means**
+
+- Every component on our admin pages is drawn by a core PHP helper (where its
+  markup repeats) or a documented core markup pattern, styled only in core
+  CSS, with any script in core JS.
+- Each has a normal look (plain white and grey) and, where it makes sense,
+  Success, Info, Warning and Danger variants, all working in light and dark.
+- Module CSS holds only overrides specific to that module, each with a comment
+  saying why.
+- Each core component is written up in docs/context.md (helper, classes,
+  variants).
+
+**Components in scope** (Sam's list; add anything else found on the way)
+
+Buttons, icon buttons, cards, the action menu, toggle switches, two-way and
+three-way buttons, colour selector dropdowns, custom icon dropdowns, toolbars
+and what goes on them, headings, modals, progress bars, tick boxes, Reset
+buttons, needs-update notices, toast notices.
+
+**Where things are now** (checked 4 November 2026)
+
+- Core PHP, includes/framework/: SB_Tweaks_UI (small_switch, small_switch_box,
+  divider, dropdown with dropdown_item, dropdown_head and dropdown_line, bar
+  for toolbars, heading, header, save_button, mode_switch, menu_tile),
+  SB_Tweaks_Cards (toggle_row, link_row, dot_row), SB_Tweaks_Fields,
+  SB_Tweaks_Colours, SB_Tweaks_Progress.
+- Core CSS, assets/css/: ui.css (about 69 KB; sections Tokens, Page, Banner,
+  Panels, Toolbar, Cards, Switches, Buttons, Fields, Tables, ACF fields,
+  Notices, Toasts, Popups, Character count, Text links, Tooltips), admin.css
+  (36 KB) and colour.css.
+- Colour tokens (ui.css, Tokens): --sbui-surface, -surface-2 and -surface-3,
+  --sbui-text, -text-2 and -text-3, --sbui-border, --sbui-green and -green-ink,
+  and --sbui-ok, -info, -warn and -danger, each with -soft and -line, for
+  light and dark.
+- Core JS, assets/js/: ui.js (toasts, tooltips, menus), confirm.js,
+  progress.js, save-state.js, colour.js, module-cards.js, framework.js,
+  acf-forms.js, sync.js.
+- Module CSS: modules/email-signatures/assets/admin.css is by far the biggest
+  (114 KB) and holds most of the drift (its own chips, card Reset buttons,
+  field rows, segmented buttons and more). Then images.css (28 KB), Site Kit's
+  scheme.css (12 KB) and site-kit.css (5 KB), and a few small ones.
+- Some module CSS is for site visitors, not our admin pages (the Bricks
+  carousel, gallery zoom, media grid). Ask Sam whether those are in scope.
+
+**Steps**
+
+1. Audit, changing nothing: a table of each component, every place it's built
+   or styled (file, helper or selector), the variants it has, and the
+   duplicates. Show Sam before building anything.
+2. Agree with Sam the core set, the variant names and anything to drop.
+3. Build or finish each component in core, one at a time, and document it.
+4. Move each module onto core, one at a time, deleting the module's copy and
+   keeping only real overrides. Email Signatures is the biggest, so do it in
+   pieces.
+5. After every step: check the pages it touches load on the hub, look at them
+   in light and dark, add a release note with sb_tweaks_log_change(), and
+   update the docs. Tell Sam what was and wasn't checked.
+
+**How to work**
+
+- Work on plugins.socialbump.com.au through the SocialBUMP MCP Hub
+  (novamira/execute-php). Edits are md5-guarded find and replace, with a tar
+  backup in uploads/sbx-backups first, php -l with rollback after, then
+  opcache_invalidate.
+- Never change, deactivate or delete the Novamira plugin.
+- Sam publishes releases himself.
+- Australian English, no em or en dashes, and no guessing: say what hasn't
+  been checked.
+
+### Signatures Manager role, and access control in core (Sam, 5 November 2026)
+
+Built on the hub 5 November 2026, waiting for Sam to test. Not tested yet
+logged in as a Signatures Manager.
+
+**How it's built**
+
+- Core: includes/framework/class-sb-tweaks-access.php (SB_Tweaks_Access),
+  loaded from socialbump-tweaks.php, which also removes every declared role on
+  deactivation. The file's header comment lists every declaration key.
+- Each module declares its roles in modules/<module>/access.php, returning an
+  array keyed by role slug: label, module, home, pages, actions, admin_caps,
+  types, edit_only, media and admin_only_fields. Core creates the role while
+  the module is on, and on module off turns its users into Subscribers and
+  removes it. A filter, sb_tweaks_access_roles, can add or change roles.
+- Email Signatures: modules/email-signatures/access.php declares
+  sb_signatures_manager. Its pages still check manage_options; core passes that
+  check only inside Email Signatures (its pages and sb_emailsig actions), so
+  nothing in the module had to change. edit_only reads
+  SB_EmailSig_Staff::types(). admin_only_fields holds
+  field_sb_emailsig_staff_type, hidden and never saved for the role.
+- The header logo needed no change: the main SB Tweaks page isn't on the
+  role's list, so it redirects to Email Signatures.
+- Site Kit's Block Admin Access (8 November 2026): Signatures Manager is in
+  its role list, unticked by default (allowed in). Ticking it didn't block
+  them, because Site Kit skipped anyone user_can( 'manage_options' ), which
+  core lends the role inside Email Signatures. Site Kit now reads the role's
+  saved capabilities instead (SB_Site_Kit_Admin_Access::manages_site()), so
+  ticking it sends them to the front end. Tested on the hub.
+
+The agreed spec follows.
+
+**Goal**
+
+A "Signatures Manager" user role, created when the Email Signatures module is on,
+so a client's staff member can look after signatures without being able to
+break the website. Access control and custom roles live in core, so later
+modules can declare a role of their own (a Bookings Manager, say) and get all
+of it for free.
+
+**What a Signatures Manager can do**
+
+- Side menu: Email Signatures, Media, and the company's connected Staff (or
+  Team) post type. Nothing else. No tick boxes for other post types or
+  features: other access means a different role.
+- Email Signatures: everything an admin can (people, companies, templates,
+  layouts, settings, import and export), except changing which staff post
+  type a company is connected to. That stays admin only. If testing finds
+  anything else to lock, Sam decides then.
+- Media: upload, and use any image in the library. Edit or delete only
+  images they uploaded themselves.
+- Staff (the post type connected to a company in Email Signatures): add,
+  edit, change photos, set to draft, everything except delete. Only when a
+  company has a connected staff post type; without one, no Staff menu.
+  Nearly every site with a Signatures Manager has one company, but if two
+  companies connect different post types, both show.
+- Profile: a stripped-back page with name, email and password only.
+
+**What they don't see**
+
+- No Dashboard: the login, index.php and the SocialBUMP header logo all go to
+  the first Email Signatures panel (the logo goes to the main SocialBUMP
+  Tweaks page only for users who can open it).
+- Header links to pages they can't open (version pill, Installs, Modules,
+  release notes, help) are hidden, not left to bounce. Check every header
+  link when building.
+- Top bar: the account menu and log out only. No bar on the front of the site.
+- Other plugins' admin notices hidden for the role.
+- Any admin page not on the role's allow list redirects to its home page.
+
+**How (core)**
+
+- Real permissions, not just hidden menus: Email Signatures pages move from
+  manage_options to the module's own capabilities, which admins also get.
+- Menus: an allow list (remove everything not on it), not a block list, so
+  other plugins' menus never leak in.
+- Staff post types often share permissions with blog Posts, so grant by post
+  type: a user_has_cap / map_meta_cap check that allows editing only when the
+  post is the connected type, and never delete. Its taxonomies come along.
+- Media: upload_files, plus a check so delete and edit only work on their own
+  attachments.
+- WooCommerce sends users without edit_posts to My Account; filter that for
+  the role.
+- Roles are saved in the database: create on module enable, not every load.
+
+**Switching off**
+
+- Module disabled, or plugin deactivated or uninstalled: every Signatures Manager
+  becomes a Subscriber, then the role is removed.
+- Gap: if the plugin files vanish without a deactivation (FTP, broken
+  update), nothing runs. Site Kit's backend block still keeps Subscribers and
+  unknown roles out while Site Kit is active.
+
+**Site Kit**
+
+- The role must appear in Site Kit's "block users from the backend" setting so
+  Sam can lock Signatures Managers out whenever he likes. Not checked yet whether
+  that list reads roles live or is fixed.
+- A newly created Signatures Manager role must start as allowed, or they're locked
+  out from day one.
+
+**Check before starting**
+
+- How a company is connected to a staff post type in Email Signatures today
+  (not checked when this was written).
+- Where every Email Signatures page and action checks permissions now.
+
+### Email Signatures
+
 - Export a company (Sam, 3 November 2026, on the to do list): its details, branding and template settings, with an option to take its people too, and an import to match. Not built. The old Export icon on company cards exported only its people, so it was removed.
 - Conditional logic for widgets (Sam, 1 November 2026, for after this
   release). Suggested order: a line whose merge tags all come out empty
@@ -2171,7 +2361,24 @@ Ideas talked about and not built. Nothing here is promised.
   now).
 - Live updating for company names and colours, the Templates and Companies
   pages, and Settings.
-- Moving people between companies by dragging: talked about and left out.
+- Moving people between companies by dragging, on the company cards: wanted
+  later (Sam, 3 November 2026; talked about and left out before that).
+- "Personal Additional Items" in the Fields not used box might become
+  "Personal Additional Fields", to match "Company Additional Field: <label>".
+  Asked 4 November 2026, not decided.
+
+### Core and the rest of the plugin
+
+Kept here too, so there's one list to check (Sam, 4 November 2026).
+
+- Core component variants and moving module CSS into core: now part of the
+  Priority job at the top of this list.
+- Merge the duplicate save code (raised 3 November 2026). Which code wasn't
+  written down, so find the duplicates before starting.
+- The Modules filter on the Installs page as the core dropdown
+  (SB_Tweaks_UI::dropdown()).
+- Beta releases watched with a progress bar like Publish (offered, not asked
+  for yet; Beta still shows the spinner).
 
 ## Changelog
 
@@ -2592,3 +2799,24 @@ Sam, 3 November 2026.
   still have their switch. person.js (the live file, md5 matched) tested in a
   browser with a stand-in server: on sends empty=1 and redraws at once, off
   redraws bare, typing keeps it off.
+
+### Company Tagline (7 November 2026)
+
+Sam, 7 November 2026, asked for by a client.
+
+- One per company: Company Tagline (field_sb_emailsig_company_tagline, meta
+  sb_emailsig_company_tagline), a text field on the company's Company tab,
+  full width after Google Maps Link. Data::get() gives it as $d['tagline'];
+  placeholders() as {Company Tagline}.
+- Its own widget, Company tagline (Layout::blocks() 'tagline'), not part of
+  the Company name. Layout::tagline() draws it: a div in the tagline's style,
+  not linked, in its style's case. None: nothing in a signature, and
+  {company tagline here} in previews with Show empty placeholders on. Its own
+  text colour like the Company name (Layout::COLOURS['tagline']).
+- Existing layouts get it in the holding area (Not shown), so no signature
+  changes until it's dragged into a column. The Fields not used box calls it
+  Company Tagline.
+- Its own style on the Edit styles page's Text card, Company tagline (classic
+  styles.php items 'tagline': 12px, 400, normal, no case change, blank colour
+  Brand Text Light). Saved templates take these until changed.
+- Not a Text widget merge tag yet (offered, not asked for).

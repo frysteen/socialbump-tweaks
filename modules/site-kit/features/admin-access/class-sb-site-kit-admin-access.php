@@ -25,13 +25,36 @@ class SB_Site_Kit_Admin_Access {
 
 		$user = wp_get_current_user();
 
-		if ( ! $user || user_can( $user, 'manage_options' ) ) {
+		if ( ! $user || self::manages_site( $user ) ) {
 			return false;
 		}
 
 		$roles = (array) SB_Site_Kit::setting( 'admin-access', 'roles' );
 
 		return $roles && array_intersect( $roles, (array) $user->roles );
+	}
+
+	/**
+	 * Can this user manage the site in their own right? Read from their roles'
+	 * saved capabilities and any given to them directly, not user_can(): a
+	 * limited role such as Signatures Manager is lent manage_options inside its
+	 * module (SB_Tweaks_Access) and must still be blockable here (Sam, 8
+	 * November 2026). Administrators stay unblockable.
+	 */
+	private static function manages_site( $user ) {
+		if ( is_super_admin( $user->ID ) || ! empty( $user->caps['manage_options'] ) ) {
+			return true;
+		}
+
+		foreach ( (array) $user->roles as $slug ) {
+			$role = get_role( $slug );
+
+			if ( $role && ! empty( $role->capabilities['manage_options'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public static function guard() {

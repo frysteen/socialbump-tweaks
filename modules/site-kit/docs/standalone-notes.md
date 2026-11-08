@@ -739,6 +739,12 @@ end if they try to open wp-admin, to a URL you choose. AJAX requests are let
 through, or half the front end would break for those users. Administrators are
 never affected, deliberately and without an option to change it.
 Settings: roles, and redirect.
+Who counts as an administrator (manages_site(), Sam, 8 November 2026): a
+role whose saved capabilities include manage_options, or a user given it
+directly, or a super admin. Not user_can(): SB Tweaks core lends limited roles
+such as Signatures Manager manage_options inside their module, and they must
+still be blockable. Tested on the hub: ticked, a Signatures Manager is sent to
+the front end from Email Signatures and their profile; an administrator isn't.
 
 **Fix ACF CPT SVG Icons.** A post type created in ACF with an SVG menu icon gets
 an icon that ignores the admin menu colours: wrong size, and it does not change

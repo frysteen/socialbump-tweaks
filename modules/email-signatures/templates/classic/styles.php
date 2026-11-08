@@ -63,6 +63,8 @@ return [
 		'qualifications' => [ 'label' => 'Qualifications', 'size' => 12, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '', 'fallback' => 'text_light' ],
 		'job_title'  => [ 'label' => 'Job title', 'size' => 14, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '' ],
 		'company'    => [ 'label' => 'Company', 'size' => 14, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '' ],
+		// The Company tagline widget's (Sam, 7 November 2026); blank colour is Brand Text Light.
+		'tagline'    => [ 'label' => 'Company tagline', 'size' => 12, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '', 'fallback' => 'text_light' ],
 		'contact'    => [ 'label' => 'Contact details', 'size' => 14, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '' ],
 		// Styled on the Social icons card, not the Text card ('card').
 		'social_heading' => [ 'label' => 'Heading', 'size' => 14, 'weight' => '400', 'style' => 'normal', 'case' => 'none', 'colour' => '', 'card' => 'social' ],

@@ -323,6 +323,7 @@ class SB_EmailSig_Data {
 			'photo'         => null, // Made for the template by SB_EmailSig_Render.
 
 			'company'       => trim( (string) get_field( 'sb_emailsig_company_name', $o ) ),
+			'tagline'       => trim( (string) get_field( 'sb_emailsig_company_tagline', $o ) ), // Its own widget (Sam, 7 November 2026).
 			'phone'         => $phone,
 			'phone_link'    => self::tel( $phone ),
 			'website'       => $website, // As typed, for the vCard. Link with website_link.
@@ -792,6 +793,7 @@ class SB_EmailSig_Data {
 			'mobile_link'   => '',
 			'photo'         => null,
 			'company'       => '{Company}',
+			'tagline'       => '{Company Tagline}',
 			'phone'         => '{Phone}',
 			'phone_link'    => '',
 			'website'       => '{Website}',

@@ -146,6 +146,7 @@ class SB_EmailSig_Layout {
 			'accent'         => '',
 		],
 		'company' => [ 'text' => '' ],
+		'tagline' => [ 'text' => '' ], // The Company tagline (Sam, 7 November 2026).
 		'info'    => [
 			'text'   => '',
 			'accent' => '',
@@ -238,6 +239,7 @@ class SB_EmailSig_Layout {
 			'photo'      => 'Photo',
 			'name'       => 'Name and job title',
 			'company'    => 'Company name',
+			'tagline'    => 'Company tagline', // Its own widget, not part of the Company name (Sam, 7 November 2026).
 			'logo'       => 'Logo',
 			'logo_small' => 'Small logo',
 			'info'       => 'Info List',
@@ -297,7 +299,7 @@ class SB_EmailSig_Layout {
 		$on     = [];
 		$out    = [];
 		// Named here by whose they are; the Layout page keeps blocks()' names (Sam, 3 November 2026).
-		$names  = [ 'photo' => 'Person Photo', 'logo' => 'Company Logo', 'logo_small' => 'Company Small Logo' ];
+		$names  = [ 'photo' => 'Person Photo', 'logo' => 'Company Logo', 'logo_small' => 'Company Small Logo', 'tagline' => 'Company Tagline' ];
 
 		foreach ( self::all_columns( $layout ) as $col ) {
 			foreach ( (array) ( $col['blocks'] ?? [] ) as $b ) {
@@ -410,6 +412,8 @@ class SB_EmailSig_Layout {
 				];
 			case 'company':
 				return [ 'colours' => self::COLOURS['company'] ];
+			case 'tagline':
+				return [ 'colours' => self::COLOURS['tagline'] ];
 			case 'vcard':
 				return [ 'colours' => self::COLOURS['vcard'] ];
 			case 'company_info':
@@ -1610,6 +1614,9 @@ class SB_EmailSig_Layout {
 			case 'company':
 				self::text_colour( 'company', $pick( 'text', 'text' ) );
 				break;
+			case 'tagline':
+				self::text_colour( 'tagline', $pick( 'text', 'text' ) );
+				break;
 			case 'info':
 			case 'company_info':
 			case 'person_info':
@@ -1657,6 +1664,8 @@ class SB_EmailSig_Layout {
 				return self::name( $b );
 			case 'company':
 				return self::company();
+			case 'tagline':
+				return self::tagline();
 			case 'logo':
 				return self::logo( false, $b['align'] );
 			case 'logo_small':
@@ -2022,6 +2031,23 @@ class SB_EmailSig_Layout {
 		$text = esc_html( self::cased( 'company', $d['company'] ) );
 
 		return '<div style="white-space:nowrap;' . esc_attr( $css ) . '">' . self::a( $d['company_link'] ?? '', $text, self::LINK . $css ) . '</div>';
+	}
+
+	/**
+	 * The company's tagline (Sam, 7 November 2026): a widget of its own, with
+	 * its own style on the Edit styles page. Not linked. None: nothing, or a
+	 * stand-in in previews.
+	 */
+	private static function tagline() {
+		$tagline = (string) ( self::$d['tagline'] ?? '' );
+
+		if ( $tagline === '' ) {
+			return self::ph( 'company tagline' );
+		}
+
+		$css = self::$s['css']['tagline'] ?? '';
+
+		return '<div style="' . esc_attr( $css ) . '">' . esc_html( self::cased( 'tagline', $tagline ) ) . '</div>';
 	}
 
 	/** The company logo, or the small logo, at the template's sizes for it. */

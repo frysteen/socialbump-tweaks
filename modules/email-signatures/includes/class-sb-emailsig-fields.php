@@ -767,6 +767,15 @@ class SB_EmailSig_Fields {
 						'instructions' => 'Optional. Leave blank to link to a Google Maps search of the address.',
 						'wrapper'      => array( 'width' => '50' ),
 					),
+					// The company's tagline (Sam, 7 November 2026): its own widget on the Layout page, not part of the Company Name.
+					array(
+						'key'          => 'field_sb_emailsig_company_tagline',
+						'label'        => 'Company Tagline',
+						'name'         => 'sb_emailsig_company_tagline',
+						'type'         => 'text',
+						'instructions' => 'Shown where the template\'s layout has the Company tagline widget.',
+						'wrapper'      => array( 'width' => '100' ),
+					),
 					self::sub_heading( 'field_sb_emailsig_head_templates', 'Template Settings' ),
 					// The company's Default Template and its set (company meta, SB_EmailSig_Templates).
 					array(

@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.7
+Stable tag: 0.6.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,11 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.8 =
+* New Signatures Manager user role (Email Signatures): manages signatures, companies and templates, uses Media and edits the connected staff pages, but sees nothing else in WordPress. Built on a new core system for module user roles; switching a module off turns its users into Subscribers.
+* Company Tagline (Email Signatures): a new tagline field for each company, its own Company tagline widget on the Layout page, and its own style on the Edit styles page. Existing layouts keep it in Not shown until it is dragged in.
+* Site Kit, Block Admin Access: ticking a limited role such as Signatures Manager now really blocks it. Before, the role counted as an administrator inside its own module and was let through. Administrators are still never blocked.
 
 = 0.6.7 =
 * Email Signatures: a new Sign-Off Settings card on the Layout page, with its own Reset. It has Sign-off Gap, the space under the sign-off (Double, 16px, by default; it was a fixed 20px), and Hide Sign-off, which greys the gap out while ticked. Container Settings keeps padding, background and border.

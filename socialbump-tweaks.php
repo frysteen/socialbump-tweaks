@@ -3,7 +3,7 @@
  * Plugin Name: SocialBUMP Tweaks
  * Plugin URI:  https://socialbump.com.au
  * Description: SocialBUMP site tweaks in switchable modules. Turn on only the parts a site needs.
- * Version:     0.6.7
+ * Version:     0.6.8
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author:      SocialBUMP
@@ -37,7 +37,7 @@ if ( PHP_VERSION_ID < 80000 ) {
 // Tells the SocialBUMP hub this site has the plugin, its version and whether it is active.
 require_once __DIR__ . '/includes/class-socialbump-reporter.php';
 
-define( 'SB_TWEAKS_VERSION', '0.6.7' );
+define( 'SB_TWEAKS_VERSION', '0.6.8' );
 define( 'SB_TWEAKS_FILE', __FILE__ );
 define( 'SB_TWEAKS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SB_TWEAKS_URL', plugin_dir_url( __FILE__ ) );
@@ -45,6 +45,10 @@ define( 'SB_TWEAKS_OPTION', 'sb_tweaks_modules' );
 define( 'SB_TWEAKS_SLUG', 'socialbump-tweaks' );
 define( 'SB_TWEAKS_GITHUB_REPO', 'frysteen/socialbump-tweaks' );
 define( 'SB_TWEAKS_HUB_HOST', 'plugins.socialbump.com.au' );
+
+// Limited roles for modules (Signatures Manager first).
+require_once SB_TWEAKS_PATH . 'includes/framework/class-sb-tweaks-access.php';
+register_deactivation_hook( __FILE__, array( 'SB_Tweaks_Access', 'remove_all' ) );
 
 /**
  * Updates come from GitHub Releases. A release only counts as an update
