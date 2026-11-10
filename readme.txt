@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.11
+Stable tag: 0.6.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,13 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.12 =
+* Image Management: on servers whose ImageMagick claims AVIF but can't write it, AVIF images are now made with GD (other formats stay with ImageMagick), and SB Image Cleaner says so. If neither can write AVIF, it says to convert AVIF uploads to JPG or WebP.
+* Image Management: Build, Rebuild and Regenerate sizes never keep or record a broken size file, and never replace a working file with a broken one. Sizes that fail are listed with why, e.g. "3 sizes failed on photo.avif: the image editor wrote empty files", instead of "0 sizes built".
+* Image Management: a working copy left behind by a build that was cut off (time limit or crash) is cleared after an hour, and never shows up as an orphan or leftover in SB Image Cleaner.
+* Image Management: when Rebuild or Regenerate sizes replaces a size, the WebP and AVIF copies an optimiser such as WPvivid made of it are remade from the new file, so visitors no longer get the old picture.
+* Image Management: an empty (0 byte) size file now counts as missing, so Build remakes it instead of skipping it.
 
 = 0.6.11 =
 * Image Management, Gutenberg image zoom: images in gallery blocks with no Lightbox ID now join the page's shared lightbox with every other image that has no ID, instead of paging through on their own. Give a gallery a Lightbox ID of its own to keep it apart.

@@ -255,6 +255,13 @@ class SB_Images_Orphans {
 			return true;
 		}
 
+		// A working copy of a build in progress (SB_Images_Rebuild::make_sizes()):
+		// never listed or deleted from here; one left behind is cleared after an
+		// hour (clear_stale_work(), Sam, 10 November 2026).
+		if ( class_exists( 'SB_Images_Rebuild' ) && SB_Images_Rebuild::is_work_file( $name ) ) {
+			return true;
+		}
+
 		$keep = (array) apply_filters(
 			'sb_images/orphans/keep',
 			[ 'index.php', 'index.html', 'web.config', 'error_log', 'debug.log' ]

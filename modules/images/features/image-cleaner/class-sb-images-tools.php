@@ -518,6 +518,8 @@ class SB_Images_Tools {
 		$built   = 0;
 		$removed = 0;
 		$files   = 0;
+		$failed  = 0;
+		$fails   = [];
 
 		$mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'build';
 
@@ -543,21 +545,28 @@ class SB_Images_Tools {
 				continue;
 			}
 
+			// Sizes the image editor got wrong are named, with why (Sam, 10 November 2026).
 			if ( $force ) {
-				$made   = SB_Images_Rebuild::rebuild( $id, $chosen );
+				$made    = SB_Images_Rebuild::rebuild( $id, $chosen );
+				$broke   = SB_Images_Rebuild::failed( $id );
+				$built  += count( $made );
+				$items[] = self::log_item( $id, $made, array_diff( $chosen, $made, array_keys( $broke ) ), $broke );
+			} else {
+				$made   = SB_Images_Rebuild::build( $id, true, $chosen );
+				$broke  = SB_Images_Rebuild::failed( $id );
 				$built += count( $made );
-				$items[] = self::log_item( $id, $made, array_diff( $chosen, $made ) );
 
-				continue;
+				// Only images something was done to, or tried and failed. A plain
+				// build passes over most of the library, and listing every one of
+				// those said nothing.
+				if ( $made || $broke ) {
+					$items[] = self::log_item( $id, $made, [], $broke );
+				}
 			}
 
-			$made   = SB_Images_Rebuild::build( $id, true, $chosen );
-			$built += count( $made );
-
-			// Only images something was done to. A plain build passes over most of the
-			// library, and listing every one of those said nothing.
-			if ( $made ) {
-				$items[] = self::log_item( $id, $made, [] );
+			if ( $broke ) {
+				$failed += count( $broke );
+				$fails[] = SB_Images_Rebuild::failure_line( $id );
 			}
 		}
 
@@ -576,6 +585,8 @@ class SB_Images_Tools {
 				'total'     => count( $run ),
 				'offset'    => $offset + count( $ids ),
 				'built'     => $built,
+				'failed'    => $failed,
+				'failures'  => $fails,
 				'removed'   => $removed,
 				'files'     => $files,
 				'done'      => count( $ids ) < $size,
@@ -757,7 +768,7 @@ class SB_Images_Tools {
 	 * a failure, so the reason is named instead and the dimensions are there to
 	 * make it obvious.
 	 */
-	public static function log_item( $id, array $made, array $skipped ) {
+	public static function log_item( $id, array $made, array $skipped, array $failed = [] ) {
 		$meta   = (array) wp_get_attachment_metadata( $id );
 		$sizes  = SB_Images_Rebuild::all_wanted();
 		$width  = isset( $meta['width'] ) ? (int) $meta['width'] : 0;
@@ -783,6 +794,16 @@ class SB_Images_Tools {
 				'made'  => false,
 				'why'   => __( 'skipped', 'sb-tweaks' ) . ', ' . self::skip_reason( $width, $height, $sizes[ $name ] ),
 				'width' => (int) $sizes[ $name ]['width'],
+			];
+		}
+
+		foreach ( $failed as $name => $why ) {
+			$rows[] = [
+				'name'   => $name,
+				'made'   => false,
+				'failed' => true,
+				'why'    => __( 'failed', 'sb-tweaks' ) . ', ' . $why,
+				'width'  => isset( $sizes[ $name ] ) ? (int) $sizes[ $name ]['width'] : 0,
 			];
 		}
 
@@ -1067,7 +1088,7 @@ class SB_Images_Tools {
 		$made = SB_Images_Rebuild::build( $id, true, $asked ? $asked : $chosen );
 		$left = SB_Images_Rebuild::missing_all( $id, null, $chosen );
 
-		wp_send_json_success( [ 'made' => array_values( $made ), 'left' => array_values( $left ) ] );
+		wp_send_json_success( [ 'made' => array_values( $made ), 'left' => array_values( $left ), 'failed' => SB_Images_Rebuild::failure_line( $id ) ] );
 	}
 
 	public static function ajax_single() {
@@ -1081,7 +1102,7 @@ class SB_Images_Tools {
 
 		SB_Images_Rebuild::process( $id, ! empty( $_POST['force'] ) );
 
-		wp_send_json_success( [ 'html' => self::sizes_list( $id ) ] );
+		wp_send_json_success( [ 'html' => self::sizes_list( $id ), 'failed' => SB_Images_Rebuild::failure_line( $id ) ] );
 	}
 
 	/** Our sizes for one image, marking any that are absent. */

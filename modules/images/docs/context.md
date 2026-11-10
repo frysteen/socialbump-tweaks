@@ -554,3 +554,148 @@ Sam, 10 November 2026, like Bricks' Lightbox ID.
   intended, and so do galleries with no ID, which used to page through on
   their own. Pages in a page cache keep the old
   markup until the cache is cleared.
+
+## AVIF, and Build never keeping a bad file (November 2026)
+
+Found on simplystyleco.com.au, 10 November 2026: attachment 9711
+(frosted-gold-table-numbers.avif, 1588 x 1588) never built its image-* or
+gform sizes, and every Build said "0 sizes built". Its server's ImageMagick
+(7.1.2-35, through imagick) reports AVIF but can't encode it: a write throws
+"Encoder plugin generated an error: Unsupported parameter: AOM encoder error:
+Unspecified internal error - Invalid control ID (8.2005)". WordPress picks
+WP_Image_Editor_Imagick first, so multi_resize() left 0-byte files and
+recorded nothing, and it wrote empty files over the image's working -300x300
+and -600x600 (medium, woocommerce_thumbnail, woocommerce_single), blanking the
+product's pictures. GD's imageavif() on the same server writes AVIF fine. The
+hub has the same ImageMagick and the same fault, so both fixes were tested
+there for real.
+
+### Fix 1: GD for AVIF, only when Imagick can't write it
+
+- SB_Images_Avif (features/images/class-sb-images-avif.php), booted from
+  SB_Images::boot(). status() test-writes a 16 x 16 AVIF with Imagick (only
+  when Imagick claims AVIF) and with GD (imageavif()), in the temp folder,
+  deleted after, and keeps the answer in the option sb_images_avif, keyed on
+  Imagick::getVersion()'s versionString and the PHP version (GD comes with
+  PHP), so it tests again only when either changes. status( true ) tests again
+  now.
+- When Imagick fails and GD works (use_gd()), the wp_image_editors filter
+  swaps WP_Image_Editor_Imagick for SB_Images_Imagick_No_Avif
+  (class-sb-images-imagick-no-avif.php, required inside the filter, once
+  WordPress has loaded the class it extends), whose supports_mime_type() says
+  no to image/avif. WordPress then picks GD for AVIF and Imagick for
+  everything else.
+- When neither can (none()), the editors are left alone.
+- SB Image Cleaner shows label() above the grid: an info notice "AVIF: GD
+  (Imagick's AVIF encoder is broken on this server, ...)", or a warning "This
+  server can't write AVIF images, so AVIF uploads won't get their sizes.
+  Convert them to JPG or WebP." Nothing shows when Imagick writes AVIF, or
+  doesn't claim it and GD does (WordPress's own choice anyway).
+
+### Fix 2: Build never keeps or records a bad file, and never destroys a good one
+
+- SB_Images_Rebuild::make_sizes() copies the attached file to a name of its
+  own beside it (sb-images-work-<random>.<ext>) and resizes that, so nothing
+  the editor writes can land on a file the image already has. Each file it
+  makes is checked by bad_file(): there, over 0 bytes, and a readable image
+  (wp_getimagesize(), which reads AVIF on older PHP too) at the dimensions the
+  editor reported. A bad one is left out and the size noted as failed, with
+  why. A good one is moved to the base name the set uses, except that Build
+  keeps a good file already there; rebuild() (forced) replaces it, but only
+  with a good one. The copy and anything left under its name are deleted at
+  the end. A size the editor didn't return is a failure unless the original
+  is too small to need it (image_resize_dimensions()).
+- Failures: SB_Images_Rebuild::failed( $id ) (name => why) and
+  failure_line( $id ), e.g. "3 sizes failed on frosted-gold-table-numbers.avif:
+  the image editor wrote empty files". Reasons: empty files, files that are
+  not readable images, files at the wrong size, didn't make it, the editor's
+  own error, the original couldn't be copied, the new file couldn't be put in
+  place.
+- Build (ajax_batch) sends failed and failures; images.js counts them, the
+  summary reads "Finished. 0 sizes built, 3 sizes failed, 0 files removed."
+  with each image's line under it, and the log lists each failed size with
+  "failed, <why>" (log_item()'s fourth argument). A plain build now logs an
+  image that failed even when nothing was made.
+- The missing images list's Rebuild (ajax_fix) and the media library's
+  Regenerate sizes (ajax_single) return failed and show it under the button.
+- process( $id, true ) (Regenerate sizes) no longer deletes the image's own
+  sizes before remaking them: it calls rebuild(), so a failed encode leaves
+  them as they were. rebuild() clears a size's old file when the new one came
+  out under another name, unless something else still uses it.
+- multi_resize() drops the editor's error, but Imagick's broken AVIF encoder
+  leaves its 0-byte file behind under the working copy's name, so a size
+  missing from the results is judged by that file: empty, unreadable or wrong
+  size, else "did not make it".
+
+### Checked on the hub (10 November 2026)
+
+The hub's ImageMagick is 7.1.2-35 with the same broken encoder. status():
+Imagick false, GD true; WordPress then chose WP_Image_Editor_GD for AVIF and
+SB_Images_Imagick_No_Avif for JPEG and WebP. A 1600 x 1600 test AVIF uploaded
+with every size good. With the swap taken off (Imagick forced): Build of two
+missing sizes made none, reported "2 sizes failed on ...avif: the image
+editor wrote empty files", recorded nothing, and left no empty or working
+files; forced Rebuild and Regenerate sizes left every existing file
+byte-for-byte as it was. Through the AJAX handlers: Build's batch returned
+failed 2 with that line and log rows "failed, the image editor wrote empty
+files"; ajax_fix and ajax_single returned their lines. With the swap on,
+Build made both and a forced Rebuild remade all seven, all good. SB Image
+Cleaner shows the GD notice. The test image was deleted after. Not checked in
+a browser: the summary popup and the messages under the buttons.
+
+### Leftover working copies
+
+- A request that dies part way (time limit, memory, a crash) can leave an
+  sb-images-work-<random>.<ext> copy beside the original. clear_stale_work()
+  runs once per request at the start of make_sizes() and deletes any in the
+  image's folder over an hour old, so a build running at the same time keeps
+  its own. is_work_file() names them, and SB_Images_Orphans::is_protected()
+  says yes to them, so neither scan lists one as an orphan or a leftover.
+- Checked on the hub: two copies dated two hours back were deleted, a fresh
+  one was kept, and neither scan listed any of them.
+
+### Optimiser copies remade when a size is replaced
+
+- WPvivid (Sam's usual WebP plugin), EWWW and the like write
+  photo-480x320.jpg.webp beside each size, and the server hands that to any
+  browser that takes WebP: on simplystyleco.com.au asking for a .jpg returns
+  image/webp. A forced Rebuild replaced the JPG and left the copy, so most
+  visitors kept seeing the old picture.
+- make_sizes() now calls refresh_copies() whenever it moves a new file over
+  one that was there (a forced rebuild, or Build replacing a bad file). Each
+  copy from copies() that exists (.jpg.webp, .jpg.avif, and the swapped
+  .webp or .avif when no attachment owns that name) is made again from the
+  new file with the image editor, checked with bad_file(), then moved over the
+  old one. Copies are remade, not deleted: deleting could leave the optimiser
+  sure it was done, or a rewrite rule pointing at nothing. If a copy can't be
+  made or doesn't check out, the old one stays. Build of a size that didn't
+  exist touches nothing.
+- Sizes Build adds still get no WebP until the optimiser runs again (run
+  WPvivid's bulk optimise after a big Build). Making them is for when the
+  module becomes the optimiser.
+
+### Empty size files count as missing
+
+- present() now skips a size whose file is 0 bytes, so missing(),
+  missing_all() and the Cleaner's lists see it as missing and Build remakes
+  it (make_sizes() replaces a bad file even on a plain Build). Before this, an
+  empty file left by the broken AVIF encoder was counted as there, and only a
+  forced Rebuild fixed it.
+- simplystyleco.com.au, read-only scan of 72,704 upload files on 10 November
+  2026: 7 empty image files, all attachment 9711's AVIF sizes
+  (frosted-gold-table-numbers-300x300 to -1330x1330). No work copies.
+
+### Checked on the hub (10 November 2026)
+
+- A 1600 x 1200 blue JPEG, with red .jpg.webp and .jpg.avif copies beside two
+  sizes and a red swapped .webp beside the thumbnail. Rebuild of medium
+  remade its two copies in blue at 300 x 225; large's red copies were left
+  alone. Rebuild of thumbnail remade the swapped copy.
+- large's JPG emptied: missing_all() listed it, Build made it (1024 x 768,
+  good) and remade its copies; a second Build changed nothing. A plain Build
+  of a deleted size left every other copy as it was. No failures, no work
+  files left. The test image was deleted after.
+- Not checked: WooCommerce's own on-the-fly regeneration (no WooCommerce on
+  the hub). On a server where neither Imagick nor GD can write AVIF, it could
+  still write empty AVIF files; SB Image Cleaner already warns on such a
+  server.

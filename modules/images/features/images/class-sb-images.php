@@ -73,10 +73,12 @@ class SB_Images {
 		add_action( 'admin_post_sb_images_save', [ __CLASS__, 'save' ] );
 		require_once __DIR__ . '/class-sb-images-rebuild.php';
 		require_once __DIR__ . '/class-sb-images-zoom.php';
+		require_once __DIR__ . '/class-sb-images-avif.php';
 		require_once __DIR__ . '/class-sb-images-media-grid.php';
 		require_once __DIR__ . '/class-sb-images-media-search.php';
 
 		SB_Images_Zoom::boot();
+		SB_Images_Avif::boot();
 		SB_Images_Media_Grid::boot();
 		SB_Images_Media_Search::boot();
 	}

@@ -171,7 +171,7 @@
 			var $progress = $( '#sb-images-progress' );
 			var $barWrap  = $( '#sb-images-rebuild-bar' );
 			var $bar    = $barWrap.find( 'span' );
-			var totals  = { built: 0, removed: 0, files: 0 };
+			var totals  = { built: 0, removed: 0, files: 0, failed: 0, failures: [] };
 			var lastMissing = 0;
 			var lastOrphans = 0;
 			var nonce   = $rebuild.data( 'nonce' );
@@ -463,6 +463,21 @@
 			 * Escape and a click outside close it too. extra, when given, goes in
 			 * the report under that line: the files a delete left alone.
 			 */
+			/** Build's failures, one line an image, under the summary (Sam, 10 November 2026). */
+			function failList( lines ) {
+				if ( ! lines || ! lines.length ) {
+					return '';
+				}
+
+				var $list = $( '<ul class="sb-images-summary__fails"></ul>' );
+
+				lines.forEach( function ( line ) {
+					$list.append( $( '<li></li>' ).text( line ) );
+				} );
+
+				return $list;
+			}
+
 			function finished( text, extra ) {
 				var parts   = /^(Finished|Stopped)\.\s*(.*)$/.exec( text );
 				var seconds = elapsed();
@@ -518,6 +533,8 @@
 
 					totals.built += data.built;
 					totals.files += data.files;
+					totals.failed += data.failed || 0;
+					totals.failures = totals.failures.concat( data.failures || [] );
 
 					// The server knows how many the run really covers; a plain build
 					// skips the images that need nothing.
@@ -549,7 +566,7 @@
 									return '<li><span class="sb-images-tick">&#10003;</span>' + row.name + '</li>';
 								}
 
-								return '<li class="is-skipped"><span class="sb-images-tick sb-images-tick--skip">&#10005;</span>' + row.name + ' <em>' + row.why + '</em></li>';
+								return '<li class="is-skipped' + ( row.failed ? ' is-failed' : '' ) + '"><span class="sb-images-tick sb-images-tick--skip">&#10005;</span>' + row.name + ' <em>' + row.why + '</em></li>';
 							} ).join( '' );
 
 							var thumb = item.thumb ? '<img class="sb-images-log__thumb" src="' + item.thumb + '" alt="">' : '<span class="sb-images-log__thumb is-empty"></span>';
@@ -566,7 +583,7 @@
 					}
 
 					if ( data.done || done >= total || stopped ) {
-						finished( ( stopped && ! data.done && done < total ? 'Stopped. ' : 'Finished. ' ) + totals.built + ' sizes built, ' + totals.files + ' files removed.' );
+						finished( ( stopped && ! data.done && done < total ? 'Stopped. ' : 'Finished. ' ) + totals.built + ' sizes built, ' + ( totals.failed ? totals.failed + ( totals.failed === 1 ? ' size' : ' sizes' ) + ' failed, ' : '' ) + totals.files + ' files removed.', failList( totals.failures ) );
 
 						// A forced run is a deliberate act, so it does not stay armed.
 						if ( force ) {
@@ -605,7 +622,7 @@
 			}
 
 			function start( mode, force, sizes ) {
-				totals = { built: 0, removed: 0, files: 0 };
+				totals = { built: 0, removed: 0, files: 0, failed: 0, failures: [] };
 				newJob();
 
 				buttons( false );
@@ -901,6 +918,12 @@
 						$row.find( '.sb-images-fix' ).prop( 'disabled', false );
 
 						return;
+					}
+
+					$row.find( '.sb-images-fix-failed' ).remove();
+
+					if ( response.data.failed ) {
+						$row.append( $( '<p class="sb-images-fix-failed"></p>' ).text( response.data.failed ) );
 					}
 
 					var left = response.data.left || [];
@@ -1327,8 +1350,14 @@
 				id: $panel.data( 'id' ),
 				force: 1
 			} ).done( function ( response ) {
+				$panel.find( '.sb-images-fix-failed' ).remove();
+
 				if ( response && response.success ) {
 					$panel.find( '.sb-images-sizes' ).replaceWith( response.data.html );
+
+					if ( response.data.failed ) {
+						$button.after( $( '<p class="sb-images-fix-failed"></p>' ).text( response.data.failed ) );
+					}
 				}
 
 				$button.prop( 'disabled', false ).text( 'Regenerate sizes' );

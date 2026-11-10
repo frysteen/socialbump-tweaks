@@ -1451,3 +1451,21 @@ table.sb-images-report tr.sb-images-report__morerow td {
 .sb-images-report__pick--foot {
 	margin: 0;
 }
+
+/* Sizes the image editor got wrong (Sam, 10 November 2026). */
+.sb-images-fix-failed {
+	margin: 6px 0 0;
+	color: var(--sbui-danger, #d0331a);
+	font-size: 12.5px;
+}
+
+.sb-images-summary__fails {
+	margin: 8px 0 0 18px;
+	padding: 0;
+	list-style: disc;
+	color: var(--sbui-danger, #d0331a);
+}
+
+.sb-images-progress__log li.is-failed em {
+	color: var(--sbui-danger, #d0331a);
+}

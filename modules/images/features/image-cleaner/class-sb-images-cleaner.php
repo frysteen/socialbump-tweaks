@@ -384,6 +384,16 @@ class SB_Images_Cleaner {
 			) . ' <a href="' . esc_url( SB_Images_Module::page_url( 'settings' ) ) . '">' . esc_html__( 'SB Image Settings', 'sb-tweaks' ) . '</a></p></div>';
 		}
 
+		// AVIF (SB_Images_Avif, Sam, 10 November 2026): GD makes it when Imagick's
+		// encoder is broken, or nothing here can.
+		if ( class_exists( 'SB_Images_Avif' ) ) {
+			$avif = SB_Images_Avif::label();
+
+			if ( $avif !== '' ) {
+				echo '<div class="notice ' . ( SB_Images_Avif::none() ? 'notice-warning' : 'notice-info' ) . ' inline"><p>' . esc_html( $avif ) . '</p></div>';
+			}
+		}
+
 		// Notices go above the grid. Inside it a notice takes a grid cell and pushes
 		// the Sizes and Rebuild panels out of place.
 		echo '<div class="sb-images-cleaner">';

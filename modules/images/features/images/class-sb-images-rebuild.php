@@ -269,7 +269,9 @@ class SB_Images_Rebuild {
 		$folder = trailingslashit( dirname( $file ) );
 
 		foreach ( (array) ( $meta['sizes'] ?? [] ) as $name => $size ) {
-			if ( empty( $size['file'] ) || ! file_exists( self::size_path( $folder, $size['file'] ) ) ) {
+			// An empty file is as good as none: the broken AVIF encoder on
+			// simplystyleco.com.au blanked working sizes, and Build never saw them.
+			if ( empty( $size['file'] ) || ! file_exists( self::size_path( $folder, $size['file'] ) ) || (int) filesize( self::size_path( $folder, $size['file'] ) ) < 1 ) {
 				continue;
 			}
 
@@ -516,32 +518,33 @@ class SB_Images_Rebuild {
 			}
 		}
 
-		// When forcing, drop our own sizes so they are built again.
-		if ( $force ) {
-			foreach ( self::wanted() as $name ) {
-				if ( empty( $meta['sizes'][ $name ] ) ) {
-					continue;
-				}
-
-				if ( ! empty( $meta['sizes'][ $name ]['file'] ) ) {
-					self::delete_file( self::size_path( $dir, $meta['sizes'][ $name ]['file'] ) );
-				}
-
-				unset( $meta['sizes'][ $name ] );
-			}
-		}
-
-		if ( $result['removed'] || $force ) {
+		if ( $result['removed'] ) {
 			wp_update_attachment_metadata( $id, $meta );
 		}
 
-		$wanted_missing = self::missing( $id, $meta );
+		// When forcing, make our own sizes the image has again, through
+		// rebuild(): each new file only replaces the old one once it checks out,
+		// so a failed encode leaves what was there (Sam, 10 November 2026). They
+		// used to be deleted first, and a broken AVIF encoder then left nothing.
+		if ( $force ) {
+			$have = array_values(
+				array_filter(
+					self::wanted(),
+					function ( $name ) use ( $meta ) {
+						return ! empty( $meta['sizes'][ $name ] );
+					}
+				)
+			);
 
-		if ( ! $wanted_missing ) {
+			$result['built'] = self::rebuild( $id, $have );
+			$meta            = (array) wp_get_attachment_metadata( $id );
+		}
+
+		if ( ! self::missing( $id, $meta ) ) {
 			return $result;
 		}
 
-		$result['built'] = self::build( $id, true );
+		$result['built'] = array_merge( $result['built'], self::build( $id, true ) );
 
 		return $result;
 	}
@@ -552,6 +555,106 @@ class SB_Images_Rebuild {
 	 * rebuild everything, so existing thumbnails keep their names and are not
 	 * written over.
 	 */
+	/** Sizes that failed this request: attachment id => [ size name => why ]. */
+	private static $failed = [];
+
+	/** The name every working copy starts with (make_sizes()). */
+	const WORK = 'sb-images-work-';
+
+	/** One of make_sizes()' working copies, or a file the editor made from one. */
+	public static function is_work_file( $path ) {
+		return strpos( basename( (string) $path ), self::WORK ) === 0;
+	}
+
+	/**
+	 * Working copies a request left behind when it died part way (a timeout, or
+	 * running out of memory), deleted once they are an hour old, so one still
+	 * in use is never touched. Once a request, from make_sizes() (Sam, 10
+	 * November 2026). Returns how many went.
+	 */
+	public static function clear_stale_work() {
+		static $done = false;
+
+		if ( $done ) {
+			return 0;
+		}
+
+		$done = true;
+		$base = trailingslashit( wp_upload_dir( null, false )['basedir'] );
+		$gone = 0;
+
+		foreach ( array_merge( (array) glob( $base . self::WORK . '*' ), (array) glob( $base . '[0-9][0-9][0-9][0-9]/[0-9][0-9]/' . self::WORK . '*' ) ) as $file ) {
+			if ( is_file( $file ) && (int) filemtime( $file ) < time() - HOUR_IN_SECONDS && @unlink( $file ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions
+				$gone++;
+			}
+		}
+
+		return $gone;
+	}
+
+	/** Why a size failed, for Build's summary and the log (Sam, 10 November 2026). */
+	private static function why( $code ) {
+		$why = [
+			'empty'      => __( 'the image editor wrote empty files', 'sb-tweaks' ),
+			'unreadable' => __( 'the image editor wrote files that are not readable images', 'sb-tweaks' ),
+			'size'       => __( 'the image editor wrote files at the wrong size', 'sb-tweaks' ),
+			'none'       => __( 'the image editor did not make it', 'sb-tweaks' ),
+			'copy'       => __( 'the original could not be copied to work from', 'sb-tweaks' ),
+			'move'       => __( 'the new file could not be put in place', 'sb-tweaks' ),
+		];
+
+		return $why[ $code ] ?? (string) $code;
+	}
+
+	private static function fail( $id, $name, $code ) {
+		self::$failed[ (int) $id ][ $name ] = self::why( $code );
+	}
+
+	/** The sizes that failed for $id this request: name => why. */
+	public static function failed( $id ) {
+		return self::$failed[ (int) $id ] ?? [];
+	}
+
+	/** "3 sizes failed on x.avif: the image editor wrote empty files", or '' when none failed. */
+	public static function failure_line( $id ) {
+		$failed = self::failed( $id );
+
+		if ( ! $failed ) {
+			return '';
+		}
+
+		$count = count( $failed );
+
+		return sprintf(
+			/* translators: 1: number of sizes, 2: file name, 3: why */
+			_n( '%1$s size failed on %2$s: %3$s', '%1$s sizes failed on %2$s: %3$s', $count, 'sb-tweaks' ),
+			number_format_i18n( $count ),
+			basename( (string) get_attached_file( $id ) ),
+			implode( '; ', array_unique( array_values( $failed ) ) )
+		);
+	}
+
+	/**
+	 * Why a made file can't be kept: 'empty', 'unreadable' or 'size', or ''
+	 * when it is a readable image at $width x $height.
+	 */
+	public static function bad_file( $path, $width, $height ) {
+		clearstatcache( true, $path );
+
+		if ( ! is_file( $path ) || (int) filesize( $path ) < 1 ) {
+			return 'empty';
+		}
+
+		// wp_getimagesize() reads AVIF on PHP older than 8.2 too.
+		$info = function_exists( 'wp_getimagesize' ) ? wp_getimagesize( $path ) : @getimagesize( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+
+		if ( ! is_array( $info ) || empty( $info[0] ) ) {
+			return 'unreadable';
+		}
+
+		return ( (int) $info[0] === (int) $width && (int) $info[1] === (int) $height ) ? '' : 'size';
+	}
+
 	/**
 	 * Make a set of sizes from one image, decoding it once.
 	 *
@@ -560,71 +663,178 @@ class SB_Images_Rebuild {
 	 * rebuild. multi_resize() works from the one decoded copy, and on both GD and
 	 * Imagick makes each size from the original pixels, not from the last size.
 	 *
-	 * It names files after the file it loaded, and the attached file can be the
-	 * -scaled one while the thumbnails are named from the original, so each made
-	 * file is moved to the base name the rest of the set uses, replacing what
-	 * was there. Returns name => metadata entry for the sizes that were made.
+	 * Never keeps or records a bad file, and never destroys a good one (Sam, 10
+	 * November 2026). On simplystyleco.com.au a broken AVIF encoder wrote empty
+	 * files for every size, and because the editor names files after the file it
+	 * opened and writes over whatever is there, it emptied the image's working
+	 * 300x300 and 600x600 too. So the editor works from a copy under a name of
+	 * its own (sb-images-work-...), and nothing it writes can land on a file the
+	 * image already has. Each file it makes is checked (bad_file(): there, not
+	 * empty, and a readable image at the size it says), and only a good one is
+	 * moved to the base name the rest of the set uses. A good file already there
+	 * stays, unless $replace (a rebuild) asks for it to be replaced, and then
+	 * only by a good one. A size that fails is left out and noted with why
+	 * (failed(), failure_line()). The copy and anything left under its name are
+	 * deleted at the end.
+	 *
+	 * Returns name => metadata entry for the sizes that were made.
 	 */
-	private static function make_sizes( $id, $file, array $meta, array $specs ) {
+	private static function make_sizes( $id, $file, array $meta, array $specs, $replace = false ) {
 		$made = [];
 
 		if ( ! $specs ) {
 			return $made;
 		}
 
-		$editor = wp_get_image_editor( $file );
-
-		if ( is_wp_error( $editor ) ) {
-			return $made;
-		}
-
-		$results = $editor->multi_resize( $specs );
-
-		if ( ! is_array( $results ) ) {
-			return $made;
-		}
-
 		$folder = trailingslashit( dirname( $file ) );
 		$base   = self::base_name( $id, $meta );
+		$ext    = pathinfo( $file, PATHINFO_EXTENSION );
+		self::clear_stale_work();
 
-		foreach ( $results as $name => $entry ) {
-			if ( is_wp_error( $entry ) || empty( $entry['file'] ) ) {
+		$work   = $folder . wp_unique_filename( $folder, self::WORK . strtolower( wp_generate_password( 8, false ) ) . ( $ext !== '' ? '.' . $ext : '' ) );
+		$stem   = pathinfo( $work, PATHINFO_FILENAME );
+
+		if ( ! @copy( $file, $work ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+			foreach ( array_keys( $specs ) as $name ) {
+				self::fail( $id, $name, 'copy' );
+			}
+
+			self::clear_work( $folder, $stem );
+
+			return $made;
+		}
+
+		$editor  = wp_get_image_editor( $work );
+		$results = is_wp_error( $editor ) ? $editor : $editor->multi_resize( $specs );
+
+		if ( is_wp_error( $results ) || ! is_array( $results ) ) {
+			foreach ( array_keys( $specs ) as $name ) {
+				self::fail( $id, $name, is_wp_error( $results ) ? $results->get_error_message() : 'none' );
+			}
+
+			self::clear_work( $folder, $stem );
+
+			return $made;
+		}
+
+		$real  = self::dimensions( $id, $meta );
+		$moved = []; // File the editor made => the name it went to. Two sizes of the same dimensions share one.
+
+		foreach ( $specs as $name => $spec ) {
+			$entry = $results[ $name ] ?? null;
+
+			if ( ! is_array( $entry ) || empty( $entry['file'] ) ) {
+				$dims = image_resize_dimensions( (int) $real[0], (int) $real[1], (int) $spec['width'], (int) $spec['height'], ! empty( $spec['crop'] ) );
+
+				// Nothing to make: the original is no bigger than the size. Not a failure.
+				if ( ! $dims ) {
+					continue;
+				}
+
+				// multi_resize() drops the editor's error, but a broken encoder leaves
+				// its file behind, often empty (Imagick's AVIF on the hub): say what it wrote.
+				$left = $folder . $stem . '-' . (int) $dims[4] . 'x' . (int) $dims[5] . ( $ext !== '' ? '.' . $ext : '' );
+
+				if ( is_wp_error( $entry ) ) {
+					self::fail( $id, $name, $entry->get_error_message() );
+				} elseif ( is_file( $left ) ) {
+					self::fail( $id, $name, self::bad_file( $left, (int) $dims[4], (int) $dims[5] ) ?: 'none' );
+				} else {
+					self::fail( $id, $name, 'none' );
+				}
+
 				continue;
 			}
 
-			$extension = pathinfo( $entry['file'], PATHINFO_EXTENSION );
-			$wanted    = $base . '-' . (int) $entry['width'] . 'x' . (int) $entry['height'] . '.' . $extension;
+			$width  = (int) $entry['width'];
+			$height = (int) $entry['height'];
 
-			// Two sizes with the same dimensions share one file: thumbnail and
-			// woocommerce_thumbnail are both 300 x 300 cropped. The first one moves
-			// it, so the second finds its source already gone and must point at
-			// where it went, or it records a file that is not there.
-			if ( $entry['file'] !== $wanted ) {
-				$source = $folder . $entry['file'];
-				$target = $folder . $wanted;
+			if ( ! isset( $moved[ $entry['file'] ] ) ) {
+				$wanted = $base . '-' . $width . 'x' . $height . '.' . pathinfo( $entry['file'], PATHINFO_EXTENSION );
+				$why    = self::bad_file( $folder . $entry['file'], $width, $height );
 
-				if ( file_exists( $source ) ) {
-					if ( file_exists( $target ) ) {
-						wp_delete_file( $target );
-					}
+				if ( $why !== '' ) {
+					self::fail( $id, $name, $why );
 
-					if ( @rename( $source, $target ) ) {
-						$entry['file'] = $wanted;
-					}
-				} elseif ( file_exists( $target ) ) {
-					$entry['file'] = $wanted;
+					continue;
 				}
+
+				$had = is_file( $folder . $wanted );
+				$put = $replace || self::bad_file( $folder . $wanted, $width, $height ) !== '';
+
+				if ( $put && ! @rename( $folder . $entry['file'], $folder . $wanted ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+					self::fail( $id, $name, 'move' );
+
+					continue;
+				}
+
+				// An optimiser's WebP or AVIF of the file just replaced shows the old one.
+				if ( $put && $had ) {
+					self::refresh_copies( $folder . $wanted, $width, $height );
+				}
+
+				$moved[ $entry['file'] ] = $wanted;
 			}
 
 			$made[ $name ] = [
-				'file'      => $entry['file'],
-				'width'     => (int) $entry['width'],
-				'height'    => (int) $entry['height'],
+				'file'      => $moved[ $entry['file'] ],
+				'width'     => $width,
+				'height'    => $height,
 				'mime-type' => $entry['mime-type'],
 			];
 		}
 
+		self::clear_work( $folder, $stem );
+
 		return $made;
+	}
+
+	/**
+	 * Remake the WebP and AVIF copies an optimiser wrote for a size file that
+	 * has just been replaced.
+	 *
+	 * WPvivid, EWWW and the like write photo-480x320.jpg.webp beside each size,
+	 * and the server hands that to any browser that takes WebP. A forced Rebuild
+	 * replaced the JPG and left the copy, so most visitors kept seeing the old
+	 * picture (found on simplystyleco.com.au, 10 November 2026, where asking for
+	 * a .jpg returns image/webp). Each copy that exists is made again from the
+	 * new file, checked like any size, then moved over the old one. Deleting it
+	 * instead could leave the optimiser sure it was done, or a rewrite rule
+	 * pointing at nothing; remaking it keeps the file there either way. When
+	 * the new copy can't be made or doesn't check out, the old one stays.
+	 */
+	private static function refresh_copies( $path, $width, $height ) {
+		foreach ( array_slice( self::copies( $path ), 1 ) as $copy ) {
+			if ( ! is_file( $copy ) ) {
+				continue;
+			}
+
+			$type   = substr( $copy, -5 ) === '.avif' ? 'avif' : 'webp';
+			$editor = wp_get_image_editor( $path, [ 'mime_type' => 'image/' . $type ] );
+
+			if ( is_wp_error( $editor ) || ! $editor->supports_mime_type( 'image/' . $type ) ) {
+				continue;
+			}
+
+			$temp  = trailingslashit( dirname( $copy ) ) . self::WORK . strtolower( wp_generate_password( 8, false ) ) . '.' . $type;
+			$saved = $editor->save( $temp, 'image/' . $type );
+			$made  = is_array( $saved ) && ! empty( $saved['path'] ) ? $saved['path'] : $temp;
+
+			if ( is_wp_error( $saved ) || self::bad_file( $made, $width, $height ) !== '' || ! @rename( $made, $copy ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+				if ( is_file( $made ) ) {
+					@unlink( $made ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions
+				}
+			}
+		}
+	}
+
+	/** The working copy, and anything the editor left under its name. */
+	private static function clear_work( $folder, $stem ) {
+		foreach ( (array) glob( $folder . $stem . '*' ) as $leftover ) {
+			if ( is_file( $leftover ) ) {
+				@unlink( $leftover ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions
+			}
+		}
 	}
 
 	public static function build( $id, $all = false, ?array $only = null ) {
@@ -1136,13 +1346,30 @@ class SB_Images_Rebuild {
 			$specs[ $name ] = [ 'width' => (int) $spec['width'], 'height' => (int) $spec['height'], 'crop' => (bool) $spec['crop'] ];
 		}
 
-		foreach ( self::make_sizes( $id, $file, $meta, $specs ) as $name => $entry ) {
+		// Replacing is the point here, but only with a file that checks out.
+		$old = [];
+
+		foreach ( self::make_sizes( $id, $file, $meta, $specs, true ) as $name => $entry ) {
+			$was = (string) ( $meta['sizes'][ $name ]['file'] ?? '' );
+
+			if ( $was !== '' && $was !== $entry['file'] ) {
+				$old[] = $was;
+			}
+
 			$meta['sizes'][ $name ] = $entry;
 			$done[]                 = $name;
 		}
 
 		if ( $done ) {
 			wp_update_attachment_metadata( $id, $meta );
+
+			// A size that came out under another name leaves its old file behind:
+			// cleared, unless something still uses it.
+			foreach ( array_unique( $old ) as $was ) {
+				if ( ! self::file_has_other_owner( $id, $meta, $was ) ) {
+					self::delete_file( self::size_path( dirname( $file ), $was ) );
+				}
+			}
 		}
 
 		return $done;
