@@ -2,7 +2,8 @@
  * Zoom controls on the native gallery and image blocks.
  *
  * Adds two attributes to core/gallery and core/image and a Zoom sidebar panel:
- * a toggle and the size the popup opens. The size on the page is each block's
+ * a toggle, the size the popup opens and a Lightbox ID (sbskZoomGroup: images
+ * with the same ID page through together). The size on the page is each block's
  * own Resolution setting. An image inside a gallery shows no panel, since the
  * gallery's setting covers all its images. The size list is handed over by
  * SB_Images_Zoom::editor_assets().
@@ -17,6 +18,7 @@
 	var PanelBody = wp.components.PanelBody;
 	var ToggleControl = wp.components.ToggleControl;
 	var SelectControl = wp.components.SelectControl;
+	var TextControl = wp.components.TextControl;
 	var useSelect = wp.data.useSelect;
 	var __ = wp.i18n.__;
 	var blocks = [ 'core/gallery', 'core/image' ];
@@ -28,7 +30,8 @@
 
 		settings.attributes = Object.assign( {}, settings.attributes, {
 			sbskZoom: { type: 'boolean', default: false },
-			sbskZoomSize: { type: 'string', default: 'full' }
+			sbskZoomSize: { type: 'string', default: 'full' },
+			sbskZoomGroup: { type: 'string', default: '' }
 		} );
 
 		return settings;
@@ -42,6 +45,11 @@
 		} );
 
 		return list;
+	}
+
+	/** A Lightbox ID while it's typed: lower case letters, numbers and hyphens (SB_Images_Zoom::group()). */
+	function slug( value ) {
+		return String( value || '' ).toLowerCase().replace( /[^a-z0-9-]+/g, '-' ).replace( /-+/g, '-' ).replace( /^-/, '' );
 	}
 
 	function Panel( props ) {
@@ -79,6 +87,22 @@
 				options: sizes(),
 				onChange: function ( value ) {
 					props.setAttributes( { sbskZoomSize: value } );
+				}
+			} ) );
+
+			// Lightbox ID (Sam, 10 November 2026). A gallery's covers all its images.
+			controls.push( el( TextControl, {
+				key: 'group',
+				label: __( 'Lightbox ID', 'sb-tweaks' ),
+				help: props.name === 'core/gallery'
+					? __( 'Images with the same ID page through together. Leave blank to keep this gallery\'s images together on their own.', 'sb-tweaks' )
+					: __( 'Images with the same ID page through together. Leave blank to group with every other image on the page that has no ID.', 'sb-tweaks' ),
+				value: attrs.sbskZoomGroup || '',
+				onChange: function ( value ) {
+					props.setAttributes( { sbskZoomGroup: slug( value ) } );
+				},
+				onBlur: function () {
+					props.setAttributes( { sbskZoomGroup: slug( attrs.sbskZoomGroup ).replace( /-$/, '' ) } );
 				}
 			} ) );
 		}

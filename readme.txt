@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.9
+Stable tag: 0.6.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.10 =
+* Image Management, Gutenberg image zoom: a Lightbox ID on image and gallery blocks. Images with the same ID page through together across the page. Standalone images with no ID now page through together as one lightbox; a gallery with no ID keeps its own. Give an image an ID of its own to open it alone.
 
 = 0.6.9 =
 * Email Signatures: company logos and small logos now use a fixed address in signatures, like headshots, so a new logo in Branding shows in signatures already sent. Signatures need copying again once to pick this up. A removed logo shows as nothing; a switched-off company shows no logos or images.

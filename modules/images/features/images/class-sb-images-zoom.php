@@ -12,8 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * panel, because the gallery's setting governs every image in it.
  *
  * On the front end each zoomable image carries data-sb-images-zoom with the popup
- * size URL, and a small lightbox opens it: arrows and arrow keys move through
- * the same gallery, Esc or a click outside closes, the caption comes along.
+ * size URL and data-sb-images-zoom-group with its Lightbox ID, and a small
+ * lightbox opens it: arrows and arrow keys move through its group, Esc or a
+ * click outside closes, the caption comes along.
+ *
+ * Lightbox ID (sbskZoomGroup, Sam, 10 November 2026), like Bricks' Lightbox ID:
+ * images with the same ID page through together, across blocks, in page order.
+ * Blank: every standalone image on the page with no ID is one group, and a
+ * gallery with no ID is a group of its own. A gallery's ID covers all its
+ * images. One image on its own: give it an ID nothing else has. Blocks saved
+ * before this have no ID, so they count as blank.
  * WordPress's own Expand on click always opens the full-size original, which
  * is the thing this exists to avoid.
  *
@@ -100,7 +108,8 @@ class SB_Images_Zoom {
 	 * alone, as is the whole block when nothing in it could be marked.
 	 */
 	public static function render( $content, array $attrs ) {
-		$zoom = self::valid_size( $attrs['sbskZoomSize'] ?? '' );
+		$zoom  = self::valid_size( $attrs['sbskZoomSize'] ?? '' );
+		$group = self::group( $attrs['sbskZoomGroup'] ?? '' );
 
 		$tags  = new WP_HTML_Tag_Processor( $content );
 		$found = false;
@@ -119,6 +128,7 @@ class SB_Images_Zoom {
 			}
 
 			$tags->set_attribute( 'data-sb-images-zoom', esc_url( $popup[0] ) );
+			$tags->set_attribute( 'data-sb-images-zoom-group', $group ); // '' is the default group.
 			$tags->add_class( 'sb-images-zoom__img' );
 
 			$found = true;
@@ -131,6 +141,16 @@ class SB_Images_Zoom {
 		self::front_assets();
 
 		return $tags->get_updated_html();
+	}
+
+	/**
+	 * A Lightbox ID as a simple slug: lower case letters, numbers and hyphens.
+	 * '' is the default group.
+	 */
+	public static function group( $id ) {
+		$id = preg_replace( '/[^a-z0-9-]+/', '-', strtolower( (string) $id ) );
+
+		return trim( (string) preg_replace( '/-+/', '-', $id ), '-' );
 	}
 
 	/** A size name that is really registered, or full. */

@@ -115,7 +115,8 @@ domain to sb-tweaks. The page wrapper class sbsk-images is sb-images-settings.
 
 Kept: the image-<width> size names, which every image's metadata holds, and
 the gallery and image blocks' zoom attributes, sbskZoom and sbskZoomSize,
-which posts have saved in their block markup.
+which posts have saved in their block markup. The Lightbox ID added later,
+sbskZoomGroup, keeps the same prefix to match.
 
 A page cached before the move still carries data-sbsk-zoom and Site Kit's
 gallery-zoom files, which no longer load, so clear the page cache on a site
@@ -522,3 +523,34 @@ Image Cleaner. is_attachment_size() lets Build make them whatever is ticked.
 They are never leftovers on the images that want them and never asked of any
 other image. The Sizes list shows each group (not the site icon's) as a fixed
 group with nothing to tick, and the media library's sizes panel lists them too.
+
+## Gutenberg zoom: Lightbox ID (November 2026)
+
+Sam, 10 November 2026, like Bricks' Lightbox ID.
+
+- The Zoom panel on core/image and core/gallery has a Lightbox ID text box
+  under Size in the popup, shown while Enable zoom is on (gallery-zoom-editor.js).
+  Saved as sbskZoomGroup, with the sbsk prefix of the other zoom attributes.
+  Typing keeps it to lower case letters, numbers and hyphens; SB_Images_Zoom::group()
+  does the same on render and trims hyphens from the ends.
+- Help text. Image blocks: "Images with the same ID page through together.
+  Leave blank to group with every other image on the page that has no ID."
+  Gallery blocks: "... Leave blank to keep this gallery's images together on
+  their own." An image inside a gallery still shows no panel: the gallery's ID
+  covers all its images.
+- render() puts data-sb-images-zoom-group on every zoom image ('' for none).
+  For a gallery the gallery's own render runs last, so its ID wins over any its
+  images had.
+- gallery-zoom.js, groupOf(): on a click, every img[data-sb-images-zoom] on the
+  page in page order, kept to the clicked image's group:
+  - an ID: every image with that ID, across blocks and galleries;
+  - no ID, outside a gallery: every standalone image with no ID (the page's
+    default group);
+  - no ID, inside a gallery (.wp-block-gallery): that gallery's images with no
+    ID, on their own (Sam: galleries stay separate unless given the same ID).
+  One image on its own: give it an ID nothing else has. Arrows, arrow keys,
+  Esc, click outside and captions are unchanged.
+- Blocks saved before this have no sbskZoomGroup, so they count as blank:
+  standalone zoom images already on live sites now page through together, as
+  intended. Galleries carry on as before. Pages in a page cache keep the old
+  markup until the cache is cleared.
