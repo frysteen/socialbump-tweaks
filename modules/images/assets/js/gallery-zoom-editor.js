@@ -94,9 +94,7 @@
 			controls.push( el( TextControl, {
 				key: 'group',
 				label: __( 'Lightbox ID', 'sb-tweaks' ),
-				help: props.name === 'core/gallery'
-					? __( 'Images with the same ID page through together. Leave blank to keep this gallery\'s images together on their own.', 'sb-tweaks' )
-					: __( 'Images with the same ID page through together. Leave blank to group with every other image on the page that has no ID.', 'sb-tweaks' ),
+				help: __( 'Images with the same ID page through together. Leave blank to group with every other image on the page that has no ID.', 'sb-tweaks' ),
 				value: attrs.sbskZoomGroup || '',
 				onChange: function ( value ) {
 					props.setAttributes( { sbskZoomGroup: slug( value ) } );

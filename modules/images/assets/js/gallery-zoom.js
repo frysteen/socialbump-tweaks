@@ -4,9 +4,9 @@
  * Any image carrying data-sb-images-zoom opens larger in an overlay when clicked.
  * The arrows and the left and right keys move through its group, in page order
  * (groupOf(), Sam, 10 November 2026): images with the same Lightbox ID
- * (data-sb-images-zoom-group) across the page; with none, the images of the
- * same gallery, or every standalone image with none. Esc or a click on the
- * dark area closes. Built once, reused.
+ * (data-sb-images-zoom-group) across the page, galleries included; with none,
+ * every image on the page with none, galleries' too (Sam, 10 November 2026).
+ * Esc or a click on the dark area closes. Built once, reused.
  */
 ( function () {
 	'use strict';
@@ -136,30 +136,17 @@
 		return img.getAttribute( 'data-sb-images-zoom-group' ) || '';
 	}
 
-	function galleryOf( img ) {
-		return img.closest ? img.closest( '.wp-block-gallery' ) : null;
-	}
-
 	/**
-	 * The images that page through with target: the same Lightbox ID anywhere on
-	 * the page; with none, the rest of its gallery's with none, or, outside a
-	 * gallery, every standalone image with none. In page order.
+	 * The images that page through with target: every one on the page with the
+	 * same Lightbox ID, or with none when it has none, galleries' included. In
+	 * page order.
 	 */
 	function groupOf( target ) {
 		var id = idOf( target );
-		var gallery = galleryOf( target );
 		var all = Array.prototype.slice.call( document.querySelectorAll( 'img[data-sb-images-zoom]' ) );
 
 		return all.filter( function ( img ) {
-			if ( idOf( img ) !== id ) {
-				return false;
-			}
-
-			if ( id !== '' ) {
-				return true;
-			}
-
-			return gallery ? galleryOf( img ) === gallery : ! galleryOf( img );
+			return idOf( img ) === id;
 		} );
 	}
 

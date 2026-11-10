@@ -533,24 +533,24 @@ Sam, 10 November 2026, like Bricks' Lightbox ID.
   Saved as sbskZoomGroup, with the sbsk prefix of the other zoom attributes.
   Typing keeps it to lower case letters, numbers and hyphens; SB_Images_Zoom::group()
   does the same on render and trims hyphens from the ends.
-- Help text. Image blocks: "Images with the same ID page through together.
-  Leave blank to group with every other image on the page that has no ID."
-  Gallery blocks: "... Leave blank to keep this gallery's images together on
-  their own." An image inside a gallery still shows no panel: the gallery's ID
-  covers all its images.
+- Help text, image and gallery blocks alike: "Images with the same ID page
+  through together. Leave blank to group with every other image on the page
+  that has no ID." An image inside a gallery still shows no panel: the
+  gallery's ID covers all its images.
 - render() puts data-sb-images-zoom-group on every zoom image ('' for none).
   For a gallery the gallery's own render runs last, so its ID wins over any its
   images had.
 - gallery-zoom.js, groupOf(): on a click, every img[data-sb-images-zoom] on the
   page in page order, kept to the clicked image's group:
   - an ID: every image with that ID, across blocks and galleries;
-  - no ID, outside a gallery: every standalone image with no ID (the page's
-    default group);
-  - no ID, inside a gallery (.wp-block-gallery): that gallery's images with no
-    ID, on their own (Sam: galleries stay separate unless given the same ID).
-  One image on its own: give it an ID nothing else has. Arrows, arrow keys,
+  - no ID: every image on the page with no ID, standalone and gallery images
+    alike (the page's default group).
+  One image or one gallery on its own: give it an ID nothing else has (Sam,
+  10 November 2026; briefly galleries with no ID kept to themselves, changed
+  the same day). Arrows, arrow keys,
   Esc, click outside and captions are unchanged.
 - Blocks saved before this have no sbskZoomGroup, so they count as blank:
   standalone zoom images already on live sites now page through together, as
-  intended. Galleries carry on as before. Pages in a page cache keep the old
+  intended, and so do galleries with no ID, which used to page through on
+  their own. Pages in a page cache keep the old
   markup until the cache is cleared.

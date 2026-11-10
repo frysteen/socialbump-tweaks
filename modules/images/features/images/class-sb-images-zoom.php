@@ -18,9 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Lightbox ID (sbskZoomGroup, Sam, 10 November 2026), like Bricks' Lightbox ID:
  * images with the same ID page through together, across blocks, in page order.
- * Blank: every standalone image on the page with no ID is one group, and a
- * gallery with no ID is a group of its own. A gallery's ID covers all its
- * images. One image on its own: give it an ID nothing else has. Blocks saved
+ * Blank: every image on the page with no ID is one group, galleries' images
+ * included. A gallery's ID covers all its images; give a gallery an ID of its
+ * own to keep it apart. One image on its own: give it an ID nothing else has. Blocks saved
  * before this have no ID, so they count as blank.
  * WordPress's own Expand on click always opens the full-size original, which
  * is the thing this exists to avoid.
