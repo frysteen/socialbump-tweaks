@@ -384,13 +384,13 @@ class SB_Images_Cleaner {
 			) . ' <a href="' . esc_url( SB_Images_Module::page_url( 'settings' ) ) . '">' . esc_html__( 'SB Image Settings', 'sb-tweaks' ) . '</a></p></div>';
 		}
 
-		// AVIF (SB_Images_Avif, Sam, 10 November 2026): GD makes it when Imagick's
-		// encoder is broken, or nothing here can.
+		// AVIF (SB_Images_Avif): only when nothing on the server can write it. GD
+		// taking over from a broken Imagick is silent.
 		if ( class_exists( 'SB_Images_Avif' ) ) {
 			$avif = SB_Images_Avif::label();
 
 			if ( $avif !== '' ) {
-				echo '<div class="notice ' . ( SB_Images_Avif::none() ? 'notice-warning' : 'notice-info' ) . ' inline"><p>' . esc_html( $avif ) . '</p></div>';
+				echo '<div class="notice ' . 'notice-warning' . ' inline"><p>' . esc_html( $avif ) . '</p></div>';
 			}
 		}
 

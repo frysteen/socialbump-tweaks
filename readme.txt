@@ -4,7 +4,7 @@ Tags: admin, tweaks, modules
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.6.12
+Stable tag: 0.6.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,9 @@ module that cannot run on a site hides itself.
 Modules are being moved across one at a time from the plugins they used to be.
 
 == Changelog ==
+
+= 0.6.13 =
+* Image Management: when GD makes AVIF images because ImageMagick can't, it now does so quietly. SB Image Cleaner no longer shows a notice about it.
 
 = 0.6.12 =
 * Image Management: on servers whose ImageMagick claims AVIF but can't write it, AVIF images are now made with GD (other formats stay with ImageMagick), and SB Image Cleaner says so. If neither can write AVIF, it says to convert AVIF uploads to JPG or WebP.

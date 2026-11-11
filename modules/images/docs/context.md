@@ -586,11 +586,12 @@ there for real.
   no to image/avif. WordPress then picks GD for AVIF and Imagick for
   everything else.
 - When neither can (none()), the editors are left alone.
-- SB Image Cleaner shows label() above the grid: an info notice "AVIF: GD
-  (Imagick's AVIF encoder is broken on this server, ...)", or a warning "This
-  server can't write AVIF images, so AVIF uploads won't get their sizes.
-  Convert them to JPG or WebP." Nothing shows when Imagick writes AVIF, or
-  doesn't claim it and GD does (WordPress's own choice anyway).
+- The switch to GD is silent: no notice (Sam, 11 November 2026: never tell a
+  client something is broken when it works; there was an info notice "AVIF:
+  GD ..." until then). SB Image Cleaner shows label() above the grid only
+  when nothing can write AVIF: a warning "This server can't write AVIF
+  images, so AVIF uploads won't get their sizes. Convert them to JPG or
+  WebP."
 
 ### Fix 2: Build never keeps or records a bad file, and never destroys a good one
 

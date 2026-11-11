@@ -94,15 +94,11 @@ class SB_Images_Avif {
 	}
 
 	/**
-	 * What SB Image Cleaner says about AVIF: '' when there's nothing to say
-	 * (Imagick writes it, or Imagick doesn't claim it and GD does, which is
-	 * WordPress's own choice anyway).
+	 * What SB Image Cleaner says about AVIF: only that it can't be made at all.
+	 * Switching to GD happens silently (Sam, 11 November 2026: never tell a
+	 * client something is broken when it works).
 	 */
 	public static function label() {
-		if ( self::use_gd() ) {
-			return __( 'AVIF: GD (Imagick\'s AVIF encoder is broken on this server, so AVIF images are made with GD and everything else still with Imagick).', 'sb-tweaks' );
-		}
-
 		if ( self::none() ) {
 			return __( 'This server can\'t write AVIF images, so AVIF uploads won\'t get their sizes. Convert them to JPG or WebP.', 'sb-tweaks' );
 		}
