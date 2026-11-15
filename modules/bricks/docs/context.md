@@ -12,7 +12,7 @@ the detail on each feature. changes.md holds its 23 release notes, 0.1.0 to
 
 ## What it does
 
-Thirteen features in three groups, each with its own switch:
+Fourteen features in three groups, each with its own switch:
 
 - Bricks Elements: Image Carousel (sb-bricks-image-carousel), an SEO friendly
   Splide carousel with real img tags, ACF gallery support, breakpoints,
@@ -21,8 +21,10 @@ Thirteen features in three groups, each with its own switch:
   ACF Relationship, ACF Repeater, Bricks Content, Post Type, WooCommerce
   Archive Display.
 - Extras: ACF Loop Sorting (repeater and relationship loops, each with its own
-  setting), ACF Gallery Loop, AT Stylesheet Live Reload, Clean Builder Panels,
-  Default To WP Editor, Gutenberg Block Styles, Hide Unpublished ACF Posts.
+  setting), ACF Gallery Loop, AT Stylesheet Live Reload, Bricks Variables in
+  Admin (colour palette and global variables, each with its own setting),
+  Clean Builder Panels, Default To WP Editor, Gutenberg Block Styles, Hide
+  Unpublished ACF Posts.
 
 The module requires Bricks (the framework checks the active theme, because
 themes load after plugins and BRICKS_VERSION is not defined while modules
@@ -244,3 +246,27 @@ boots and registers both hooks; flag() set the cookie for Custom CSS (devMode
 1) and not for Gutenberg Blocks (devMode 0), an unchanged item, a removed item
 or an AT custom sheet; the printed script passes node --check. Not yet seen
 working in a browser from the plugin.
+
+## Bricks Variables in Admin (November 2026)
+
+features/admin-variables, an Extras tweak, off by default. Bricks writes its
+colour palette and global variables to uploads/bricks/css/
+(color-palettes.min.css, global-variables.min.css) and loads them only on the
+front end, so var(--primary), var(--warning-l-9), var(--text-xs) and the like
+are undefined in wp-admin, and Sam's admin CSS (click-to-copy styles) can't
+use them.
+
+SB_Bricks_Admin_Variables::enqueue() on admin_enqueue_scripts enqueues each
+file whose card switch is on (Colour palette: palettes, Global variables:
+variables, both on by default), handles sb-bricks-color-palettes and
+sb-bricks-global-variables. Path and URL come from wp_upload_dir() basedir and
+baseurl plus /bricks/css/. A file is skipped when it is missing or empty, and
+its version is filemtime(), so the browser picks up a file Bricks has just
+regenerated. Admin only: the front end and the builder (which runs on the
+front end) are untouched. Came from Sam's working snippet.
+
+Checked on the hub (15 November 2026): the feature discovers, is off, and its
+card shows on the Extras page with both switches. Called directly, enqueue()
+queued global-variables.min.css with its filemtime as the version and skipped
+color-palettes.min.css, which is 0 bytes on the hub. Not yet seen switched on
+in a browser.
